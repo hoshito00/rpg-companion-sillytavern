@@ -1572,26 +1572,17 @@ export function updateFabWidgets() {
  * @returns {string} CSS color value
  */
 function getStatColor(value) {
-    const lowColor = extensionSettings.statBarColorLow || '#cc3333';
-    const lowOpacity = extensionSettings.statBarColorLowOpacity ?? 100;
-    const highColor = extensionSettings.statBarColorHigh || '#33cc66';
-    const highOpacity = extensionSettings.statBarColorHighOpacity ?? 100;
-
-    // Simple linear interpolation between low and high colors
-    const percent = Math.min(100, Math.max(0, value)) / 100;
-
-    // Parse colors
-    const lowRGB = hexToRgb(lowColor);
-    const highRGB = hexToRgb(highColor);
-
-    if (!lowRGB || !highRGB) return value > 50 ? hexToRgba(highColor, highOpacity) : hexToRgba(lowColor, lowOpacity);
-
-    const r = Math.round(lowRGB.r + (highRGB.r - lowRGB.r) * percent);
-    const g = Math.round(lowRGB.g + (highRGB.g - lowRGB.g) * percent);
-    const b = Math.round(lowRGB.b + (highRGB.b - lowRGB.b) * percent);
-    const a = (lowOpacity + (highOpacity - lowOpacity) * percent) / 100;
-
-    return `rgba(${r}, ${g}, ${b}, ${a})`;
+    // Threshold-based coloring for widget stats
+    // < 25% = red, 25-59% = orange, >= 60% = green
+    const percent = Math.min(100, Math.max(0, value));
+    
+    if (percent < 25) {
+        return 'rgba(220, 60, 60, 0.9)';  // Red
+    } else if (percent < 60) {
+        return 'rgba(240, 180, 60, 0.9)'; // Orange
+    } else {
+        return 'rgba(100, 200, 100, 0.9)'; // Green
+    }
 }
 
 /**
@@ -1639,4 +1630,3 @@ export function setFabLoadingState(loading) {
         $fab.removeClass('rpg-fab-loading');
     }
 }
-

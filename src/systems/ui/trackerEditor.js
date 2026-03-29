@@ -6,6 +6,7 @@ import { i18n } from '../../core/i18n.js';
 import { extensionSettings } from '../../core/state.js';
 import {
     saveSettings,
+    saveStatSheetData,
     getPresets,
     getPreset,
     getActivePresetId,
@@ -51,7 +52,7 @@ export function initTrackerEditor() {
     }
 
     // Tab switching
-    $(document).on('click', '.rpg-editor-tab', function () {
+    $(document).on('click', '.rpg-editor-tab', function() {
         $('.rpg-editor-tab').removeClass('active');
         $(this).addClass('active');
 
@@ -61,51 +62,51 @@ export function initTrackerEditor() {
     });
 
     // Save button
-    $(document).on('click', '#rpg-editor-save', function () {
+    $(document).on('click', '#rpg-editor-save', function() {
         applyTrackerConfig();
         closeTrackerEditor();
     });
 
     // Cancel button
-    $(document).on('click', '#rpg-editor-cancel', function () {
+    $(document).on('click', '#rpg-editor-cancel', function() {
         closeTrackerEditor();
     });
 
     // Close X button
-    $(document).on('click', '#rpg-close-tracker-editor', function () {
+    $(document).on('click', '#rpg-close-tracker-editor', function() {
         closeTrackerEditor();
     });
 
     // Reset button
-    $(document).on('click', '#rpg-editor-reset', function () {
+    $(document).on('click', '#rpg-editor-reset', function() {
         resetToDefaults();
         renderEditorUI();
     });
 
     // Close on background click
-    $(document).on('click', '#rpg-tracker-editor-popup', function (e) {
+    $(document).on('click', '#rpg-tracker-editor-popup', function(e) {
         if (e.target.id === 'rpg-tracker-editor-popup') {
             closeTrackerEditor();
         }
     });
 
     // Open button
-    $(document).on('click', '#rpg-open-tracker-editor', function () {
+    $(document).on('click', '#rpg-open-tracker-editor', function() {
         openTrackerEditor();
     });
 
     // Export button
-    $(document).on('click', '#rpg-editor-export', function () {
+    $(document).on('click', '#rpg-editor-export', function() {
         exportTrackerPreset();
     });
 
     // Import button
-    $(document).on('click', '#rpg-editor-import', function () {
+    $(document).on('click', '#rpg-editor-import', function() {
         importTrackerPreset();
     });
 
     // Preset select change
-    $(document).on('change', '#rpg-preset-select', function () {
+    $(document).on('change', '#rpg-preset-select', function() {
         const presetId = $(this).val();
         if (presetId && presetId !== getActivePresetId()) {
             // Check if the current character had an association (either original or pending)
@@ -139,7 +140,7 @@ export function initTrackerEditor() {
     });
 
     // New preset button
-    $(document).on('click', '#rpg-preset-new', function () {
+    $(document).on('click', '#rpg-preset-new', function() {
         const name = prompt('Enter a name for the new preset:');
         if (name && name.trim()) {
             const newId = createPreset(name.trim());
@@ -150,7 +151,7 @@ export function initTrackerEditor() {
     });
 
     // Set as default preset button
-    $(document).on('click', '#rpg-preset-default', function () {
+    $(document).on('click', '#rpg-preset-default', function() {
         const currentPresetId = getActivePresetId();
         if (currentPresetId) {
             setDefaultPreset(currentPresetId);
@@ -161,7 +162,7 @@ export function initTrackerEditor() {
     });
 
     // Delete preset button
-    $(document).on('click', '#rpg-preset-delete', function () {
+    $(document).on('click', '#rpg-preset-delete', function() {
         const currentPresetId = getActivePresetId();
         const presets = getPresets();
         if (Object.keys(presets).length <= 1) {
@@ -180,7 +181,7 @@ export function initTrackerEditor() {
     });
 
     // Associate preset checkbox
-    $(document).on('change', '#rpg-preset-associate', function () {
+    $(document).on('change', '#rpg-preset-associate', function() {
         const activePresetId = getActivePresetId();
         const preset = getPreset(activePresetId);
         const entityName = getCurrentEntityName();
@@ -334,20 +335,19 @@ function resetToDefaults() {
     extensionSettings.trackerConfig = {
         userStats: {
             customStats: [
-                { id: 'health', name: i18n.getTranslation('stats.health'), enabled: true, persistInHistory: false },
-                { id: 'satiety', name: i18n.getTranslation('stats.satiety'), enabled: true, persistInHistory: false },
-                { id: 'energy', name: i18n.getTranslation('stats.energy'), enabled: true, persistInHistory: false },
-                { id: 'hygiene', name: i18n.getTranslation('stats.hygiene'), enabled: true, persistInHistory: false },
-                { id: 'arousal', name: i18n.getTranslation('stats.arousal'), enabled: true, persistInHistory: false }
+                { id: 'health',  name: 'Health',  enabled: true, displayMode: 'percentage', maxValue: 100, scaleWithAttribute: '', scaleMultiplier: 1, scaleBonus: 0, persistInHistory: false },
+                { id: 'satiety', name: 'Satiety', enabled: true, displayMode: 'percentage', maxValue: 100, scaleWithAttribute: '', scaleMultiplier: 1, scaleBonus: 0, persistInHistory: false },
+                { id: 'energy',  name: 'Energy',  enabled: true, displayMode: 'percentage', maxValue: 100, scaleWithAttribute: '', scaleMultiplier: 1, scaleBonus: 0, persistInHistory: false },
+                { id: 'hygiene', name: 'Hygiene', enabled: true, displayMode: 'percentage', maxValue: 100, scaleWithAttribute: '', scaleMultiplier: 1, scaleBonus: 0, persistInHistory: false }
             ],
             showRPGAttributes: true,
             rpgAttributes: [
-                { id: 'str', name: i18n.getTranslation('stats.str'), enabled: true, persistInHistory: false },
-                { id: 'dex', name: i18n.getTranslation('stats.dex'), enabled: true, persistInHistory: false },
-                { id: 'con', name: i18n.getTranslation('stats.con'), enabled: true, persistInHistory: false },
-                { id: 'int', name: i18n.getTranslation('stats.int'), enabled: true, persistInHistory: false },
-                { id: 'wis', name: i18n.getTranslation('stats.wis'), enabled: true, persistInHistory: false },
-                { id: 'cha', name: i18n.getTranslation('stats.cha'), enabled: true, persistInHistory: false }
+                { id: 'str', name: 'STR', enabled: true, persistInHistory: false },
+                { id: 'dex', name: 'DEX', enabled: true, persistInHistory: false },
+                { id: 'con', name: 'CON', enabled: true, persistInHistory: false },
+                { id: 'int', name: 'INT', enabled: true, persistInHistory: false },
+                { id: 'wis', name: 'WIS', enabled: true, persistInHistory: false },
+                { id: 'cha', name: 'CHA', enabled: true, persistInHistory: false }
             ],
             statusSection: {
                 enabled: true,
@@ -408,8 +408,8 @@ function resetToDefaults() {
             characterStats: {
                 enabled: false,
                 customStats: [
-                    { id: 'health', name: i18n.getTranslation('stats.health'), enabled: true, colorLow: '#ff4444', colorHigh: '#44ff44' },
-                    { id: 'energy', name: i18n.getTranslation('stats.energy'), enabled: true, colorLow: '#ffaa00', colorHigh: '#44ffff' }
+                    { id: 'health', name: 'Health', enabled: true, colorLow: '#ff4444', colorHigh: '#44ff44' },
+                    { id: 'energy', name: 'Energy', enabled: true, colorLow: '#ffaa00', colorHigh: '#44ffff' }
                 ]
             }
         }
@@ -525,7 +525,12 @@ function migrateTrackerPreset(config) {
         if (migrated.userStats.customStats) {
             migrated.userStats.customStats = migrated.userStats.customStats.map(stat => ({
                 ...stat,
-                persistInHistory: stat.persistInHistory ?? false
+                displayMode:        stat.displayMode        ?? 'percentage',
+                maxValue:           stat.maxValue           ?? 100,
+                scaleWithAttribute: stat.scaleWithAttribute ?? '',
+                scaleMultiplier:    stat.scaleMultiplier    ?? 1,
+                scaleBonus:         stat.scaleBonus         ?? 0,
+                persistInHistory:   stat.persistInHistory   ?? false
             }));
         }
 
@@ -718,6 +723,7 @@ function renderEditorUI() {
     renderInfoBoxTab();
     renderPresentCharactersTab();
     renderHistoryPersistenceTab();
+    renderStatSheetTab();
 }
 
 /**
@@ -730,27 +736,66 @@ function renderUserStatsTab() {
     // Custom Stats section
     html += `<h4><i class="fa-solid fa-heart-pulse"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.customStatsTitle')}</h4>`;
 
-    // Stats display mode toggle
-    const statsDisplayMode = config.statsDisplayMode || 'percentage';
-    html += '<div class="rpg-editor-toggle-row">';
-    html += '<label>Display Mode:</label>';
-    html += '<div class="rpg-radio-group">';
-    html += `<label><input type="radio" name="stats-display-mode" value="percentage" ${statsDisplayMode === 'percentage' ? 'checked' : ''}> Percentage</label>`;
-    html += `<label><input type="radio" name="stats-display-mode" value="number" ${statsDisplayMode === 'number' ? 'checked' : ''}> Number</label>`;
-    html += '</div>';
-    html += '</div>';
-
     html += '<div class="rpg-editor-stats-list" id="rpg-editor-stats-list">';
 
     config.customStats.forEach((stat, index) => {
-        const showMaxValue = statsDisplayMode === 'number';
+        const statDisplayMode = stat.displayMode || 'percentage'; // Per-stat display mode
         const maxValue = stat.maxValue || 100;
+        const scaleAttr = stat.scaleWithAttribute || '';
+        const scaleMultiplier = stat.scaleMultiplier || 1;
+        const scaleBonus = stat.scaleBonus || 0;
+        
+        // Get available stat sheet attributes for scaling dropdown
+        const statSheetAttrs = extensionSettings.statSheet?.attributes?.filter(a => a.enabled) || [];
+        const attrOptions = statSheetAttrs.map(a => 
+            `<option value="${a.id}" ${scaleAttr === a.id ? 'selected' : ''}>${a.name}</option>`
+        ).join('');
+        
         html += `
-            <div class="rpg-editor-stat-item" data-index="${index}">
-                <input type="checkbox" ${stat.enabled ? 'checked' : ''} class="rpg-stat-toggle" data-index="${index}">
-                <input type="text" value="${stat.name}" class="rpg-stat-name" data-index="${index}" placeholder="Stat Name">
-                <input type="number" value="${maxValue}" class="rpg-stat-max ${showMaxValue ? '' : 'rpg-hidden'}" data-index="${index}" placeholder="Max" min="1" step="1" title="Maximum value">
-                <button class="rpg-stat-remove" data-index="${index}" title="Remove stat"><i class="fa-solid fa-trash"></i></button>
+            <div class="rpg-editor-stat-item-expanded" data-index="${index}" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 12px; margin-bottom: 10px;">
+                <!-- Top row: enable, name, remove -->
+                <div class="rpg-stat-item-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                    <input type="checkbox" ${stat.enabled ? 'checked' : ''} class="rpg-stat-toggle" data-index="${index}" title="Enable/disable" style="flex-shrink: 0;">
+                    <input type="text" value="${stat.name}" class="rpg-stat-name" data-index="${index}" placeholder="Stat Name" style="flex: 1; padding: 6px 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: inherit;">
+                    <button class="rpg-stat-remove" data-index="${index}" title="Remove stat" style="flex-shrink: 0; padding: 4px 8px; background: rgba(200,60,60,0.2); border: 1px solid rgba(200,60,60,0.3); border-radius: 4px; cursor: pointer;"><i class="fa-solid fa-trash"></i></button>
+                </div>
+                
+                <!-- Expanded controls row -->
+                <div class="rpg-stat-item-controls" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; font-size: 0.9em;">
+                    <!-- Display mode -->
+                    <div class="rpg-stat-control-group" style="display: flex; flex-direction: column; gap: 4px;">
+                        <label class="rpg-control-label" style="opacity: 0.7; font-size: 0.85em; font-weight: 600;">Display Mode:</label>
+                        <select class="rpg-stat-display-mode rpg-input" data-index="${index}" style="padding: 4px 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: inherit;">
+                            <option value="percentage" ${statDisplayMode === 'percentage' ? 'selected' : ''}>Percentage (0-100%)</option>
+                            <option value="number" ${statDisplayMode === 'number' ? 'selected' : ''}>Number (0/max)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Max value (shown when number mode AND not scaling) -->
+                    <div class="rpg-stat-control-group ${statDisplayMode === 'number' && !scaleAttr ? '' : 'rpg-hidden'}" data-control="max-value" style="display: flex; flex-direction: column; gap: 4px;">
+                        <label class="rpg-control-label" style="opacity: 0.7; font-size: 0.85em; font-weight: 600;">Max Value:</label>
+                        <input type="number" value="${maxValue}" class="rpg-stat-max rpg-input" data-index="${index}" placeholder="100" min="1" step="1" style="padding: 4px 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: inherit; width: 80px;">
+                    </div>
+                    
+                    <!-- Stat sheet scaling -->
+                    <div class="rpg-stat-control-group" style="display: flex; flex-direction: column; gap: 4px;">
+                        <label class="rpg-control-label" style="opacity: 0.7; font-size: 0.85em; font-weight: 600;">Scale with Attribute:</label>
+                        <select class="rpg-stat-scale-attr rpg-input" data-index="${index}" style="padding: 4px 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: inherit;">
+                            <option value="">None (manual)</option>
+                            ${attrOptions}
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Scaling formula (shown when attribute selected) -->
+                <div class="rpg-stat-scaling-formula ${scaleAttr ? '' : 'rpg-hidden'}" data-control="scaling" style="margin-top: 8px; padding: 8px; background: rgba(100,150,200,0.1); border: 1px solid rgba(100,150,200,0.2); border-radius: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 0.9em;">
+                    <span class="rpg-formula-part" style="opacity: 0.8; font-weight: 600;">Max =</span>
+                    <span class="rpg-formula-part" style="opacity: 0.7;">Attribute ×</span>
+                    <input type="number" value="${scaleMultiplier}" class="rpg-stat-scale-mult rpg-input" data-index="${index}" step="0.1" placeholder="1" title="Multiplier" style="width: 60px; padding: 4px 6px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); border-radius: 3px; color: inherit;">
+                    <span class="rpg-formula-part" style="opacity: 0.7;">+</span>
+                    <input type="number" value="${scaleBonus}" class="rpg-stat-scale-bonus rpg-input" data-index="${index}" step="1" placeholder="0" title="Flat bonus" style="width: 60px; padding: 4px 6px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); border-radius: 3px; color: inherit;">
+                    <span class="rpg-formula-part" style="opacity: 0.6; font-size: 0.85em; font-style: italic;">(updates automatically)</span>
+                </div>
             </div>
         `;
     });
@@ -758,8 +803,31 @@ function renderUserStatsTab() {
     html += '</div>';
     html += `<button class="rpg-btn-secondary" id="rpg-add-stat"><i class="fa-solid fa-plus"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.addCustomStatButton')}</button>`;
 
-    // RPG Attributes section
-    html += `<h4><i class="fa-solid fa-dice-d20"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.rpgAttributesTitle')}</h4>`;
+    // RPG Attributes section — dimmed when Stat Sheet is enabled (they're mutually exclusive)
+    const statSheetEnabled = extensionSettings.statSheet?.enabled === true;
+    const dimStyle = statSheetEnabled
+        ? 'opacity:0.35; pointer-events:none; user-select:none; position:relative;'
+        : '';
+    const dimNote = statSheetEnabled
+        ? `<div style="
+               position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+               pointer-events:auto; cursor:default; z-index:2;
+           ">
+               <span style="
+                   background:rgba(20,24,32,0.85); border:1px solid rgba(255,255,255,0.12);
+                   border-radius:6px; padding:8px 14px; font-size:12px; color:rgba(255,255,255,0.6);
+                   text-align:center; backdrop-filter:blur(2px);
+               ">
+                   <i class='fa-solid fa-lock' style='margin-right:6px;opacity:0.7;'></i>
+                   Disabled — Stat Sheet is active
+               </span>
+           </div>`
+        : '';
+
+    html += `<div style="position:relative;">`;
+    if (dimNote) html += dimNote;
+    html += `<div style="${dimStyle}">`;
+    html += `<h4 style="margin-top:24px;"><i class="fa-solid fa-dice-d20"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.rpgAttributesTitle')}</h4>`;
 
     // Enable/disable toggle for entire RPG Attributes section
     const showRPGAttributes = config.showRPGAttributes !== undefined ? config.showRPGAttributes : true;
@@ -813,6 +881,7 @@ function renderUserStatsTab() {
 
     html += '</div>';
     html += `<button class="rpg-btn-secondary" id="rpg-add-attr"><i class="fa-solid fa-plus"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.addAttributeButton')}</button>`;
+    html += `</div></div>`; // close dimmed inner div + position:relative wrapper
 
     // Status Section
     html += `<h4><i class="fa-solid fa-face-smile"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.statusSectionTitle')}</h4>`;
@@ -854,13 +923,18 @@ function renderUserStatsTab() {
  */
 function setupUserStatsListeners() {
     // Add stat
-    $('#rpg-add-stat').off('click').on('click', function () {
+    $('#rpg-add-stat').off('click').on('click', function() {
         const newId = 'custom_' + Date.now();
         extensionSettings.trackerConfig.userStats.customStats.push({
             id: newId,
             name: 'New Stat',
             enabled: true,
-            maxValue: 100
+            displayMode: 'percentage',
+            maxValue: 100,
+            scaleWithAttribute: '',
+            scaleMultiplier: 1,
+            scaleBonus: 0,
+            persistInHistory: false
         });
         // Initialize value if doesn't exist
         if (extensionSettings.userStats[newId] === undefined) {
@@ -870,39 +944,68 @@ function setupUserStatsListeners() {
     });
 
     // Remove stat
-    $('.rpg-stat-remove').off('click').on('click', function () {
+    $('.rpg-stat-remove').off('click').on('click', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.userStats.customStats.splice(index, 1);
         renderUserStatsTab();
     });
 
     // Toggle stat
-    $('.rpg-stat-toggle').off('change').on('change', function () {
+    $('.rpg-stat-toggle').off('change').on('change', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.userStats.customStats[index].enabled = $(this).is(':checked');
     });
 
     // Rename stat
-    $('.rpg-stat-name').off('blur').on('blur', function () {
+    $('.rpg-stat-name').off('blur').on('blur', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.userStats.customStats[index].name = $(this).val();
     });
 
     // Change stat max value
-    $('.rpg-stat-max').off('blur').on('blur', function () {
+    $('.rpg-stat-max').off('blur').on('blur', function() {
         const index = $(this).data('index');
         const value = parseInt($(this).val()) || 100;
         extensionSettings.trackerConfig.userStats.customStats[index].maxValue = Math.max(1, value);
     });
 
-    // Stats display mode toggle
-    $('input[name="stats-display-mode"]').off('change').on('change', function () {
-        extensionSettings.trackerConfig.userStats.statsDisplayMode = $(this).val();
-        renderUserStatsTab(); // Re-render to show/hide max value fields
+    // Per-stat display mode
+    $('.rpg-stat-display-mode').off('change').on('change', function() {
+        const index = $(this).data('index');
+        const mode = $(this).val();
+        extensionSettings.trackerConfig.userStats.customStats[index].displayMode = mode;
+        renderUserStatsTab(); // Re-render to show/hide max value field
+    });
+
+    // Stat sheet scaling - attribute selection
+    $('.rpg-stat-scale-attr').off('change').on('change', function() {
+        const index = $(this).data('index');
+        const attrId = $(this).val();
+        extensionSettings.trackerConfig.userStats.customStats[index].scaleWithAttribute = attrId;
+        // Set defaults when attribute is selected
+        if (attrId && !extensionSettings.trackerConfig.userStats.customStats[index].scaleMultiplier) {
+            extensionSettings.trackerConfig.userStats.customStats[index].scaleMultiplier = 1;
+            extensionSettings.trackerConfig.userStats.customStats[index].scaleBonus = 0;
+        }
+        renderUserStatsTab(); // Re-render to show/hide scaling formula
+    });
+
+    // Stat sheet scaling - multiplier
+    $('.rpg-stat-scale-mult').off('blur').on('blur', function() {
+        const index = $(this).data('index');
+        const value = parseFloat($(this).val()) || 1;
+        extensionSettings.trackerConfig.userStats.customStats[index].scaleMultiplier = value;
+    });
+
+    // Stat sheet scaling - bonus
+    $('.rpg-stat-scale-bonus').off('blur').on('blur', function() {
+        const index = $(this).data('index');
+        const value = parseInt($(this).val()) || 0;
+        extensionSettings.trackerConfig.userStats.customStats[index].scaleBonus = value;
     });
 
     // Add attribute
-    $('#rpg-add-attr').off('click').on('click', function () {
+    $('#rpg-add-attr').off('click').on('click', function() {
         // Ensure rpgAttributes array exists with defaults if needed
         if (!extensionSettings.trackerConfig.userStats.rpgAttributes || extensionSettings.trackerConfig.userStats.rpgAttributes.length === 0) {
             extensionSettings.trackerConfig.userStats.rpgAttributes = [
@@ -928,64 +1031,64 @@ function setupUserStatsListeners() {
     });
 
     // Remove attribute
-    $('.rpg-attr-remove').off('click').on('click', function () {
+    $('.rpg-attr-remove').off('click').on('click', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.userStats.rpgAttributes.splice(index, 1);
         renderUserStatsTab();
     });
 
     // Toggle attribute
-    $('.rpg-attr-toggle').off('change').on('change', function () {
+    $('.rpg-attr-toggle').off('change').on('change', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.userStats.rpgAttributes[index].enabled = $(this).is(':checked');
     });
 
     // Rename attribute
-    $('.rpg-attr-name').off('blur').on('blur', function () {
+    $('.rpg-attr-name').off('blur').on('blur', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.userStats.rpgAttributes[index].name = $(this).val();
     });
 
     // Enable/disable RPG Attributes section toggle
-    $('#rpg-show-rpg-attrs').off('change').on('change', function () {
+    $('#rpg-show-rpg-attrs').off('change').on('change', function() {
         extensionSettings.trackerConfig.userStats.showRPGAttributes = $(this).is(':checked');
     });
 
     // Show/hide level toggle
-    $('#rpg-show-level').off('change').on('change', function () {
+    $('#rpg-show-level').off('change').on('change', function() {
         extensionSettings.trackerConfig.userStats.showLevel = $(this).is(':checked');
     });
 
     // Always send attributes toggle
-    $('#rpg-always-send-attrs').off('change').on('change', function () {
+    $('#rpg-always-send-attrs').off('change').on('change', function() {
         extensionSettings.trackerConfig.userStats.alwaysSendAttributes = $(this).is(':checked');
     });
 
     // Status section toggles
-    $('#rpg-status-enabled').off('change').on('change', function () {
+    $('#rpg-status-enabled').off('change').on('change', function() {
         extensionSettings.trackerConfig.userStats.statusSection.enabled = $(this).is(':checked');
     });
 
-    $('#rpg-mood-emoji').off('change').on('change', function () {
+    $('#rpg-mood-emoji').off('change').on('change', function() {
         extensionSettings.trackerConfig.userStats.statusSection.showMoodEmoji = $(this).is(':checked');
     });
 
-    $('#rpg-status-fields').off('blur').on('blur', function () {
+    $('#rpg-status-fields').off('blur').on('blur', function() {
         const fields = $(this).val().split(',').map(f => f.trim()).filter(f => f);
         extensionSettings.trackerConfig.userStats.statusSection.customFields = fields;
     });
 
     // Skills section toggles
-    $('#rpg-skills-enabled').off('change').on('change', function () {
+    $('#rpg-skills-enabled').off('change').on('change', function() {
         extensionSettings.trackerConfig.userStats.skillsSection.enabled = $(this).is(':checked');
     });
 
-    $('#rpg-skills-label').off('blur').on('blur', function () {
+    $('#rpg-skills-label').off('blur').on('blur', function() {
         extensionSettings.trackerConfig.userStats.skillsSection.label = $(this).val();
         saveSettings();
     });
 
-    $('#rpg-skills-fields').off('blur').on('blur', function () {
+    $('#rpg-skills-fields').off('blur').on('blur', function() {
         const fields = $(this).val().split(',').map(f => f.trim()).filter(f => f);
         extensionSettings.trackerConfig.userStats.skillsSection.customFields = fields;
         saveSettings();
@@ -1057,35 +1160,35 @@ function renderInfoBoxTab() {
 function setupInfoBoxListeners() {
     const widgets = extensionSettings.trackerConfig.infoBox.widgets;
 
-    $('#rpg-widget-date').off('change').on('change', function () {
+    $('#rpg-widget-date').off('change').on('change', function() {
         widgets.date.enabled = $(this).is(':checked');
     });
 
-    $('#rpg-date-format').off('change').on('change', function () {
+    $('#rpg-date-format').off('change').on('change', function() {
         widgets.date.format = $(this).val();
     });
 
-    $('#rpg-widget-weather').off('change').on('change', function () {
+    $('#rpg-widget-weather').off('change').on('change', function() {
         widgets.weather.enabled = $(this).is(':checked');
     });
 
-    $('#rpg-widget-temperature').off('change').on('change', function () {
+    $('#rpg-widget-temperature').off('change').on('change', function() {
         widgets.temperature.enabled = $(this).is(':checked');
     });
 
-    $('input[name="temp-unit"]').off('change').on('change', function () {
+    $('input[name="temp-unit"]').off('change').on('change', function() {
         widgets.temperature.unit = $(this).val();
     });
 
-    $('#rpg-widget-time').off('change').on('change', function () {
+    $('#rpg-widget-time').off('change').on('change', function() {
         widgets.time.enabled = $(this).is(':checked');
     });
 
-    $('#rpg-widget-location').off('change').on('change', function () {
+    $('#rpg-widget-location').off('change').on('change', function() {
         widgets.location.enabled = $(this).is(':checked');
     });
 
-    $('#rpg-widget-events').off('change').on('change', function () {
+    $('#rpg-widget-events').off('change').on('change', function() {
         widgets.recentEvents.enabled = $(this).is(':checked');
     });
 }
@@ -1209,7 +1312,7 @@ function renderPresentCharactersTab() {
  */
 function setupPresentCharactersListeners() {
     // Relationships enabled toggle
-    $('#rpg-relationships-enabled').off('change').on('change', function () {
+    $('#rpg-relationships-enabled').off('change').on('change', function() {
         if (!extensionSettings.trackerConfig.presentCharacters.relationships) {
             extensionSettings.trackerConfig.presentCharacters.relationships = { enabled: true, relationshipEmojis: {} };
         }
@@ -1217,7 +1320,7 @@ function setupPresentCharactersListeners() {
     });
 
     // Add new relationship
-    $('#rpg-add-relationship').off('click').on('click', function () {
+    $('#rpg-add-relationship').off('click').on('click', function() {
         // Ensure relationships object exists
         if (!extensionSettings.trackerConfig.presentCharacters.relationships) {
             extensionSettings.trackerConfig.presentCharacters.relationships = { enabled: true, relationshipEmojis: {} };
@@ -1254,7 +1357,7 @@ function setupPresentCharactersListeners() {
     });
 
     // Remove relationship
-    $('.rpg-remove-relationship').off('click').on('click', function () {
+    $('.rpg-remove-relationship').off('click').on('click', function() {
         const relationship = $(this).data('relationship');
 
         // Remove from new structure
@@ -1275,7 +1378,7 @@ function setupPresentCharactersListeners() {
     });
 
     // Update relationship name
-    $('.rpg-relationship-name').off('blur').on('blur', function () {
+    $('.rpg-relationship-name').off('blur').on('blur', function() {
         const newName = $(this).val();
         const $item = $(this).closest('.rpg-relationship-item');
         const emoji = $item.find('.rpg-relationship-emoji').val();
@@ -1309,7 +1412,7 @@ function setupPresentCharactersListeners() {
     });
 
     // Update relationship emoji
-    $('.rpg-relationship-emoji').off('blur').on('blur', function () {
+    $('.rpg-relationship-emoji').off('blur').on('blur', function() {
         const name = $(this).closest('.rpg-relationship-item').find('.rpg-relationship-name').val();
 
         // Ensure structures exist
@@ -1326,21 +1429,21 @@ function setupPresentCharactersListeners() {
     });
 
     // Thoughts configuration
-    $('#rpg-thoughts-enabled').off('change').on('change', function () {
+    $('#rpg-thoughts-enabled').off('change').on('change', function() {
         if (!extensionSettings.trackerConfig.presentCharacters.thoughts) {
             extensionSettings.trackerConfig.presentCharacters.thoughts = {};
         }
         extensionSettings.trackerConfig.presentCharacters.thoughts.enabled = $(this).is(':checked');
     });
 
-    $('#rpg-thoughts-name').off('blur').on('blur', function () {
+    $('#rpg-thoughts-name').off('blur').on('blur', function() {
         if (!extensionSettings.trackerConfig.presentCharacters.thoughts) {
             extensionSettings.trackerConfig.presentCharacters.thoughts = {};
         }
         extensionSettings.trackerConfig.presentCharacters.thoughts.name = $(this).val();
     });
 
-    $('#rpg-thoughts-description').off('blur').on('blur', function () {
+    $('#rpg-thoughts-description').off('blur').on('blur', function() {
         if (!extensionSettings.trackerConfig.presentCharacters.thoughts) {
             extensionSettings.trackerConfig.presentCharacters.thoughts = {};
         }
@@ -1348,7 +1451,7 @@ function setupPresentCharactersListeners() {
     });
 
     // Add field
-    $('#rpg-add-field').off('click').on('click', function () {
+    $('#rpg-add-field').off('click').on('click', function() {
         extensionSettings.trackerConfig.presentCharacters.customFields.push({
             id: 'custom_' + Date.now(),
             name: 'New Field',
@@ -1359,14 +1462,14 @@ function setupPresentCharactersListeners() {
     });
 
     // Remove field
-    $('.rpg-field-remove').off('click').on('click', function () {
+    $('.rpg-field-remove').off('click').on('click', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.presentCharacters.customFields.splice(index, 1);
         renderPresentCharactersTab();
     });
 
     // Move field up
-    $('.rpg-field-move-up').off('click').on('click', function () {
+    $('.rpg-field-move-up').off('click').on('click', function() {
         const index = $(this).data('index');
         if (index > 0) {
             const fields = extensionSettings.trackerConfig.presentCharacters.customFields;
@@ -1376,7 +1479,7 @@ function setupPresentCharactersListeners() {
     });
 
     // Move field down
-    $('.rpg-field-move-down').off('click').on('click', function () {
+    $('.rpg-field-move-down').off('click').on('click', function() {
         const index = $(this).data('index');
         const fields = extensionSettings.trackerConfig.presentCharacters.customFields;
         if (index < fields.length - 1) {
@@ -1386,25 +1489,25 @@ function setupPresentCharactersListeners() {
     });
 
     // Toggle field
-    $('.rpg-field-toggle').off('change').on('change', function () {
+    $('.rpg-field-toggle').off('change').on('change', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.presentCharacters.customFields[index].enabled = $(this).is(':checked');
     });
 
     // Rename field
-    $('.rpg-field-label').off('blur').on('blur', function () {
+    $('.rpg-field-label').off('blur').on('blur', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.presentCharacters.customFields[index].name = $(this).val();
     });
 
     // Update description
-    $('.rpg-field-placeholder').off('blur').on('blur', function () {
+    $('.rpg-field-placeholder').off('blur').on('blur', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.presentCharacters.customFields[index].description = $(this).val();
     });
 
     // Character stats toggle
-    $('#rpg-char-stats-enabled').off('change').on('change', function () {
+    $('#rpg-char-stats-enabled').off('change').on('change', function() {
         if (!extensionSettings.trackerConfig.presentCharacters.characterStats) {
             extensionSettings.trackerConfig.presentCharacters.characterStats = { enabled: false, customStats: [] };
         }
@@ -1412,7 +1515,7 @@ function setupPresentCharactersListeners() {
     });
 
     // Add character stat
-    $('#rpg-add-char-stat').off('click').on('click', function () {
+    $('#rpg-add-char-stat').off('click').on('click', function() {
         if (!extensionSettings.trackerConfig.presentCharacters.characterStats) {
             extensionSettings.trackerConfig.presentCharacters.characterStats = { enabled: false, customStats: [] };
         }
@@ -1428,20 +1531,20 @@ function setupPresentCharactersListeners() {
     });
 
     // Remove character stat
-    $('.rpg-char-stat-remove').off('click').on('click', function () {
+    $('.rpg-char-stat-remove').off('click').on('click', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.presentCharacters.characterStats.customStats.splice(index, 1);
         renderPresentCharactersTab();
     });
 
     // Toggle character stat
-    $('.rpg-char-stat-toggle').off('change').on('change', function () {
+    $('.rpg-char-stat-toggle').off('change').on('change', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.presentCharacters.characterStats.customStats[index].enabled = $(this).is(':checked');
     });
 
     // Rename character stat
-    $('.rpg-char-stat-label').off('blur').on('blur', function () {
+    $('.rpg-char-stat-label').off('blur').on('blur', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.presentCharacters.characterStats.customStats[index].name = $(this).val();
     });
@@ -1637,70 +1740,991 @@ function setupHistoryPersistenceListeners() {
     }
 
     // Main toggle
-    $('#rpg-history-persistence-enabled').off('change').on('change', function () {
+    $('#rpg-history-persistence-enabled').off('change').on('change', function() {
         extensionSettings.historyPersistence.enabled = $(this).is(':checked');
     });
 
     // Send All Enabled on Refresh toggle
-    $('#rpg-history-send-all-enabled').off('change').on('change', function () {
+    $('#rpg-history-send-all-enabled').off('change').on('change', function() {
         extensionSettings.historyPersistence.sendAllEnabledOnRefresh = $(this).is(':checked');
     });
 
     // Message count
-    $('#rpg-history-message-count').off('change').on('change', function () {
+    $('#rpg-history-message-count').off('change').on('change', function() {
         extensionSettings.historyPersistence.messageCount = parseInt($(this).val()) || 0;
     });
 
     // Injection position
-    $('#rpg-history-injection-position').off('change').on('change', function () {
+    $('#rpg-history-injection-position').off('change').on('change', function() {
         extensionSettings.historyPersistence.injectionPosition = $(this).val();
     });
 
     // Context preamble
-    $('#rpg-history-context-preamble').off('blur').on('blur', function () {
+    $('#rpg-history-context-preamble').off('blur').on('blur', function() {
         extensionSettings.historyPersistence.contextPreamble = $(this).val();
     });
 
     // User Stats toggles
-    $('.rpg-history-stat-toggle').off('change').on('change', function () {
+    $('.rpg-history-stat-toggle').off('change').on('change', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.userStats.customStats[index].persistInHistory = $(this).is(':checked');
     });
 
     // Status section
-    $('#rpg-history-status').off('change').on('change', function () {
+    $('#rpg-history-status').off('change').on('change', function() {
         extensionSettings.trackerConfig.userStats.statusSection.persistInHistory = $(this).is(':checked');
     });
 
     // Skills section
-    $('#rpg-history-skills').off('change').on('change', function () {
+    $('#rpg-history-skills').off('change').on('change', function() {
         extensionSettings.trackerConfig.userStats.skillsSection.persistInHistory = $(this).is(':checked');
     });
 
     // Inventory
-    $('#rpg-history-inventory').off('change').on('change', function () {
+    $('#rpg-history-inventory').off('change').on('change', function() {
         extensionSettings.trackerConfig.userStats.inventoryPersistInHistory = $(this).is(':checked');
     });
 
     // Quests
-    $('#rpg-history-quests').off('change').on('change', function () {
+    $('#rpg-history-quests').off('change').on('change', function() {
         extensionSettings.trackerConfig.userStats.questsPersistInHistory = $(this).is(':checked');
     });
 
     // Info Box widget toggles
-    $('.rpg-history-widget-toggle').off('change').on('change', function () {
+    $('.rpg-history-widget-toggle').off('change').on('change', function() {
         const widgetId = $(this).data('widget');
         extensionSettings.trackerConfig.infoBox.widgets[widgetId].persistInHistory = $(this).is(':checked');
     });
 
     // Present Characters field toggles
-    $('.rpg-history-charfield-toggle').off('change').on('change', function () {
+    $('.rpg-history-charfield-toggle').off('change').on('change', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.presentCharacters.customFields[index].persistInHistory = $(this).is(':checked');
     });
 
     // Thoughts
-    $('#rpg-history-thoughts').off('change').on('change', function () {
+    $('#rpg-history-thoughts').off('change').on('change', function() {
         extensionSettings.trackerConfig.presentCharacters.thoughts.persistInHistory = $(this).is(':checked');
     });
+}
+
+// ============================================================================
+// STAT SHEET TAB — Session 3: Full Configuration
+// ============================================================================
+
+/**
+ * Render the full Stat Sheet configuration tab in the tracker editor.
+ * Sections:
+ *   1. Enable / Display Mode
+ *   2. Display options (show level, show EXP)
+ *   3. Level Calculation mode
+ *   4. XP Curve settings
+ *   5. Value limits
+ *   6. Rank Thresholds (alphabetic glow)
+ *   7. Data management (export / import / reset)
+ */
+function renderStatSheetTab() {
+    const container = $('#rpg-editor-tab-statSheet');
+    if (!container.length) return;
+
+    // Ensure statSheet exists (may not if never enabled)
+    const ss = extensionSettings.statSheet;
+    if (!ss) {
+        container.html(`
+            <div class="rpg-editor-section">
+                <p class="rpg-editor-hint" style="text-align:center; padding:40px 20px;">
+                    <i class="fa-solid fa-chart-bar" style="font-size:32px;opacity:0.4;display:block;margin-bottom:12px;"></i>
+                    Stat sheet data not found. Reload the extension or start a new chat.
+                </p>
+            </div>
+        `);
+        return;
+    }
+
+    const enabled       = ss.enabled   || false;
+
+    // ── Sync stat sheet button appearance to enabled state ────────────────────
+    const $ssBtn = $('#open-stat-sheet-btn');
+    if (enabled) {
+        $ssBtn.css({ opacity: '', cursor: '', filter: '' })
+              .attr('title', 'Character Stats');
+    } else {
+        $ssBtn.css({ opacity: '0.35', cursor: 'not-allowed', filter: 'grayscale(1)' })
+              .attr('title', 'Character Stats (disabled — enable in Settings → Stat Sheet)');
+    }
+
+    const level         = ss.level     || {};
+    const edSettings    = ss.editorSettings || {};
+    const attributes    = (ss.attributes || []).filter(a => a.enabled);
+
+    const calcMode      = level.calculationMode || 'manual';
+    const expCurve      = level.expCurve        || 'linear';
+    const expPerLevel   = level.expPerLevel      || 1000;
+    const attrMax       = edSettings.attributeMaxValue ?? 999;
+
+    let html = '';
+
+    // ── 1. Enable & Display Mode ──────────────────────────────────────────────
+    html += `
+        <div class="rpg-editor-section">
+            <h4><i class="fa-solid fa-chart-bar"></i> Stat Sheet System</h4>
+
+            <div class="rpg-editor-toggle-row" style="margin-bottom:12px;">
+                <input type="checkbox" id="ss-enabled" ${enabled ? 'checked' : ''}>
+                <label for="ss-enabled" style="font-weight:600;">Enable Stat Sheet</label>
+            </div>
+            <p class="rpg-editor-hint" style="margin-top:-4px;">
+                When enabled, the stat sheet button appears in the panel header and injects
+                character attributes into AI prompts. Classic RPG attributes panel is hidden.
+            </p>
+        </div>
+
+    `;
+
+    // ── 2. Display Options ────────────────────────────────────────────────────
+    html += `
+        <div class="rpg-editor-section">
+            <h4><i class="fa-solid fa-eye"></i> Display Options</h4>
+            <div class="rpg-editor-toggle-row">
+                <input type="checkbox" id="ss-show-level" ${level.showLevel !== false ? 'checked' : ''}>
+                <label for="ss-show-level">Show Level in stat sheet</label>
+            </div>
+            <div class="rpg-editor-toggle-row" style="margin-top:8px;">
+                <input type="checkbox" id="ss-show-exp" ${level.showExp !== false ? 'checked' : ''}>
+                <label for="ss-show-exp">Show EXP in stat sheet</label>
+            </div>
+        </div>
+    `;
+
+    // ── 3. Level Calculation ──────────────────────────────────────────────────
+    html += `
+        <div class="rpg-editor-section">
+            <h4><i class="fa-solid fa-layer-group"></i> Level Calculation</h4>
+            <p class="rpg-editor-hint">How is your character's level determined?</p>
+            <div class="rpg-radio-group" style="flex-direction:column; gap:10px;">
+                <label>
+                    <input type="radio" name="ss-calc-mode" value="manual"
+                           ${calcMode === 'manual' ? 'checked' : ''}>
+                    <strong>Manual</strong> &mdash; you set the level yourself in the stat sheet
+                </label>
+                <label>
+                    <input type="radio" name="ss-calc-mode" value="sum"
+                           ${calcMode === 'sum' ? 'checked' : ''}>
+                    <strong>Sum of Job Levels</strong> &mdash; level = total of all job levels added together
+                </label>
+                <label>
+                    <input type="radio" name="ss-calc-mode" value="max"
+                           ${calcMode === 'max' ? 'checked' : ''}>
+                    <strong>Highest Job Level</strong> &mdash; level = your highest single job level
+                </label>
+            </div>
+        </div>
+    `;
+
+    // ── 4. XP Curve ───────────────────────────────────────────────────────────
+    html += `
+        <div class="rpg-editor-section">
+            <h4><i class="fa-solid fa-chart-line"></i> XP Curve</h4>
+            <p class="rpg-editor-hint">Controls how much EXP is needed per level.</p>
+            <div class="rpg-radio-group" style="gap:20px; margin-bottom:14px;">
+                <label>
+                    <input type="radio" name="ss-exp-curve" value="linear"
+                           ${expCurve === 'linear' ? 'checked' : ''}>
+                    <strong>Linear</strong> &mdash; same EXP each level
+                </label>
+                <label>
+                    <input type="radio" name="ss-exp-curve" value="exponential"
+                           ${expCurve === 'exponential' ? 'checked' : ''}>
+                    <strong>Exponential</strong> &mdash; doubles each level
+                </label>
+            </div>
+            <div class="rpg-setting-row" style="align-items:center; gap:12px;">
+                <label for="ss-exp-per-level" style="white-space:nowrap;">Base XP per Level:</label>
+                <input type="number"
+                       id="ss-exp-per-level"
+                       class="rpg-input"
+                       value="${expPerLevel}"
+                       min="1"
+                       step="100"
+                       style="width:120px;">
+                <span class="rpg-editor-hint" style="margin:0; font-size:11px;">
+                    ${expCurve === 'exponential'
+                        ? 'Lv1→2 needs this amount; doubles each level after.'
+                        : 'Every level requires this many EXP to advance.'}
+                </span>
+            </div>
+        </div>
+    `;
+
+    // ── 5. Value Limits ───────────────────────────────────────────────────────
+    html += `
+        <div class="rpg-editor-section">
+            <h4><i class="fa-solid fa-sliders"></i> Value Limits</h4>
+            <div class="rpg-setting-row" style="align-items:center; gap:12px;">
+                <label for="ss-attr-max" style="white-space:nowrap;">Attribute Max (Numeric):</label>
+                <input type="number"
+                       id="ss-attr-max"
+                       class="rpg-input"
+                       value="${attrMax}"
+                       min="1"
+                       step="1"
+                       style="width:100px;">
+            </div>
+            <p class="rpg-editor-hint" style="margin-top:8px;">
+                Skill values are <strong>uncapped</strong> in numeric mode — they can go as high as needed.
+                Alphabetic mode caps at <strong>EX</strong> rank for both attributes and skills.
+            </p>
+        </div>
+    `;
+
+    // ── 6. Alphabetic Mode Settings ──────────────────────────────────────────
+    const RANKS = [
+        'FFF','FF','F',
+        'E','EE','EEE',
+        'D','DD','DDD',
+        'C','CC','CCC',
+        'B','BB','BBB',
+        'A','AA','AAA',
+        'S','SS','SSS','EX'
+    ];
+
+    const gvm     = edSettings.gradeValueMap  || {};
+    const gdm     = edSettings.gradeDiceMap   || {};
+    const divisor = edSettings.attrValueDivisor ?? 100;
+
+    const rankRows = RANKS.map(r => `
+        <tr>
+            <td class="rpg-gvm-rank-cell">${r}</td>
+            <td>
+                <input type="number"
+                       class="rpg-input rpg-gvm-input"
+                       data-rank="${r}"
+                       value="${gvm[r] ?? ''}"
+                       min="0"
+                       placeholder="0"
+                       style="width:70px; text-align:center;">
+            </td>
+            <td>
+                <input type="number"
+                       class="rpg-input rpg-gdm-input"
+                       data-rank="${r}"
+                       value="${gdm[r] ?? ''}"
+                       min="1"
+                       placeholder="—"
+                       style="width:70px; text-align:center;">
+            </td>
+        </tr>
+    `).join('');
+
+    html += `
+        <div class="rpg-editor-section">
+            <h4><i class="fa-solid fa-ranking-star"></i> Alphabetic Mode Settings</h4>
+            <p class="rpg-editor-hint">
+                Configure how letter ranks translate to numbers for roll calculations and which
+                die each rank uses in the roll popover.
+            </p>
+
+            <div class="rpg-setting-row" style="align-items:center; gap:12px; margin-bottom:16px;">
+                <label for="ss-attr-divisor" style="white-space:nowrap;">Attribute Value Divisor:</label>
+                <input type="number"
+                       id="ss-attr-divisor"
+                       class="rpg-input"
+                       value="${divisor}"
+                       min="1"
+                       step="1"
+                       style="width:90px;">
+                <span class="rpg-editor-hint" style="margin:0; font-size:11px;">
+                    Attribute rank modifier = Grade Value + floor(rankValue ÷ this number).
+                    e.g. divisor 100, rankValue 250 → +2 bonus component.
+                </span>
+            </div>
+
+            <table class="rpg-gvm-table" style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr>
+                        <th style="text-align:left; padding:6px 8px; opacity:0.6; font-weight:600; font-size:11px; border-bottom:1px solid rgba(255,255,255,0.08);">RANK</th>
+                        <th style="text-align:center; padding:6px 8px; opacity:0.6; font-weight:600; font-size:11px; border-bottom:1px solid rgba(255,255,255,0.08);">GRADE VALUE<br><span style="font-weight:400; opacity:0.7;">roll modifier bonus</span></th>
+                        <th style="text-align:center; padding:6px 8px; opacity:0.6; font-weight:600; font-size:11px; border-bottom:1px solid rgba(255,255,255,0.08);">GRADE DIE<br><span style="font-weight:400; opacity:0.7;">sides on roll die</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rankRows}
+                </tbody>
+            </table>
+            <p class="rpg-editor-hint" style="margin-top:10px;">
+                <strong>Grade Value</strong>: base number added to roll modifier when an attribute or
+                skill is at that rank.<br>
+                <strong>Grade Die</strong>: the die pre-selected in the roll popover for that rank (e.g. 40 = d40).
+            </p>
+        </div>
+    `;
+
+    // ── 7. Skill EXP Cost Table ───────────────────────────────────────────────
+    const useTable  = edSettings.useSkillExpCostTable || false;
+    const costTable = Array.isArray(edSettings.skillExpCostTable) ? edSettings.skillExpCostTable : [];
+
+    const tierRows = costTable.map((tier, i) => `
+        <tr class="ss-exp-tier-row">
+            <td style="padding:4px 6px;">
+                <input type="text"
+                       class="rpg-input ss-tier-label"
+                       data-idx="${i}"
+                       value="${String(tier.label || '').replace(/"/g, '&quot;')}"
+                       placeholder="Tier name"
+                       style="width:130px;">
+            </td>
+            <td style="padding:4px 6px; text-align:center;">
+                <input type="number"
+                       class="rpg-input ss-tier-min"
+                       data-idx="${i}"
+                       value="${tier.minLevel ?? 0}"
+                       min="0"
+                       style="width:62px; text-align:center;">
+            </td>
+            <td style="padding:4px 6px; text-align:center;">
+                <input type="number"
+                       class="rpg-input ss-tier-max"
+                       data-idx="${i}"
+                       value="${tier.maxLevel ?? 9999}"
+                       min="0"
+                       style="width:62px; text-align:center;">
+            </td>
+            <td style="padding:4px 6px; text-align:center;">
+                <input type="number"
+                       class="rpg-input ss-tier-normal"
+                       data-idx="${i}"
+                       value="${tier.normalCost ?? 10}"
+                       min="0"
+                       style="width:62px; text-align:center;">
+            </td>
+            <td style="padding:4px 6px; text-align:center;">
+                <input type="number"
+                       class="rpg-input ss-tier-expensive"
+                       data-idx="${i}"
+                       value="${tier.expensiveCost ?? 15}"
+                       min="0"
+                       style="width:62px; text-align:center;">
+            </td>
+            <td style="padding:4px 6px; text-align:center;">
+                <button class="rpg-btn-secondary ss-remove-tier"
+                        data-idx="${i}"
+                        type="button"
+                        style="padding:4px 10px; font-size:12px;
+                               border-color:rgba(255,80,80,0.4); color:#ff9999;">
+                    ✕
+                </button>
+            </td>
+        </tr>
+    `).join('');
+
+    html += `
+        <div class="rpg-editor-section">
+            <h4><i class="fa-solid fa-table"></i> Skill EXP Cost Table
+                <small style="font-weight:400; opacity:0.7;">(optional — replaces the formula)</small>
+            </h4>
+
+            <div class="rpg-editor-toggle-row" style="margin-bottom:10px;">
+                <input type="checkbox" id="ss-use-exp-table" ${useTable ? 'checked' : ''}>
+                <label for="ss-use-exp-table" style="font-weight:600;">Use custom EXP cost table</label>
+            </div>
+            <p class="rpg-editor-hint" style="margin-top:-4px;">
+                When active, the formula <em>(level + 1) × multiplier</em> is replaced by a tier
+                lookup. Tiers are matched top-to-bottom by current level; the last row acts as a
+                catch-all. For alphabetic skills the rank's position in the rank ladder is used as
+                the level (F = 2, C = 11, S = 18, EX = 20, etc.).
+            </p>
+
+            <div id="ss-exp-table-section" ${useTable ? '' : 'style="display:none;"'}>
+                <table style="width:100%; border-collapse:collapse; margin-top:12px;">
+                    <thead>
+                        <tr>
+                            <th style="text-align:left;   padding:5px 6px; font-size:11px; opacity:0.65; font-weight:600;
+                                       border-bottom:1px solid rgba(255,255,255,0.08);">TIER NAME</th>
+                            <th style="text-align:center; padding:5px 6px; font-size:11px; opacity:0.65; font-weight:600;
+                                       border-bottom:1px solid rgba(255,255,255,0.08);">MIN LV</th>
+                            <th style="text-align:center; padding:5px 6px; font-size:11px; opacity:0.65; font-weight:600;
+                                       border-bottom:1px solid rgba(255,255,255,0.08);">MAX LV</th>
+                            <th style="text-align:center; padding:5px 6px; font-size:11px; opacity:0.65; font-weight:600;
+                                       border-bottom:1px solid rgba(255,255,255,0.08);">NORMAL EXP</th>
+                            <th style="text-align:center; padding:5px 6px; font-size:11px; opacity:0.65; font-weight:600;
+                                       border-bottom:1px solid rgba(255,255,255,0.08);">EXPENSIVE EXP</th>
+                            <th style="border-bottom:1px solid rgba(255,255,255,0.08);"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="ss-exp-tier-tbody">
+                        ${tierRows || `
+                            <tr>
+                                <td colspan="6"
+                                    style="text-align:center; padding:16px;
+                                           opacity:0.5; font-style:italic;">
+                                    No tiers yet — click "Add Tier" to create one.
+                                </td>
+                            </tr>`}
+                    </tbody>
+                </table>
+                <button id="ss-add-exp-tier" class="rpg-btn-secondary" type="button"
+                        style="margin-top:10px;">
+                    <i class="fa-solid fa-plus"></i> Add Tier
+                </button>
+            </div>
+        </div>
+    `;
+
+    // ── 7b. Job EXP Cost Table ───────────────────────────────────────────────
+    const useJobTable  = edSettings.useJobExpCostTable || false;
+    const jobCostTable = Array.isArray(edSettings.jobExpCostTable) ? edSettings.jobExpCostTable : [];
+
+    const jobTierRows = jobCostTable.map((tier, i) => `
+        <tr class="ss-job-exp-tier-row">
+            <td style="padding:4px 6px;">
+                <input type="text"
+                       class="rpg-input ss-job-tier-label"
+                       data-idx="${i}"
+                       value="${String(tier.label || '').replace(/"/g, '&quot;')}"
+                       placeholder="Tier name"
+                       style="width:130px;">
+            </td>
+            <td style="padding:4px 6px; text-align:center;">
+                <input type="number"
+                       class="rpg-input ss-job-tier-min"
+                       data-idx="${i}"
+                       value="${tier.minLevel ?? 0}"
+                       min="0"
+                       max="9"
+                       style="width:62px; text-align:center;">
+            </td>
+            <td style="padding:4px 6px; text-align:center;">
+                <input type="number"
+                       class="rpg-input ss-job-tier-max"
+                       data-idx="${i}"
+                       value="${tier.maxLevel ?? 9}"
+                       min="0"
+                       max="9"
+                       style="width:62px; text-align:center;">
+            </td>
+            <td style="padding:4px 6px; text-align:center;">
+                <input type="number"
+                       class="rpg-input ss-job-tier-normal"
+                       data-idx="${i}"
+                       value="${tier.normalCost ?? 20}"
+                       min="0"
+                       style="width:62px; text-align:center;">
+            </td>
+            <td style="padding:4px 6px; text-align:center;">
+                <input type="number"
+                       class="rpg-input ss-job-tier-expensive"
+                       data-idx="${i}"
+                       value="${tier.expensiveCost ?? 30}"
+                       min="0"
+                       style="width:62px; text-align:center;">
+            </td>
+            <td style="padding:4px 6px; text-align:center;">
+                <button class="rpg-btn-secondary ss-remove-job-tier"
+                        data-idx="${i}"
+                        type="button"
+                        style="padding:4px 10px; font-size:12px;
+                               border-color:rgba(255,80,80,0.4); color:#ff9999;">
+                    ✕
+                </button>
+            </td>
+        </tr>
+    `).join('');
+
+    html += `
+        <div class="rpg-editor-section">
+            <h4><i class="fa-solid fa-briefcase"></i> Job EXP Cost Table
+                <small style="font-weight:400; opacity:0.7;">(optional — replaces the formula for job level-ups)</small>
+            </h4>
+
+            <div class="rpg-editor-toggle-row" style="margin-bottom:10px;">
+                <input type="checkbox" id="ss-use-job-exp-table" ${useJobTable ? 'checked' : ''}>
+                <label for="ss-use-job-exp-table" style="font-weight:600;">Use custom Job EXP cost table</label>
+            </div>
+            <p class="rpg-editor-hint" style="margin-top:-4px;">
+                When active, the formula <em>(level + 1) × multiplier</em> is replaced by a tier
+                lookup for job level-ups. Jobs max at level 10, so you only need up to 10 tiers
+                (levels 0–9). The last row acts as a catch-all. The <em>Normal / Expensive</em>
+                columns correspond to each job's EXP cost toggle in Master Mode.
+            </p>
+
+            <div id="ss-job-exp-table-section" ${useJobTable ? '' : 'style="display:none;"'}>
+                <table style="width:100%; border-collapse:collapse; margin-top:12px;">
+                    <thead>
+                        <tr>
+                            <th style="text-align:left;   padding:5px 6px; font-size:11px; opacity:0.65; font-weight:600;
+                                       border-bottom:1px solid rgba(255,255,255,0.08);">TIER NAME</th>
+                            <th style="text-align:center; padding:5px 6px; font-size:11px; opacity:0.65; font-weight:600;
+                                       border-bottom:1px solid rgba(255,255,255,0.08);">MIN LV</th>
+                            <th style="text-align:center; padding:5px 6px; font-size:11px; opacity:0.65; font-weight:600;
+                                       border-bottom:1px solid rgba(255,255,255,0.08);">MAX LV</th>
+                            <th style="text-align:center; padding:5px 6px; font-size:11px; opacity:0.65; font-weight:600;
+                                       border-bottom:1px solid rgba(255,255,255,0.08);">NORMAL EXP</th>
+                            <th style="text-align:center; padding:5px 6px; font-size:11px; opacity:0.65; font-weight:600;
+                                       border-bottom:1px solid rgba(255,255,255,0.08);">EXPENSIVE EXP</th>
+                            <th style="border-bottom:1px solid rgba(255,255,255,0.08);"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="ss-job-exp-tier-tbody">
+                        ${jobTierRows || `
+                            <tr>
+                                <td colspan="6"
+                                    style="text-align:center; padding:16px;
+                                           opacity:0.5; font-style:italic;">
+                                    No tiers yet — click "Add Tier" to create one.
+                                </td>
+                            </tr>`}
+                    </tbody>
+                </table>
+                <button id="ss-add-job-exp-tier" class="rpg-btn-secondary" type="button"
+                        style="margin-top:10px;">
+                    <i class="fa-solid fa-plus"></i> Add Tier
+                </button>
+                <p class="rpg-editor-hint" style="margin-top:8px;">
+                    Job levels run 0–9 (level 0 = not yet levelled, costs to reach level 1).
+                    Min/Max values are clamped to 0–9 to match job max level 10.
+                </p>
+            </div>
+        </div>
+    `;
+
+    // ── 8. Rank Thresholds ────────────────────────────────────────────────────
+    html += `
+        <div class="rpg-editor-section">
+            <h4><i class="fa-solid fa-fire"></i> Rank Thresholds <small style="font-weight:400; opacity:0.7;">(Alphabetic mode only)</small></h4>
+            <p class="rpg-editor-hint">
+                Set a <strong>rankValue</strong> for each attribute. When the attribute's rankValue
+                reaches or exceeds this number its rank badge will glow. Set to <strong>0</strong> to disable.
+            </p>
+    `;
+
+    if (attributes.length === 0) {
+        html += `<p class="rpg-editor-hint" style="font-style:italic;">
+            No attributes found. Add attributes to the stat sheet first.
+        </p>`;
+    } else {
+        html += `<div class="rpg-threshold-list">`;
+        for (const attr of attributes) {
+            html += `
+                <div class="rpg-threshold-row">
+                    <span class="rpg-threshold-attr-name">${attr.name}</span>
+                    <label class="rpg-threshold-label">Glow at rankValue ≥</label>
+                    <input type="number"
+                           class="rpg-threshold-input"
+                           data-attr-id="${attr.id}"
+                           value="${attr.threshold || 0}"
+                           min="0"
+                           step="1"
+                           placeholder="0 = off">
+                </div>
+            `;
+        }
+        html += `</div>`;
+    }
+
+    html += `</div>`;
+
+    // ── 9. Data Management ────────────────────────────────────────────────────
+    html += `
+        <div class="rpg-editor-section">
+            <h4><i class="fa-solid fa-database"></i> Stat Sheet Data</h4>
+            <p class="rpg-editor-hint">
+                Export your stat sheet (attributes, skills, saving throws, combat pages, etc.)
+                as a JSON file, or import a previously saved file. Reset wipes all stat sheet
+                data back to the defaults — this cannot be undone.
+            </p>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+                <button id="ss-export-btn" class="rpg-btn-secondary" type="button">
+                    <i class="fa-solid fa-file-export"></i> Export Stat Sheet
+                </button>
+                <button id="ss-import-btn" class="rpg-btn-secondary" type="button">
+                    <i class="fa-solid fa-file-import"></i> Import Stat Sheet
+                </button>
+                <button id="ss-reset-btn" class="rpg-btn-secondary" type="button"
+                        style="border-color:rgba(255,80,80,0.5); color:#ff9999;">
+                    <i class="fa-solid fa-rotate-left"></i> Reset to Defaults
+                </button>
+            </div>
+        </div>
+    `;
+
+    container.html(html);
+    setupStatSheetTabListeners();
+}
+
+/**
+ * Set up all event listeners for the Stat Sheet configuration tab.
+ * Each listener saves immediately to extensionSettings.statSheet via saveSettings().
+ */
+function setupStatSheetTabListeners() {
+    const ss = extensionSettings.statSheet;
+    if (!ss) return;
+
+    // ── Enable toggle ─────────────────────────────────────────────────────────
+    $(document).off('change', '#ss-enabled').on('change', '#ss-enabled', function() {
+        // Commit current character data to chat_metadata BEFORE any settings write.
+        // This ensures the snapshot survives a disable→re-enable cycle.
+        saveStatSheetData();
+        ss.enabled = $(this).is(':checked');
+        saveSettings();
+        // Re-render so threshold section shows/hides properly
+        renderStatSheetTab();
+    });
+
+    // ── Show Level ────────────────────────────────────────────────────────────
+    $(document).off('change', '#ss-show-level').on('change', '#ss-show-level', function() {
+        if (!ss.level) ss.level = {};
+        ss.level.showLevel = $(this).is(':checked');
+        saveSettings();
+    });
+
+    // ── Show EXP ─────────────────────────────────────────────────────────────
+    $(document).off('change', '#ss-show-exp').on('change', '#ss-show-exp', function() {
+        if (!ss.level) ss.level = {};
+        ss.level.showExp = $(this).is(':checked');
+        saveSettings();
+    });
+
+    // ── Level calculation mode ────────────────────────────────────────────────
+    $(document).off('change', 'input[name="ss-calc-mode"]').on('change', 'input[name="ss-calc-mode"]', function() {
+        if (!ss.level) ss.level = {};
+        ss.level.calculationMode = $(this).val();
+        ss.level.autoCalculate   = ($(this).val() !== 'manual');
+        saveSettings();
+    });
+
+    // ── XP curve ─────────────────────────────────────────────────────────────
+    $(document).off('change', 'input[name="ss-exp-curve"]').on('change', 'input[name="ss-exp-curve"]', function() {
+        if (!ss.level) ss.level = {};
+        ss.level.expCurve = $(this).val();
+        saveSettings();
+        // Re-render so the hint text below the input updates
+        renderStatSheetTab();
+    });
+
+    // ── Base EXP per level ────────────────────────────────────────────────────
+    $(document).off('change', '#ss-exp-per-level').on('change', '#ss-exp-per-level', function() {
+        if (!ss.level) ss.level = {};
+        ss.level.expPerLevel = Math.max(1, parseInt($(this).val()) || 1000);
+        saveSettings();
+    });
+
+    // ── Attribute max value ───────────────────────────────────────────────────
+    $(document).off('change', '#ss-attr-max').on('change', '#ss-attr-max', function() {
+        if (!ss.editorSettings) ss.editorSettings = {};
+        ss.editorSettings.attributeMaxValue = Math.max(1, parseInt($(this).val()) || 999);
+        saveSettings();
+    });
+
+    // ── Rank thresholds ───────────────────────────────────────────────────────
+    $(document).off('change', '.rpg-threshold-input').on('change', '.rpg-threshold-input', function() {
+        const attrId = $(this).data('attr-id');
+        const value  = parseInt($(this).val()) || 0;
+        const attr   = ss.attributes?.find(a => a.id === attrId);
+        if (attr) {
+            attr.threshold = Math.max(0, value);
+            saveSettings();
+        }
+    });
+
+    // ── Attribute value divisor ───────────────────────────────────────────────
+    $(document).off('change', '#ss-attr-divisor').on('change', '#ss-attr-divisor', function() {
+        if (!ss.editorSettings) ss.editorSettings = {};
+        ss.editorSettings.attrValueDivisor = Math.max(1, parseInt($(this).val()) || 100);
+        saveSettings();
+    });
+
+    // ── Grade value map ───────────────────────────────────────────────────────
+    $(document).off('change', '.rpg-gvm-input').on('change', '.rpg-gvm-input', function() {
+        if (!ss.editorSettings) ss.editorSettings = {};
+        if (!ss.editorSettings.gradeValueMap) ss.editorSettings.gradeValueMap = {};
+        const rank = $(this).data('rank');
+        const val  = parseInt($(this).val());
+        ss.editorSettings.gradeValueMap[rank] = isNaN(val) ? 0 : Math.max(0, val);
+        saveSettings();
+    });
+
+    // ── Grade dice map ────────────────────────────────────────────────────────
+    $(document).off('change', '.rpg-gdm-input').on('change', '.rpg-gdm-input', function() {
+        if (!ss.editorSettings) ss.editorSettings = {};
+        if (!ss.editorSettings.gradeDiceMap) ss.editorSettings.gradeDiceMap = {};
+        const rank = $(this).data('rank');
+        const val  = parseInt($(this).val());
+        ss.editorSettings.gradeDiceMap[rank] = isNaN(val) ? 20 : Math.max(1, val);
+        saveSettings();
+    });
+
+    // ── Use skill EXP cost table toggle ──────────────────────────────────────
+    $(document).off('change', '#ss-use-exp-table').on('change', '#ss-use-exp-table', function() {
+        if (!ss.editorSettings) ss.editorSettings = {};
+        ss.editorSettings.useSkillExpCostTable = $(this).is(':checked');
+        saveSettings();
+        $('#ss-exp-table-section').toggle($(this).is(':checked'));
+    });
+
+    // ── Add EXP cost tier ─────────────────────────────────────────────────────
+    $(document).off('click', '#ss-add-exp-tier').on('click', '#ss-add-exp-tier', function() {
+        if (!ss.editorSettings) ss.editorSettings = {};
+        if (!Array.isArray(ss.editorSettings.skillExpCostTable)) ss.editorSettings.skillExpCostTable = [];
+        const tiers  = ss.editorSettings.skillExpCostTable;
+        const last   = tiers[tiers.length - 1];
+        const newMin = last ? Math.min(last.maxLevel + 1, 9999) : 0;
+        tiers.push({
+            id:            `tier_${Date.now()}`,
+            label:         `Tier ${tiers.length + 1}`,
+            minLevel:      newMin,
+            maxLevel:      9999,
+            normalCost:    10,
+            expensiveCost: 15
+        });
+        saveSettings();
+        renderStatSheetTab();
+    });
+
+    // ── Remove EXP cost tier ──────────────────────────────────────────────────
+    $(document).off('click', '.ss-remove-tier').on('click', '.ss-remove-tier', function() {
+        if (!Array.isArray(ss.editorSettings?.skillExpCostTable)) return;
+        const idx = parseInt($(this).data('idx'));
+        if (!isNaN(idx)) {
+            ss.editorSettings.skillExpCostTable.splice(idx, 1);
+            saveSettings();
+            renderStatSheetTab();
+        }
+    });
+
+    // ── Edit tier fields ──────────────────────────────────────────────────────
+    $(document).off('change', '.ss-tier-label').on('change', '.ss-tier-label', function() {
+        const idx  = parseInt($(this).data('idx'));
+        const tier = ss.editorSettings?.skillExpCostTable?.[idx];
+        if (tier) { tier.label = $(this).val(); saveSettings(); }
+    });
+
+    $(document).off('change', '.ss-tier-min').on('change', '.ss-tier-min', function() {
+        const idx  = parseInt($(this).data('idx'));
+        const tier = ss.editorSettings?.skillExpCostTable?.[idx];
+        if (tier) { tier.minLevel = Math.max(0, parseInt($(this).val()) || 0); saveSettings(); }
+    });
+
+    $(document).off('change', '.ss-tier-max').on('change', '.ss-tier-max', function() {
+        const idx  = parseInt($(this).data('idx'));
+        const tier = ss.editorSettings?.skillExpCostTable?.[idx];
+        if (tier) { tier.maxLevel = Math.max(0, parseInt($(this).val()) || 9999); saveSettings(); }
+    });
+
+    $(document).off('change', '.ss-tier-normal').on('change', '.ss-tier-normal', function() {
+        const idx  = parseInt($(this).data('idx'));
+        const tier = ss.editorSettings?.skillExpCostTable?.[idx];
+        if (tier) { tier.normalCost = Math.max(0, parseInt($(this).val()) || 0); saveSettings(); }
+    });
+
+    $(document).off('change', '.ss-tier-expensive').on('change', '.ss-tier-expensive', function() {
+        const idx  = parseInt($(this).data('idx'));
+        const tier = ss.editorSettings?.skillExpCostTable?.[idx];
+        if (tier) { tier.expensiveCost = Math.max(0, parseInt($(this).val()) || 0); saveSettings(); }
+    });
+
+    // ── Use job EXP cost table toggle ─────────────────────────────────────────
+    $(document).off('change', '#ss-use-job-exp-table').on('change', '#ss-use-job-exp-table', function() {
+        if (!ss.editorSettings) ss.editorSettings = {};
+        ss.editorSettings.useJobExpCostTable = $(this).is(':checked');
+        saveSettings();
+        $('#ss-job-exp-table-section').toggle($(this).is(':checked'));
+    });
+
+    // ── Add Job EXP cost tier ─────────────────────────────────────────────────
+    $(document).off('click', '#ss-add-job-exp-tier').on('click', '#ss-add-job-exp-tier', function() {
+        if (!ss.editorSettings) ss.editorSettings = {};
+        if (!Array.isArray(ss.editorSettings.jobExpCostTable)) ss.editorSettings.jobExpCostTable = [];
+        const tiers  = ss.editorSettings.jobExpCostTable;
+        if (tiers.length >= 10) {
+            toastr.warning('Job EXP table is limited to 10 tiers (one per job level 0–9).');
+            return;
+        }
+        const last   = tiers[tiers.length - 1];
+        const newMin = last ? Math.min((last.maxLevel ?? 0) + 1, 9) : 0;
+        tiers.push({
+            id:            `jtier_${Date.now()}`,
+            label:         `Tier ${tiers.length + 1}`,
+            minLevel:      newMin,
+            maxLevel:      9,
+            normalCost:    20,
+            expensiveCost: 30
+        });
+        saveSettings();
+        renderStatSheetTab();
+    });
+
+    // ── Remove Job EXP cost tier ──────────────────────────────────────────────
+    $(document).off('click', '.ss-remove-job-tier').on('click', '.ss-remove-job-tier', function() {
+        if (!Array.isArray(ss.editorSettings?.jobExpCostTable)) return;
+        const idx = parseInt($(this).data('idx'));
+        if (!isNaN(idx)) {
+            ss.editorSettings.jobExpCostTable.splice(idx, 1);
+            saveSettings();
+            renderStatSheetTab();
+        }
+    });
+
+    // ── Edit job tier fields ──────────────────────────────────────────────────
+    $(document).off('change', '.ss-job-tier-label').on('change', '.ss-job-tier-label', function() {
+        const idx  = parseInt($(this).data('idx'));
+        const tier = ss.editorSettings?.jobExpCostTable?.[idx];
+        if (tier) { tier.label = $(this).val(); saveSettings(); }
+    });
+
+    $(document).off('change', '.ss-job-tier-min').on('change', '.ss-job-tier-min', function() {
+        const idx  = parseInt($(this).data('idx'));
+        const tier = ss.editorSettings?.jobExpCostTable?.[idx];
+        if (tier) { tier.minLevel = Math.max(0, Math.min(9, parseInt($(this).val()) || 0)); saveSettings(); }
+    });
+
+    $(document).off('change', '.ss-job-tier-max').on('change', '.ss-job-tier-max', function() {
+        const idx  = parseInt($(this).data('idx'));
+        const tier = ss.editorSettings?.jobExpCostTable?.[idx];
+        if (tier) { tier.maxLevel = Math.max(0, Math.min(9, parseInt($(this).val()) || 9)); saveSettings(); }
+    });
+
+    $(document).off('change', '.ss-job-tier-normal').on('change', '.ss-job-tier-normal', function() {
+        const idx  = parseInt($(this).data('idx'));
+        const tier = ss.editorSettings?.jobExpCostTable?.[idx];
+        if (tier) { tier.normalCost = Math.max(0, parseInt($(this).val()) || 0); saveSettings(); }
+    });
+
+    $(document).off('change', '.ss-job-tier-expensive').on('change', '.ss-job-tier-expensive', function() {
+        const idx  = parseInt($(this).data('idx'));
+        const tier = ss.editorSettings?.jobExpCostTable?.[idx];
+        if (tier) { tier.expensiveCost = Math.max(0, parseInt($(this).val()) || 0); saveSettings(); }
+    });
+
+    // ── Export stat sheet ─────────────────────────────────────────────────────
+    $(document).off('click', '#ss-export-btn').on('click', '#ss-export-btn', function() {
+        exportStatSheetData();
+    });
+
+    // ── Import stat sheet ─────────────────────────────────────────────────────
+    $(document).off('click', '#ss-import-btn').on('click', '#ss-import-btn', function() {
+        importStatSheetData();
+    });
+
+    // ── Reset stat sheet ──────────────────────────────────────────────────────
+    $(document).off('click', '#ss-reset-btn').on('click', '#ss-reset-btn', function() {
+        const confirmed = confirm(
+            'RESET STAT SHEET?\n\n' +
+            'This will permanently delete ALL attributes, skills, saving throws, jobs, feats, augments, and combat pages.\n\n' +
+            'Clicking OK will first download an automatic backup, then reset to defaults.\n\n' +
+            'Cancel to abort — no changes will be made.'
+        );
+        if (!confirmed) return;
+
+        // Auto-export backup before wiping — last line of defense
+        try {
+            const payload  = {
+                version:    '1.0',
+                exportDate: new Date().toISOString(),
+                note:       'Auto-backup created before stat sheet reset',
+                statSheet:  JSON.parse(JSON.stringify(extensionSettings.statSheet || {}))
+            };
+            const json = JSON.stringify(payload, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url  = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href  = url;
+            const ts   = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+            link.download = `stat-sheet-BACKUP-before-reset-${ts}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } catch (backupErr) {
+            console.error('[RPG Companion] Backup export failed:', backupErr);
+            if (!confirm('WARNING: Automatic backup failed to download.\n\nProceed with reset anyway? (Your data will be lost.)')) return;
+        }
+
+        // Now wipe and rebuild
+        delete extensionSettings.statSheet;
+        saveSettings();
+        if (typeof initializeStatSheet === 'function') {
+            initializeStatSheet();
+        }
+        renderStatSheetTab();
+        toastr.success('Stat sheet reset. Backup was downloaded before reset.');
+    });
+}
+
+// ============================================================================
+// STAT SHEET DATA MANAGEMENT
+// ============================================================================
+
+/**
+ * Export the full stat sheet configuration as a JSON file.
+ */
+function exportStatSheetData() {
+    try {
+        const payload = {
+            version:   '1.0',
+            exportDate: new Date().toISOString(),
+            statSheet:  JSON.parse(JSON.stringify(extensionSettings.statSheet || {}))
+        };
+
+        const json = JSON.stringify(payload, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url  = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href  = url;
+
+        const ts       = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        link.download  = `stat-sheet-${ts}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        toastr.success('Stat sheet exported successfully.');
+    } catch (err) {
+        console.error('[RPG Companion] Stat sheet export error:', err);
+        toastr.error('Failed to export stat sheet. Check console for details.');
+    }
+}
+
+/**
+ * Import a stat sheet JSON file.
+ * Validates structure then asks the user whether to merge or replace.
+ */
+function importStatSheetData() {
+    const input   = document.createElement('input');
+    input.type    = 'file';
+    input.accept  = '.json';
+
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            const text    = await file.text();
+            const data    = JSON.parse(text);
+
+            if (!data.statSheet) {
+                throw new Error('Invalid file: missing "statSheet" key. Make sure this is a stat sheet export, not a tracker preset.');
+            }
+
+            // Simple confirmation — full merge/replace UX can come later
+            const replace = confirm(
+                `Import stat sheet from "${file.name}"?\n\n` +
+                `This will REPLACE your current stat sheet data (attributes, skills, saving throws, etc.).\n\n` +
+                `Press OK to replace, or Cancel to abort.`
+            );
+
+            if (!replace) return;
+
+            extensionSettings.statSheet = data.statSheet;
+            saveSettings();
+            renderStatSheetTab();
+            toastr.success('Stat sheet imported successfully.');
+
+        } catch (err) {
+            console.error('[RPG Companion] Stat sheet import error:', err);
+            toastr.error(`Failed to import: ${err.message}`);
+        }
+    };
+
+    input.click();
 }

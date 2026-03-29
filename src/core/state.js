@@ -104,13 +104,12 @@ export let extensionSettings = {
         stats: { enabled: true },            // All stats as compact numbers
         attributes: { enabled: true }        // Compact RPG attributes display
     },
-    userStats: JSON.stringify({
+    userStats: {
         stats: [
             { id: 'health', name: 'Health', value: 100 },
             { id: 'satiety', name: 'Satiety', value: 100 },
             { id: 'energy', name: 'Energy', value: 100 },
-            { id: 'hygiene', name: 'Hygiene', value: 100 },
-            { id: 'arousal', name: 'Arousal', value: 0 }
+            { id: 'hygiene', name: 'Hygiene', value: 100 }
         ],
         status: {
             mood: '😐',
@@ -124,13 +123,12 @@ export let extensionSettings = {
             active: [],
             completed: []
         }
-    }, null, 2),
+    },
     statNames: {
         health: 'Health',
         satiety: 'Satiety',
         energy: 'Energy',
-        hygiene: 'Hygiene',
-        arousal: 'Arousal'
+        hygiene: 'Hygiene'
     },
     // Tracker customization configuration
     trackerConfig: {
@@ -142,8 +140,7 @@ export let extensionSettings = {
                 { id: 'health', name: 'Health', enabled: true, persistInHistory: false, maxValue: 100 },
                 { id: 'satiety', name: 'Satiety', enabled: true, persistInHistory: false, maxValue: 100 },
                 { id: 'energy', name: 'Energy', enabled: true, persistInHistory: false, maxValue: 100 },
-                { id: 'hygiene', name: 'Hygiene', enabled: true, persistInHistory: false, maxValue: 100 },
-                { id: 'arousal', name: 'Arousal', enabled: true, persistInHistory: false, maxValue: 100 }
+                { id: 'hygiene', name: 'Hygiene', enabled: true, persistInHistory: false, maxValue: 100 }
             ],
             // RPG Attributes (customizable D&D-style attributes)
             showRPGAttributes: true,
@@ -227,8 +224,7 @@ export let extensionSettings = {
             characterStats: {
                 enabled: false,
                 customStats: [
-                    { id: 'health', name: 'Health', enabled: true },
-                    { id: 'arousal', name: 'Arousal', enabled: true }
+                    { id: 'health', name: 'Health', enabled: true }
                 ]
             }
         }
@@ -255,6 +251,11 @@ export let extensionSettings = {
         int: 10,
         wis: 10,
         cha: 10
+    },
+    // Stat Sheet System (v4.0 - advanced character sheet with tabs)
+    // Will be initialized properly by statSheetState.js on first use
+    statSheet: {
+        enabled: false  // Master toggle - when true, stat sheet button appears and classic stats are hidden
     },
     lastDiceRoll: null, // Store last dice roll result
     showDiceDisplay: true, // Show the "Last Roll" display in the panel

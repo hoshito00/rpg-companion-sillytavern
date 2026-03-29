@@ -8,6 +8,7 @@ import { extensionSettings, FEATURE_FLAGS, addDebugLog } from '../../core/state.
 import { saveSettings } from '../../core/persistence.js';
 import { extractInventory } from './inventoryParser.js';
 import { repairJSON } from '../../utils/jsonRepair.js';
+import { queueExpGain } from '../features/expGain.js';
 
 /**
  * Extracts the base name (before parentheses) and converts to snake_case for use as JSON key.
@@ -662,6 +663,18 @@ export function parseUserStats(statsText) {
                 }
 
                 debugLog('[RPG Parser] ✓ Successfully extracted v3 JSON data');
+
+                // ── Session 10: EXP gain detection ───────────────────────────
+                // If the AI included "exp_gain": N in the userStats JSON, fire
+                // the confirmation popup. queueExpGain is async fire-and-forget.
+                if (statsData.exp_gain != null) {
+                    const expAmount = parseInt(statsData.exp_gain, 10);
+                    if (isFinite(expAmount) && expAmount > 0) {
+                        debugLog(`[RPG Parser] exp_gain detected: +${expAmount}`);
+                        queueExpGain(expAmount); // non-blocking
+                    }
+                }
+
                 saveSettings();
                 return; // Done processing v3 format
             }

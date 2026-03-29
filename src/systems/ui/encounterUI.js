@@ -1,6 +1,12 @@
 /**
  * Encounter UI Module
- * Manages the combat encounter modal window and interactions
+ * Manages the combat encounter modal window and interactions.
+ *
+ * Session 7 additions:
+ *   - Light / Sanity / Act-Scene HUD bar
+ *   - Equipped Combat Skills from the Stat Sheet shown as action buttons
+ *   - Sanity updates derived from round outcomes (kills, damage taken, clash wins)
+ *   - E.G.O Corrosion visual state
  */
 
 import { getContext } from '../../../../../../extensions.js';
@@ -27,72 +33,110 @@ import {
     parseEncounterJSON
 } from '../generation/encounterPrompts.js';
 
+// ── Session 7 imports ─────────────────────────────────────────────────────────
+import {
+    SANITY_MIN,
+    SANITY_CLASH_WIN,
+    SANITY_CLASH_LOSE,
+    SANITY_KILL,
+    EGO_SANITY_COSTS,
+    clampSanity,
+    calculateSanityLevel,
+    getSanityLevelInfo,
+} from '../statSheet/sanitySystem.js';
+import {
+    canAffordLight,
+    spendLight,
+    regenLight,
+    lightPipsText,
+} from '../statSheet/lightSystem.js';
+import {
+    getActSceneLabel,
+    advanceScene,
+} from '../statSheet/actSceneManager.js';
+import { getEquippedSkills } from '../statSheet/statSheetState.js';
+
+// ── Phase 4 imports ───────────────────────────────────────────────────────────
+import {
+    parseCombatTags,
+    initToUpsertArgs,
+    groupEnemyActions,
+} from '../generation/parseCombatTags.js';
+import {
+    resolveClash,
+    applyClashReport,
+    buildInitiativeQueue,
+} from '../features/clashEngine.js';
+import {
+    buildPlayerSnap,
+    resolvePlayerDiceForSkillId,
+    writePlayerDeltas,
+} from '../statSheet/statSheetBridge.js';
+import {
+    resetEngineRoundState,
+    expireSavedDice,
+    upsertCombatant,
+    getCombatantState,
+    logClash,
+} from '../features/encounterState.js';
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * EncounterModal class
- * Manages the combat encounter UI
+ * Map a die type string to the correct CSS colour class.
+ * @param {string} diceType
+ * @returns {string}
+ */
+function _getDieColorClass(diceType) {
+    if (!diceType) return 'cs-dt-offensive';
+    const dt = diceType.toLowerCase();
+    if (dt === 'slash' || dt === 'pierce' || dt === 'blunt') return 'cs-dt-offensive';
+    if (dt.startsWith('counter-slash') || dt.startsWith('counter-pierce') || dt.startsWith('counter-blunt')) return 'cs-dt-counter';
+    return 'cs-dt-defensive'; // Block, Evade, Counter-Block, Counter-Evade
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * EncounterModal class — manages the combat encounter UI.
  */
 export class EncounterModal {
     constructor() {
         this.modal = null;
         this.isInitializing = false;
         this.isProcessing = false;
-        this.lastRequest = null; // Store last request for regeneration
+        this.lastRequest = null;
     }
 
-    /**
-     * Opens the encounter modal and initializes combat
-     */
+    // ── Open / Initialize ─────────────────────────────────────────────────────
+
     async open() {
         if (this.isInitializing) return;
-
-        // Always show configuration modal (it will pre-populate with saved values if they exist)
         const configured = await this.showNarrativeConfigModal();
-        if (!configured) {
-            // User cancelled
-            return;
-        }
-
-        // Proceed with encounter initialization
+        if (!configured) return;
         await this.initialize();
     }
 
-    /**
-     * Initializes the encounter
-     */
     async initialize() {
         if (this.isInitializing) return;
-
         this.isInitializing = true;
 
         try {
-            // Create modal if it doesn't exist
-            if (!this.modal) {
-                this.createModal();
-            }
+            if (!this.modal) this.createModal();
 
-            // Show loading state
             this.showLoadingState('Initializing combat encounter...');
-
-            // Open the modal
             this.modal.classList.add('is-open');
 
-            // Generate initial combat state
             const initPrompt = await buildEncounterInitPrompt();
-
-            // Store request for potential regeneration
             this.lastRequest = { type: 'init', prompt: initPrompt };
 
-            const response = await safeGenerateRaw({
-                prompt: initPrompt,
-                quietToLoud: false
-            });
+            const response = await safeGenerateRaw({ prompt: initPrompt, quietToLoud: false });
 
             if (!response) {
                 this.showErrorWithRegenerate('No response received from AI. The model may be unavailable.');
                 return;
             }
 
-            // Parse the combat stats
             const combatData = parseEncounterJSON(response);
 
             if (!combatData || !combatData.party || !combatData.enemies) {
@@ -100,23 +144,19 @@ export class EncounterModal {
                 return;
             }
 
-            // Update encounter state
             updateCurrentEncounter({
                 active: true,
                 initialized: true,
-                combatStats: combatData
+                combatStats: combatData,
             });
 
-            // Add to combat history
             addCombatMessage('system', 'Combat initialized');
             addCombatMessage('assistant', JSON.stringify(combatData));
 
-            // Apply visual styling from styleNotes
             if (combatData.styleNotes) {
                 this.applyEnvironmentStyling(combatData.styleNotes);
             }
 
-            // Render the combat UI
             this.renderCombatUI(combatData);
 
         } catch (error) {
@@ -127,14 +167,11 @@ export class EncounterModal {
         }
     }
 
-    /**
-     * Shows narrative configuration modal before starting encounter
-     * @returns {Promise<boolean>} True if configured, false if cancelled
-     */
+    // ── Narrative config modal ────────────────────────────────────────────────
+
     async showNarrativeConfigModal() {
         return new Promise((resolve) => {
-            // Get current values or defaults
-            const combatDefaults = extensionSettings.encounterSettings?.combatNarrative || {};
+            const combatDefaults  = extensionSettings.encounterSettings?.combatNarrative  || {};
             const summaryDefaults = extensionSettings.encounterSettings?.summaryNarrative || {};
 
             const configHTML = `
@@ -154,16 +191,16 @@ export class EncounterModal {
                                     <label for="config-combat-tense" style="min-width: 100px;">Tense:</label>
                                     <select id="config-combat-tense" class="rpg-select" style="flex: 1;">
                                         <option value="present" ${combatDefaults.tense === 'present' ? 'selected' : ''}>Present</option>
-                                        <option value="past" ${combatDefaults.tense === 'past' ? 'selected' : ''}>Past</option>
+                                        <option value="past"    ${combatDefaults.tense === 'past'    ? 'selected' : ''}>Past</option>
                                     </select>
                                 </div>
 
                                 <div class="rpg-setting-row" style="margin-bottom: 12px;">
                                     <label for="config-combat-person" style="min-width: 100px;">Person:</label>
                                     <select id="config-combat-person" class="rpg-select" style="flex: 1;">
-                                        <option value="first" ${combatDefaults.person === 'first' ? 'selected' : ''}>First Person</option>
+                                        <option value="first"  ${combatDefaults.person === 'first'  ? 'selected' : ''}>First Person</option>
                                         <option value="second" ${combatDefaults.person === 'second' ? 'selected' : ''}>Second Person</option>
-                                        <option value="third" ${combatDefaults.person === 'third' ? 'selected' : ''}>Third Person</option>
+                                        <option value="third"  ${combatDefaults.person === 'third'  ? 'selected' : ''}>Third Person</option>
                                     </select>
                                 </div>
 
@@ -171,7 +208,7 @@ export class EncounterModal {
                                     <label for="config-combat-narration" style="min-width: 100px;">Narration:</label>
                                     <select id="config-combat-narration" class="rpg-select" style="flex: 1;">
                                         <option value="omniscient" ${combatDefaults.narration === 'omniscient' ? 'selected' : ''}>Omniscient</option>
-                                        <option value="limited" ${combatDefaults.narration === 'limited' ? 'selected' : ''}>Limited</option>
+                                        <option value="limited"    ${combatDefaults.narration === 'limited'    ? 'selected' : ''}>Limited</option>
                                     </select>
                                 </div>
 
@@ -190,16 +227,16 @@ export class EncounterModal {
                                     <label for="config-summary-tense" style="min-width: 100px;">Tense:</label>
                                     <select id="config-summary-tense" class="rpg-select" style="flex: 1;">
                                         <option value="present" ${summaryDefaults.tense === 'present' ? 'selected' : ''}>Present</option>
-                                        <option value="past" ${summaryDefaults.tense === 'past' ? 'selected' : ''}>Past</option>
+                                        <option value="past"    ${summaryDefaults.tense === 'past'    ? 'selected' : ''}>Past</option>
                                     </select>
                                 </div>
 
                                 <div class="rpg-setting-row" style="margin-bottom: 12px;">
                                     <label for="config-summary-person" style="min-width: 100px;">Person:</label>
                                     <select id="config-summary-person" class="rpg-select" style="flex: 1;">
-                                        <option value="first" ${summaryDefaults.person === 'first' ? 'selected' : ''}>First Person</option>
+                                        <option value="first"  ${summaryDefaults.person === 'first'  ? 'selected' : ''}>First Person</option>
                                         <option value="second" ${summaryDefaults.person === 'second' ? 'selected' : ''}>Second Person</option>
-                                        <option value="third" ${summaryDefaults.person === 'third' ? 'selected' : ''}>Third Person</option>
+                                        <option value="third"  ${summaryDefaults.person === 'third'  ? 'selected' : ''}>Third Person</option>
                                     </select>
                                 </div>
 
@@ -207,7 +244,7 @@ export class EncounterModal {
                                     <label for="config-summary-narration" style="min-width: 100px;">Narration:</label>
                                     <select id="config-summary-narration" class="rpg-select" style="flex: 1;">
                                         <option value="omniscient" ${summaryDefaults.narration === 'omniscient' ? 'selected' : ''}>Omniscient</option>
-                                        <option value="limited" ${summaryDefaults.narration === 'limited' ? 'selected' : ''}>Limited</option>
+                                        <option value="limited"    ${summaryDefaults.narration === 'limited'    ? 'selected' : ''}>Limited</option>
                                     </select>
                                 </div>
 
@@ -225,7 +262,7 @@ export class EncounterModal {
                             </div>
 
                             <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
-                                <button id="config-cancel" class="rpg-btn rpg-btn-secondary" style="padding: 12px 24px;">
+                                <button id="config-cancel"  class="rpg-btn rpg-btn-secondary" style="padding: 12px 24px;">
                                     <i class="fa-solid fa-times"></i> Cancel
                                 </button>
                                 <button id="config-proceed" class="rpg-btn rpg-btn-primary" style="padding: 12px 24px;">
@@ -239,54 +276,38 @@ export class EncounterModal {
 
             document.body.insertAdjacentHTML('beforeend', configHTML);
             const configModal = document.getElementById('rpg-narrative-config-modal');
-
-            // Show modal
             setTimeout(() => configModal.classList.add('is-open'), 10);
 
-            // Handle proceed
             configModal.querySelector('#config-proceed').addEventListener('click', () => {
-                // Get values
                 const combatNarrative = {
-                    tense: configModal.querySelector('#config-combat-tense').value,
-                    person: configModal.querySelector('#config-combat-person').value,
+                    tense:     configModal.querySelector('#config-combat-tense').value,
+                    person:    configModal.querySelector('#config-combat-person').value,
                     narration: configModal.querySelector('#config-combat-narration').value,
-                    pov: configModal.querySelector('#config-combat-pov').value.trim() || 'narrator'
+                    pov:       configModal.querySelector('#config-combat-pov').value.trim() || 'narrator',
                 };
-
                 const summaryNarrative = {
-                    tense: configModal.querySelector('#config-summary-tense').value,
-                    person: configModal.querySelector('#config-summary-person').value,
+                    tense:     configModal.querySelector('#config-summary-tense').value,
+                    person:    configModal.querySelector('#config-summary-person').value,
                     narration: configModal.querySelector('#config-summary-narration').value,
-                    pov: configModal.querySelector('#config-summary-pov').value.trim() || 'narrator'
+                    pov:       configModal.querySelector('#config-summary-pov').value.trim() || 'narrator',
                 };
-
                 const remember = configModal.querySelector('#config-remember').checked;
 
-                // Save to settings
-                if (!extensionSettings.encounterSettings) {
-                    extensionSettings.encounterSettings = {};
-                }
-                extensionSettings.encounterSettings.combatNarrative = combatNarrative;
+                if (!extensionSettings.encounterSettings) extensionSettings.encounterSettings = {};
+                extensionSettings.encounterSettings.combatNarrative  = combatNarrative;
                 extensionSettings.encounterSettings.summaryNarrative = summaryNarrative;
-
-                // Set narrativeConfigured based on checkbox state
                 extensionSettings.encounterSettings.narrativeConfigured = remember;
-
-                // Save settings
                 saveSettings();
 
-                // Clean up
                 configModal.remove();
                 resolve(true);
             });
 
-            // Handle cancel
             configModal.querySelector('#config-cancel').addEventListener('click', () => {
                 configModal.remove();
                 resolve(false);
             });
 
-            // Handle overlay click
             configModal.querySelector('.rpg-encounter-overlay').addEventListener('click', () => {
                 configModal.remove();
                 resolve(false);
@@ -294,9 +315,8 @@ export class EncounterModal {
         });
     }
 
-    /**
-     * Creates the modal DOM structure
-     */
+    // ── Create modal DOM ──────────────────────────────────────────────────────
+
     createModal() {
         const modalHTML = `
             <div id="rpg-encounter-modal" class="rpg-encounter-modal" data-theme="${extensionSettings.theme || 'default'}" data-environment="default" data-atmosphere="default">
@@ -319,7 +339,7 @@ export class EncounterModal {
                             <p>Initializing combat...</p>
                         </div>
                         <div id="rpg-encounter-main" class="rpg-encounter-main" style="display: none;">
-                            <!-- Combat UI will be rendered here -->
+                            <!-- Combat UI rendered here -->
                         </div>
                     </div>
                 </div>
@@ -329,7 +349,6 @@ export class EncounterModal {
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         this.modal = document.getElementById('rpg-encounter-modal');
 
-        // Add event listeners
         this.modal.querySelector('#rpg-encounter-conclude').addEventListener('click', () => {
             if (confirm('Conclude this encounter early and generate a summary?')) {
                 this.concludeEncounter();
@@ -342,7 +361,6 @@ export class EncounterModal {
             }
         });
 
-        // Close on overlay click
         this.modal.querySelector('.rpg-encounter-overlay').addEventListener('click', () => {
             if (confirm('Are you sure you want to end this combat encounter?')) {
                 this.close();
@@ -350,28 +368,29 @@ export class EncounterModal {
         });
     }
 
-    /**
-     * Renders the combat UI with party, enemies, and controls
-     * @param {object} combatData - Combat data including party and enemies
-     */
+    // ── Render combat UI ──────────────────────────────────────────────────────
+
     renderCombatUI(combatData) {
-        const mainContent = this.modal.querySelector('#rpg-encounter-main');
+        const mainContent    = this.modal.querySelector('#rpg-encounter-main');
         const loadingContent = this.modal.querySelector('#rpg-encounter-loading');
 
         loadingContent.style.display = 'none';
-        mainContent.style.display = 'block';
+        mainContent.style.display   = 'block';
 
-        const context = getContext();
-        const userName = context.name1;
-
-        let html = `
+        mainContent.innerHTML = `
             <div class="rpg-encounter-battlefield">
+
+                <!-- ── Session 7: HUD bar ────────────────────────────────────── -->
+                <div id="rpg-encounter-hud" class="rpg-encounter-hud">
+                    ${this.renderHUDHTML()}
+                </div>
+
                 <!-- Environment -->
                 <div class="rpg-encounter-environment">
                     <p><i class="fa-solid fa-mountain"></i> ${combatData.environment || 'Battle Arena'}</p>
                 </div>
 
-                <!-- Enemies Section -->
+                <!-- Enemies -->
                 <div class="rpg-encounter-section">
                     <h3><i class="fa-solid fa-skull"></i> Enemies</h3>
                     <div class="rpg-encounter-enemies">
@@ -379,7 +398,7 @@ export class EncounterModal {
                     </div>
                 </div>
 
-                <!-- Party Section -->
+                <!-- Party -->
                 <div class="rpg-encounter-section">
                     <h3><i class="fa-solid fa-users"></i> Party</h3>
                     <div class="rpg-encounter-party">
@@ -391,38 +410,82 @@ export class EncounterModal {
                 <div class="rpg-encounter-log-section">
                     <h3><i class="fa-solid fa-scroll"></i> Combat Log</h3>
                     <div id="rpg-encounter-log" class="rpg-encounter-log">
-                        <div class="rpg-encounter-log-entry">
-                            <em>Combat begins!</em>
-                        </div>
+                        <div class="rpg-encounter-log-entry"><em>Combat begins!</em></div>
                     </div>
                 </div>
 
                 <!-- Player Controls -->
                 ${this.renderPlayerControls(combatData.party, currentEncounter.playerActions)}
+
             </div>
         `;
 
-        mainContent.innerHTML = html;
-
-        // Add event listeners for controls
         this.attachControlListeners(combatData.party);
     }
 
+    // ── HUD ───────────────────────────────────────────────────────────────────
+
     /**
-     * Renders enemy cards
-     * @param {Array} enemies - Array of enemy data
-     * @returns {string} HTML for enemies
+     * Build the inner HTML for the Light / Sanity / Act·Scene HUD bar.
+     * @returns {string}
      */
+    renderHUDHTML() {
+        const light    = currentEncounter.light;
+        const sanity   = currentEncounter.sanity.current;
+        const lvl      = currentEncounter.sanityLevel;
+        const info     = getSanityLevelInfo(lvl);
+        const corrosion = currentEncounter.corrosion.active;
+        const pips     = lightPipsText(light);
+        const actLabel = getActSceneLabel(currentEncounter);
+        const sanitySign = sanity >= 0 ? '+' : '';
+
+        return `
+            <div class="rpg-hud-segment rpg-hud-light">
+                <span class="rpg-hud-icon">💡</span>
+                <span class="rpg-hud-label">Light</span>
+                <span class="rpg-hud-pips">${pips}</span>
+                <span class="rpg-hud-value">${light.current}/${light.max}</span>
+            </div>
+            <div class="rpg-hud-divider">│</div>
+            <div class="rpg-hud-segment rpg-hud-sanity ${corrosion ? 'rpg-hud-corrosion-active' : ''}">
+                <span class="rpg-hud-icon">🧠</span>
+                <span class="rpg-hud-label">Sanity</span>
+                <span class="rpg-hud-value" style="color:${info?.color || '#9da5b0'}">${sanitySign}${sanity}</span>
+                <span class="rpg-hud-sublabel" style="color:${info?.color || '#9da5b0'}">${info?.name || 'Neutral'} Lv${lvl >= 0 ? '+' : ''}${lvl}</span>
+                ${corrosion ? '<span class="rpg-corrosion-tag">⚠ EGO CORROSION</span>' : ''}
+            </div>
+            <div class="rpg-hud-divider">│</div>
+            <div class="rpg-hud-segment rpg-hud-scene">
+                <span class="rpg-hud-icon">⚔</span>
+                <span class="rpg-hud-value">${actLabel}</span>
+            </div>
+        `;
+    }
+
+    /**
+     * Re-render the HUD bar in-place (no full DOM rebuild).
+     */
+    updateHUD() {
+        const hudEl = this.modal?.querySelector('#rpg-encounter-hud');
+        if (!hudEl) return;
+        hudEl.innerHTML = this.renderHUDHTML();
+
+        // Apply / remove corrosion border on the modal itself
+        if (currentEncounter.corrosion.active) {
+            this.modal.classList.add('rpg-modal-corrosion');
+        } else {
+            this.modal.classList.remove('rpg-modal-corrosion');
+        }
+    }
+
+    // ── Enemy / Party cards ───────────────────────────────────────────────────
+
     renderEnemies(enemies) {
         return enemies.map((enemy, index) => {
             const hpPercent = (enemy.hp / enemy.maxHp) * 100;
-            const isDead = enemy.hp <= 0;
-
-            // Try to find avatar for enemy (they might be a character from the chat or Present Characters)
+            const isDead    = enemy.hp <= 0;
             const avatarUrl = this.getCharacterAvatar(enemy.name);
-            const sprite = enemy.sprite || '👹';
-
-            // Fallback SVG if no avatar found
+            const sprite    = enemy.sprite || '👹';
             const fallbackSvg = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2NjY2NjYyIgb3BhY2l0eT0iMC4zIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmaWxsPSIjNjY2IiBmb250LXNpemU9IjQwIj4/PC90ZXh0Pjwvc3ZnPg==';
 
             return `
@@ -433,14 +496,10 @@ export class EncounterModal {
                     <div class="rpg-encounter-card-info">
                         <h4>${enemy.name}</h4>
                         <div class="rpg-encounter-hp-bar">
-                            <div class="rpg-encounter-hp-fill" style="width: ${hpPercent}%"></div>
+                            <div class="rpg-encounter-hp-fill" style="width:${hpPercent}%"></div>
                             <span class="rpg-encounter-hp-text">${enemy.hp}/${enemy.maxHp} HP</span>
                         </div>
-                        ${enemy.statuses && enemy.statuses.length > 0 ? `
-                            <div class="rpg-encounter-statuses">
-                                ${enemy.statuses.map(status => `<span class="rpg-encounter-status" title="${status.name}">${status.emoji}</span>`).join('')}
-                            </div>
-                        ` : ''}
+                        ${enemy.statuses?.length ? `<div class="rpg-encounter-statuses">${enemy.statuses.map(s => `<span class="rpg-encounter-status" title="${s.name}">${s.emoji}</span>`).join('')}</div>` : ''}
                         ${enemy.description ? `<p class="rpg-encounter-description">${enemy.description}</p>` : ''}
                     </div>
                 </div>
@@ -448,32 +507,19 @@ export class EncounterModal {
         }).join('');
     }
 
-    /**
-     * Renders party member cards
-     * @param {Array} party - Array of party member data
-     * @returns {string} HTML for party
-     */
     renderParty(party) {
-        const context = getContext();
+        const fallbackSvg = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2NjY2NjYyIgb3BhY2l0eT0iMC4zIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmaWxsPSIjNjY2IiBmb250LXNpemU9IjQwIj4/PC90ZXh0Pjwvc3ZnPg==';
 
         return party.map((member, index) => {
             const hpPercent = (member.hp / member.maxHp) * 100;
-            const isDead = member.hp <= 0;
+            const isDead    = member.hp <= 0;
+            let avatarUrl   = '';
 
-            // Get avatar for party member
-            let avatarUrl = '';
-            if (member.isPlayer) {
-                // Get user/persona avatar using user_avatar like userStats does
-                if (user_avatar) {
-                    avatarUrl = getSafeThumbnailUrl('persona', user_avatar);
-                }
+            if (member.isPlayer && user_avatar) {
+                avatarUrl = getSafeThumbnailUrl('persona', user_avatar);
             } else {
-                // Try to find character avatar by name
                 avatarUrl = this.getCharacterAvatar(member.name);
             }
-
-            // Fallback SVG if no avatar found
-            const fallbackSvg = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2NjY2NjYyIgb3BhY2l0eT0iMC4zIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmaWxsPSIjNjY2IiBmb250LXNpemU9IjQwIj4/PC90ZXh0Pjwvc3ZnPg==';
 
             return `
                 <div class="rpg-encounter-card ${isDead ? 'rpg-encounter-dead' : ''}" data-party-index="${index}">
@@ -483,72 +529,40 @@ export class EncounterModal {
                     <div class="rpg-encounter-card-info">
                         <h4>${member.name} ${member.isPlayer ? '(You)' : ''}</h4>
                         <div class="rpg-encounter-hp-bar">
-                            <div class="rpg-encounter-hp-fill rpg-encounter-hp-party" style="width: ${hpPercent}%"></div>
+                            <div class="rpg-encounter-hp-fill rpg-encounter-hp-party" style="width:${hpPercent}%"></div>
                             <span class="rpg-encounter-hp-text">${member.hp}/${member.maxHp} HP</span>
-                        </div>                        ${member.statuses && member.statuses.length > 0 ? `
-                            <div class="rpg-encounter-statuses">
-                                ${member.statuses.map(status => `<span class="rpg-encounter-status" title="${status.name}">${status.emoji}</span>`).join('')}
-                            </div>
-                        ` : ''}                    </div>
+                        </div>
+                        ${member.statuses?.length ? `<div class="rpg-encounter-statuses">${member.statuses.map(s => `<span class="rpg-encounter-status" title="${s.name}">${s.emoji}</span>`).join('')}</div>` : ''}
+                    </div>
                 </div>
             `;
         }).join('');
     }
 
-    /**
-     * Gets avatar for a character by name (works for party members, enemies, and NPCs)
-     * @param {string} name - Character name
-     * @returns {string} Avatar URL or null
-     */
     getCharacterAvatar(name) {
-        // Priority 1: Check custom uploaded avatars first (from Present Characters panel)
-        if (extensionSettings.npcAvatars && extensionSettings.npcAvatars[name]) {
-            return extensionSettings.npcAvatars[name];
-        }
+        if (extensionSettings.npcAvatars?.[name]) return extensionSettings.npcAvatars[name];
 
-        // Priority 2: Check if character is in the current group
         if (selected_group) {
-            const groupMembers = getGroupMembers(selected_group);
-            if (groupMembers && groupMembers.length > 0) {
-                const matchingMember = groupMembers.find(member =>
-                    member && member.name && member.name.toLowerCase() === name.toLowerCase()
-                );
-
-                if (matchingMember && matchingMember.avatar) {
-                    return getSafeThumbnailUrl('avatar', matchingMember.avatar);
-                }
-            }
+            const members = getGroupMembers(selected_group);
+            const match   = members?.find(m => m?.name?.toLowerCase() === name.toLowerCase());
+            if (match?.avatar) return getSafeThumbnailUrl('avatar', match.avatar);
         }
 
-        // Priority 3: Search all loaded characters
-        if (characters && Array.isArray(characters)) {
-            const matchingChar = characters.find(char =>
-                char && char.name && char.name.toLowerCase() === name.toLowerCase()
-            );
-
-            if (matchingChar && matchingChar.avatar) {
-                return getSafeThumbnailUrl('avatar', matchingChar.avatar);
-            }
+        if (Array.isArray(characters)) {
+            const match = characters.find(c => c?.name?.toLowerCase() === name.toLowerCase());
+            if (match?.avatar) return getSafeThumbnailUrl('avatar', match.avatar);
         }
 
-        // Priority 4: Check if it's the current character
-        if (this_chid !== undefined && characters && characters[this_chid]) {
-            const currentChar = characters[this_chid];
-            if (currentChar.name && currentChar.name.toLowerCase() === name.toLowerCase()) {
-                return getSafeThumbnailUrl('avatar', currentChar.avatar);
-            }
+        if (this_chid !== undefined && characters?.[this_chid]) {
+            const c = characters[this_chid];
+            if (c.name?.toLowerCase() === name.toLowerCase()) return getSafeThumbnailUrl('avatar', c.avatar);
         }
 
-        // No avatar found
         return null;
     }
 
-    /**
-     * Shows target selection modal for attacks
-     * @param {string} attackType - Type of attack (single-target, AoE, both)
-     * @param {Object} combatStats - Current combat state
-     * @returns {Promise<string|null>} Selected target name or null if cancelled
-     */
+    // ── Target selection ──────────────────────────────────────────────────────
+
     async showTargetSelection(attackType, combatStats) {
         return new Promise((resolve) => {
             const targetModal = document.createElement('div');
@@ -556,7 +570,6 @@ export class EncounterModal {
 
             let targetOptions = '';
 
-            // Build target options based on attack type
             if (attackType === 'AoE') {
                 targetOptions = `
                     <div class="rpg-target-option" data-target="all-enemies">
@@ -576,9 +589,7 @@ export class EncounterModal {
                 `;
             }
 
-            // Add individual targets (enemies and allies)
             if (attackType !== 'AoE') {
-                // Add enemies
                 combatStats.enemies.forEach((enemy, index) => {
                     if (enemy.hp > 0) {
                         targetOptions += `
@@ -591,19 +602,15 @@ export class EncounterModal {
                     }
                 });
 
-                // Add party members (for heals/buffs)
                 combatStats.party.forEach((member, index) => {
                     if (member.hp > 0) {
                         const isPlayer = member.isPlayer ? ' (You)' : '';
-                        // Get avatar for party member
                         let avatarIcon = '✨';
                         if (member.isPlayer && user_avatar) {
-                            avatarIcon = `<img src="${getSafeThumbnailUrl('persona', user_avatar)}" alt="${member.name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">`;
+                            avatarIcon = `<img src="${getSafeThumbnailUrl('persona', user_avatar)}" alt="${member.name}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">`;
                         } else {
-                            const avatarUrl = this.getCharacterAvatar(member.name);
-                            if (avatarUrl) {
-                                avatarIcon = `<img src="${avatarUrl}" alt="${member.name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">`;
-                            }
+                            const url = this.getCharacterAvatar(member.name);
+                            if (url) avatarIcon = `<img src="${url}" alt="${member.name}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">`;
                         }
                         targetOptions += `
                             <div class="rpg-target-option rpg-target-ally" data-target="${member.name}" data-target-type="party" data-target-index="${index}">
@@ -619,31 +626,25 @@ export class EncounterModal {
             targetModal.innerHTML = `
                 <div class="rpg-target-selection-modal">
                     <h3><i class="fa-solid fa-crosshairs"></i> Select Target</h3>
-                    <div class="rpg-target-list">
-                        ${targetOptions}
-                    </div>
+                    <div class="rpg-target-list">${targetOptions}</div>
                     <button class="rpg-target-cancel">Cancel</button>
                 </div>
             `;
 
             document.body.appendChild(targetModal);
 
-            // Handle target selection
-            targetModal.querySelectorAll('.rpg-target-option').forEach(option => {
-                option.addEventListener('click', () => {
-                    const target = option.dataset.target;
+            targetModal.querySelectorAll('.rpg-target-option').forEach(opt => {
+                opt.addEventListener('click', () => {
                     document.body.removeChild(targetModal);
-                    resolve(target);
+                    resolve(opt.dataset.target);
                 });
             });
 
-            // Handle cancel
             targetModal.querySelector('.rpg-target-cancel').addEventListener('click', () => {
                 document.body.removeChild(targetModal);
                 resolve(null);
             });
 
-            // Handle overlay click
             targetModal.addEventListener('click', (e) => {
                 if (e.target === targetModal) {
                     document.body.removeChild(targetModal);
@@ -653,19 +654,14 @@ export class EncounterModal {
         });
     }
 
-    /**
-     * Renders player action controls
-     * @param {Array} party - Party data
-     * @returns {string} HTML for controls
-     */
+    // ── Player controls ───────────────────────────────────────────────────────
+
     renderPlayerControls(party, playerActions = null) {
         const player = party.find(m => m.isPlayer);
         if (!player || player.hp <= 0) {
             return '<div class="rpg-encounter-controls"><p class="rpg-encounter-defeated">You have been defeated...</p></div>';
         }
 
-        // Use playerActions if provided, otherwise fall back to player data
-        const attacks = playerActions?.attacks || player.attacks || [];
         const items = playerActions?.items || player.items || [];
 
         return `
@@ -673,27 +669,12 @@ export class EncounterModal {
                 <h3><i class="fa-solid fa-hand-fist"></i> Your Actions</h3>
 
                 <div class="rpg-encounter-action-buttons">
-                    <div class="rpg-encounter-button-group">
-                        <h4>Attacks</h4>
-                        ${attacks.map(attack => {
-                            // Support both old string format and new object format
-                            const attackName = typeof attack === 'string' ? attack : attack.name;
-                            const attackType = typeof attack === 'string' ? 'single-target' : (attack.type || 'single-target');
-                            const typeIcon = attackType === 'AoE' ? '💥' : attackType === 'both' ? '⚡' : '🎯';
 
-                            return `
-                            <button class="rpg-encounter-action-btn rpg-encounter-attack-btn"
-                                    data-action="attack"
-                                    data-value="${attackName}"
-                                    data-attack-type="${attackType}"
-                                    title="${attackType === 'AoE' ? 'Area of Effect' : attackType === 'both' ? 'Single or AoE' : 'Single Target'}">
-                                <i class="fa-solid fa-sword"></i> ${attackName} ${typeIcon}
-                            </button>
-                            `;
-                        }).join('')}
-                    </div>
+                    <!-- ── Session 7: Stat Sheet Combat Skills ──────────────── -->
+                    ${this._renderCombatSkillsSection()}
 
-                    ${items && items.length > 0 ? `
+                    <!-- Items -->
+                    ${items.length > 0 ? `
                         <div class="rpg-encounter-button-group">
                             <h4>Items</h4>
                             ${items.map(item => `
@@ -703,6 +684,7 @@ export class EncounterModal {
                             `).join('')}
                         </div>
                     ` : ''}
+
                 </div>
 
                 <div class="rpg-encounter-custom-action">
@@ -718,42 +700,193 @@ export class EncounterModal {
         `;
     }
 
+    // ── Combat Skills section (Session 7) ────────────────────────────────────
+
     /**
-     * Attaches event listeners to control buttons
-     * @param {Array} party - Party data for reference
+     * Build the HTML for the equipped Combat Skills button group.
+     * Returns '' if the stat sheet is disabled or no skills are equipped.
+     * @returns {string}
      */
-    attachControlListeners(party) {
-        // Only attach once - event delegation on the modal means listeners persist
-        if (this._listenersAttached) {
-            return;
+    _renderCombatSkillsSection() {
+        if (!extensionSettings.statSheet?.enabled) return '';
+
+        let allEquipped;
+        try {
+            allEquipped = getEquippedSkills();
+        } catch {
+            return '';
         }
 
-        // Store handlers as instance properties so we can remove them if needed
+        if (!allEquipped?.length) return '';
+
+        const corrosion  = currentEncounter.corrosion.active;
+        const light      = currentEncounter.light;
+
+        // During corrosion: only E.G.O skills are usable
+        const skills = corrosion
+            ? allEquipped.filter(s => s.isEGO)
+            : allEquipped;
+
+        if (!skills.length) {
+            return `
+                <div class="rpg-encounter-button-group rpg-cs-skills-group">
+                    <h4><i class="fa-solid fa-layer-group"></i> Combat Skills</h4>
+                    <p class="rpg-cs-no-skills rpg-cs-corrosion-note">
+                        ⚠ EGO CORROSION — only E.G.O skills available. No E.G.O skills are equipped.
+                    </p>
+                </div>
+            `;
+        }
+
+        const btns = skills.map(skill => {
+            const cost        = skill.cost ?? 0;
+            const canAfford   = canAffordLight(light, cost);
+            const isEGO       = skill.isEGO;
+            const egoSanCost  = isEGO ? (EGO_SANITY_COSTS[skill.egoTier] ?? 0) : 0;
+            const tierKey     = (skill.egoTier || '').toLowerCase();
+
+            const tierBadge = isEGO
+                ? `<span class="rpg-cs-tier-badge rpg-cs-tier-${tierKey}">${skill.egoTier}</span>`
+                : '';
+
+            const diceHtml = (skill.dice || []).slice(0, 4).map(d => {
+                const cls = _getDieColorClass(d.diceType);
+                return `<span class="cs-die-chip ${cls}">${d.diceType} d${d.sides}${d.basePower > 0 ? '+' + d.basePower : ''}</span>`;
+            }).join('');
+
+            return `
+                <button class="rpg-encounter-action-btn rpg-cs-skill-btn${!canAfford ? ' rpg-cs-skill-unaffordable' : ''}"
+                        data-action="combat-skill"
+                        data-skill-id="${skill.id}"
+                        data-skill-name="${skill.name.replace(/"/g, '&quot;')}"
+                        data-skill-cost="${cost}"
+                        data-skill-is-ego="${isEGO ? '1' : '0'}"
+                        data-skill-ego-sanity="${egoSanCost}"
+                        ${!canAfford ? 'disabled' : ''}>
+                    <span class="rpg-cs-skill-line1">
+                        ${tierBadge}
+                        <span class="rpg-cs-skill-name">${skill.name}</span>
+                        <span class="rpg-cs-cost-group">
+                            <span class="rpg-cs-light-cost"><span class="rpg-cs-pip">💡</span>${cost}</span>
+                            ${isEGO ? `<span class="rpg-cs-sanity-cost">🧠−${egoSanCost}</span>` : ''}
+                        </span>
+                    </span>
+                    ${diceHtml ? `<span class="rpg-cs-dice-row">${diceHtml}</span>` : ''}
+                </button>
+            `;
+        }).join('');
+
+        const corrosionNote = corrosion
+            ? '<p class="rpg-cs-corrosion-note">⚠ EGO CORROSION — only E.G.O skills are usable</p>'
+            : '';
+
+        return `
+            <div class="rpg-encounter-button-group rpg-cs-skills-group">
+                <h4><i class="fa-solid fa-layer-group"></i> Combat Skills</h4>
+                ${corrosionNote}
+                ${btns}
+            </div>
+        `;
+    }
+
+    /**
+     * Re-render only the combat skills button group inside the existing controls.
+     * Called after light/sanity changes without rebuilding the entire controls section.
+     */
+    _refreshCombatSkillsSection() {
+        const group = this.modal?.querySelector('.rpg-cs-skills-group');
+        if (!group) return;
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = this._renderCombatSkillsSection();
+        const newGroup = tempDiv.firstElementChild;
+        if (newGroup) group.replaceWith(newGroup);
+    }
+
+    // ── Event listeners ───────────────────────────────────────────────────────
+
+    attachControlListeners(party) {
+        if (this._listenersAttached) return;
+
         this._actionHandler = async (e) => {
-            // Handle action buttons (attack/item)
+            // ── Combat Skill buttons (Session 7) ─────────────────────────────
+            const skillBtn = e.target.closest('.rpg-cs-skill-btn');
+            if (skillBtn && !skillBtn.disabled && !this.isProcessing) {
+                const skillId      = skillBtn.dataset.skillId;
+                const skillName    = skillBtn.dataset.skillName;
+                const cost         = parseInt(skillBtn.dataset.skillCost)      || 0;
+                const isEGO        = skillBtn.dataset.skillIsEgo === '1';
+                const egoSanCost   = parseInt(skillBtn.dataset.skillEgoSanity) || 0;
+
+                // Spend Light
+                if (!spendLight(currentEncounter.light, cost)) {
+                    this.addToLog('Not enough Light!', 'system');
+                    return;
+                }
+
+                // Spend Sanity for E.G.O
+                if (isEGO && egoSanCost > 0) {
+                    const newSanity   = clampSanity(currentEncounter.sanity.current - egoSanCost);
+                    currentEncounter.sanity.current = newSanity;
+                    currentEncounter.sanityLevel    = calculateSanityLevel(newSanity);
+                    this.addToLog(`E.G.O used! −${egoSanCost} Sanity`, 'sanity-loss');
+                }
+
+                currentEncounter.selectedSkill = skillId;
+                this.updateHUD();
+
+                // Build the action text with die sequence info
+                let allSkills;
+                try { allSkills = getEquippedSkills(); } catch { allSkills = []; }
+                const skill = allSkills.find(s => s.id === skillId);
+
+                const context  = getContext();
+                const userName = context.name1;
+                let actionText = `I use "${skillName}"`;
+
+                if (skill?.dice?.length) {
+                    const diceDesc = skill.dice
+                        .map(d => `${d.diceType} 1d${d.sides}${d.basePower > 0 ? '+' + d.basePower : ''}`)
+                        .join(', ');
+                    actionText += ` [${diceDesc}]`;
+                }
+
+                const target = await this.showTargetSelection('single-target', currentEncounter.combatStats);
+                if (!target) {
+                    // User cancelled — refund costs
+                    currentEncounter.light.current = Math.min(
+                        currentEncounter.light.max,
+                        currentEncounter.light.current + cost
+                    );
+                    if (isEGO && egoSanCost > 0) {
+                        currentEncounter.sanity.current = clampSanity(
+                            currentEncounter.sanity.current + egoSanCost
+                        );
+                        currentEncounter.sanityLevel = calculateSanityLevel(currentEncounter.sanity.current);
+                    }
+                    currentEncounter.selectedSkill = null;
+                    this.updateHUD();
+                    return;
+                }
+
+                actionText += ` targeting ${target}`;
+                await this.processCombatAction(actionText);
+                return;
+            }
+
+            // ── Standard attack / item buttons ───────────────────────────────
             const actionBtn = e.target.closest('.rpg-encounter-action-btn');
             if (actionBtn && !actionBtn.disabled && !this.isProcessing) {
                 const actionType = actionBtn.dataset.action;
-                const value = actionBtn.dataset.value;
+                const value      = actionBtn.dataset.value;
                 const attackType = actionBtn.dataset.attackType;
-                const context = getContext();
-                const userName = context.name1;
+                const context    = getContext();
+                const userName   = context.name1;
 
                 let actionText = '';
 
-                if (actionType === 'attack') {
-                    const target = await this.showTargetSelection(attackType, currentEncounter.combatStats);
-                    if (!target) return;
-
-                    if (target === 'all-enemies') {
-                        actionText = `${userName} uses ${value} targeting all enemies!`;
-                    } else {
-                        actionText = `${userName} uses ${value} on ${target}!`;
-                    }
-                } else if (actionType === 'item') {
+                if (actionType === 'item') {
                     const target = await this.showTargetSelection('single-target', currentEncounter.combatStats);
                     if (!target) return;
-
                     actionText = `${userName} uses ${value} on ${target}!`;
                 }
 
@@ -761,7 +894,7 @@ export class EncounterModal {
                 return;
             }
 
-            // Handle custom submit button
+            // ── Custom submit button ──────────────────────────────────────────
             const submitBtn = e.target.closest('#rpg-encounter-custom-submit');
             if (submitBtn && !submitBtn.disabled && !this.isProcessing) {
                 const input = this.modal.querySelector('#rpg-encounter-custom-input');
@@ -786,48 +919,39 @@ export class EncounterModal {
             }
         };
 
-        // Attach to the modal itself (which never gets replaced)
         this.modal.addEventListener('click', this._actionHandler);
         this.modal.addEventListener('keypress', this._keypressHandler);
-
         this._listenersAttached = true;
     }
 
-    /**
-     * Processes a combat action
-     * @param {string} action - The action description
-     */
+    // ── Process combat action ─────────────────────────────────────────────────
+
     async processCombatAction(action) {
         if (this.isProcessing) return;
-
         this.isProcessing = true;
 
+        // Snapshot enemy/party HP before the round resolves
+        const prevStats = currentEncounter.combatStats
+            ? JSON.parse(JSON.stringify(currentEncounter.combatStats))
+            : null;
+
         try {
-            // Disable all buttons
             this.modal.querySelectorAll('.rpg-encounter-action-btn, #rpg-encounter-custom-submit').forEach(btn => {
                 btn.disabled = true;
             });
 
-            // Add action to log
             this.addToLog(`You: ${action}`, 'player-action');
 
-            // Build and send combat action prompt
             const actionPrompt = await buildCombatActionPrompt(action, currentEncounter.combatStats);
+            this.lastRequest   = { type: 'action', action, prompt: actionPrompt };
 
-            // Store request for potential regeneration
-            this.lastRequest = { type: 'action', action, prompt: actionPrompt };
-
-            const response = await safeGenerateRaw({
-                prompt: actionPrompt,
-                quietToLoud: false
-            });
+            const response = await safeGenerateRaw({ prompt: actionPrompt, quietToLoud: false });
 
             if (!response) {
                 this.showErrorWithRegenerate('No response received from AI. The model may be unavailable.');
                 return;
             }
 
-            // Parse response
             const result = parseEncounterJSON(response);
 
             if (!result || !result.combatStats) {
@@ -835,64 +959,58 @@ export class EncounterModal {
                 return;
             }
 
-            // Update encounter state
             updateCurrentEncounter({
-                combatStats: result.combatStats,
-                playerActions: result.playerActions
+                combatStats:   result.combatStats,
+                playerActions: result.playerActions,
             });
 
-            // Collect log entries in order: enemy actions, party actions, then narration
+            // Build log entries
             const logEntries = [];
-
-            // Add enemy actions first
-            if (result.enemyActions) {
-                result.enemyActions.forEach(enemyAction => {
-                    logEntries.push({ message: `${enemyAction.enemyName}: ${enemyAction.action}`, type: 'enemy-action' });
-                });
-            }
-
-            // Add party actions second
-            if (result.partyActions) {
-                result.partyActions.forEach(partyAction => {
-                    logEntries.push({ message: `${partyAction.memberName}: ${partyAction.action}`, type: 'party-action' });
-                });
-            }
-
-            // Add narrative last - split by newlines for line-by-line display
+            result.enemyActions?.forEach(ea => {
+                logEntries.push({ message: `${ea.enemyName}: ${ea.action}`, type: 'enemy-action' });
+            });
+            result.partyActions?.forEach(pa => {
+                logEntries.push({ message: `${pa.memberName}: ${pa.action}`, type: 'party-action' });
+            });
             if (result.narrative) {
-                const narrativeLines = result.narrative.split('\n').filter(line => line.trim());
-                narrativeLines.forEach(line => {
+                result.narrative.split('\n').filter(l => l.trim()).forEach(line => {
                     logEntries.push({ message: line, type: 'narrative' });
                 });
             }
 
-            // Display log entries sequentially with animation
             await this.addLogsSequentially(logEntries);
 
-            // Add to encounter log for summary - include all actions
             let fullActionLog = action;
-            if (result.enemyActions && result.enemyActions.length > 0) {
-                result.enemyActions.forEach(enemyAction => {
-                    fullActionLog += `\n${enemyAction.enemyName}: ${enemyAction.action}`;
-                });
-            }
-            if (result.partyActions && result.partyActions.length > 0) {
-                result.partyActions.forEach(partyAction => {
-                    fullActionLog += `\n${partyAction.memberName}: ${partyAction.action}`;
-                });
-            }
+            result.enemyActions?.forEach(ea => { fullActionLog += `\n${ea.enemyName}: ${ea.action}`; });
+            result.partyActions?.forEach(pa => { fullActionLog += `\n${pa.memberName}: ${pa.action}`; });
             addEncounterLogEntry(fullActionLog, result.narrative || 'Action resolved');
 
-            // Update UI
+            // ── Phase 4: Run local clash engine ──────────────────────────────
+            const clashResult = this._runClashResolution(
+                response,
+                currentEncounter.selectedSkill ?? null
+            );
+            const clashLogLines  = clashResult?.logLines  ?? [];
+            const clashSanityDelta = clashResult?.sanityDelta ?? 0;
+            if (clashLogLines?.length) {
+                this.addToLog('── Clash Resolution ──', 'system');
+                for (const line of clashLogLines) {
+                    this.addToLog(line, 'clash-result');
+                }
+            }
+
+            // ── Update visuals ────────────────────────────────────────────────
             this.updateCombatUI(result.combatStats);
 
-            // Check if combat ended
+            // ── Session 7: Sanity / Light / Scene post-round updates ──────────
+            this._applyPostRoundUpdates(result.combatStats, prevStats, clashSanityDelta);
+
+            // ── Check combat end ──────────────────────────────────────────────
             if (result.combatEnd) {
                 await this.endCombat(result.result || 'unknown');
                 return;
             }
 
-            // Re-enable buttons
             this.modal.querySelectorAll('.rpg-encounter-action-btn, #rpg-encounter-custom-submit').forEach(btn => {
                 btn.disabled = false;
             });
@@ -900,8 +1018,6 @@ export class EncounterModal {
         } catch (error) {
             console.error('[RPG Companion] Error processing combat action:', error);
             this.showErrorWithRegenerate(`Error processing action: ${error.message}`);
-
-            // Re-enable buttons
             this.modal.querySelectorAll('.rpg-encounter-action-btn, #rpg-encounter-custom-submit').forEach(btn => {
                 btn.disabled = false;
             });
@@ -910,51 +1026,298 @@ export class EncounterModal {
         }
     }
 
+    // ── Phase 4: Clash resolution pipeline ───────────────────────────────────
+
     /**
-     * Updates the combat UI with new stats
-     * @param {object} combatStats - Updated combat statistics
+     * Parse Rev 4 combat tags from an AI response, run the clash engine,
+     * apply results to engine state + player bars, and return log lines
+     * for display in the combat log.
+     *
+     * Returns null if no combat tags were found (engine stays idle this round).
+     *
+     * @param {string} rawResponse   — full AI response text
+     * @param {string|null} skillId  — ID of the combat skill the player used this round
+     * @returns {string[]|null}      — array of log lines, or null if no tags
      */
+    _runClashResolution(rawResponse, skillId) {
+        const parsed = parseCombatTags(rawResponse);
+        if (!parsed.hasTags) return null;
+
+        const logLines = [];
+        const es       = currentEncounter.engineState;
+        if (!es) return null;
+
+        // ── 1. Log any parse errors ───────────────────────────────────────────
+        for (const err of parsed.errors) {
+            logLines.push(`⚠ Tag parse error: ${err}`);
+            console.warn('[EncounterUI] Tag parse error:', err);
+        }
+
+        // ── 2. Register new enemies from enemy_init tags ──────────────────────
+        for (const init of parsed.enemyInits) {
+            const args = initToUpsertArgs(init);
+            upsertCombatant(init.name, args);
+            logLines.push(`⚔ ${init.name} enters the battle (${args.hp} HP)`);
+        }
+
+        // ── 3. Reset transient round state ────────────────────────────────────
+        resetEngineRoundState();
+
+        // Expire saved dice for all combatants at round start
+        for (const name of Object.keys(es.combatants)) {
+            expireSavedDice(name);
+        }
+
+        es.roundNumber = (es.roundNumber ?? 0) + 1;
+
+        // ── 4. Group enemy actions by skill and resolve enemy name ────────────
+        const grouped      = groupEnemyActions(parsed.enemyActions);
+        const livingEnemies = Object.values(es.combatants)
+            .filter(c => c.hp > 0 && c.name !== '_player');
+
+        // Build skill→enemy assignment map.
+        // Persistent across rounds in es.skillOwners so consistent assignment is maintained.
+        if (!es.skillOwners) es.skillOwners = {};
+
+        const assignedThisRound = new Set();
+        const skillGroups = [];
+
+        for (const [skillName, dice] of Object.entries(grouped)) {
+            // Already seen this skill before? Re-use the cached owner.
+            let ownerName = es.skillOwners[skillName];
+
+            // New skill: assign to the living enemy with the fewest assignments this round.
+            if (!ownerName || !es.combatants[ownerName] || es.combatants[ownerName].hp <= 0) {
+                const candidate = livingEnemies
+                    .filter(e => !assignedThisRound.has(e.name))
+                    .sort((a, b) => {
+                        // prefer enemy not yet assigned a skill this round
+                        const aCount = [...assignedThisRound].filter(n => n === a.name).length;
+                        const bCount = [...assignedThisRound].filter(n => n === b.name).length;
+                        return aCount - bCount;
+                    })[0] ?? livingEnemies[0];
+
+                ownerName = candidate?.name ?? null;
+                if (ownerName) es.skillOwners[skillName] = ownerName;
+            }
+
+            if (!ownerName) {
+                logLines.push(`⚠ Could not assign skill "${skillName}" to an enemy — skipped.`);
+                continue;
+            }
+
+            assignedThisRound.add(ownerName);
+
+            // Convert parsed dice to DieSpec format for clashEngine
+            const enemyDiceSpecs = dice.map(d => ({
+                diceType : d.type,
+                sides    : d.dice.sides,
+                modifier : d.dice.modifier ?? 0,
+            }));
+
+            // Speed spec comes from the die_index=1 entry
+            const speedSpec = dice.find(d => d.dieIndex === 1)?.speed ?? null;
+
+            skillGroups.push({ skillName, ownerName, enemyDiceSpecs, speedSpec });
+        }
+
+        // ── 5. Build player snap ──────────────────────────────────────────────
+        const playerState = getCombatantState('_player');
+        const isStaggered = playerState?.isStaggered ?? false;
+        const playerSnap  = buildPlayerSnap({ isStaggered });
+
+        // Merge engine state into snap (engine may have updated HP mid-fight)
+        if (playerState) {
+            playerSnap.hp             = playerState.hp;
+            playerSnap.staggerResist  = playerState.staggerResist;
+            playerSnap.isStaggered    = playerState.isStaggered;
+        }
+
+        // Ensure player is registered in engine state
+        if (!playerState) {
+            upsertCombatant('_player', {
+                hp               : playerSnap.hp,
+                maxHp            : playerSnap.maxHp,
+                staggerResist    : playerSnap.staggerResist,
+                maxStaggerResist : playerSnap.maxStaggerResist,
+                isStaggered      : false,
+                affinities       : playerSnap.affinities,
+            });
+        }
+
+        // ── 6. Get player dice for this round ─────────────────────────────────
+        const playerDice = skillId ? resolvePlayerDiceForSkillId(skillId) : [];
+
+        // ── 7. Build initiative queue (sorts by speed roll) ───────────────────
+        const initQueue = buildInitiativeQueue(
+            skillGroups.map(g => ({ ...g, dice: g.enemyDiceSpecs, speedSpec: g.speedSpec }))
+        );
+
+        // ── 8. Resolve each clash in initiative order ─────────────────────────
+        let totalHpDeltaPlayer      = 0;
+        let totalStaggerDeltaPlayer = 0;
+        let totalSanityDelta        = 0;
+
+        for (const group of initQueue) {
+            const enemyState = getCombatantState(group.ownerName);
+            if (!enemyState) continue;
+
+            const enemySnap = {
+                hp               : enemyState.hp,
+                maxHp            : enemyState.maxHp,
+                staggerResist    : enemyState.staggerResist,
+                maxStaggerResist : enemyState.maxStaggerResist,
+                isStaggered      : enemyState.isStaggered,
+                affinities       : enemyState.affinities ?? {},
+                savedDice        : enemyState.savedDice  ?? [],
+            };
+
+            logLines.push(`— ${group.ownerName} uses "${group.skillName}" (speed ${group.speedRoll})`);
+
+            const report = resolveClash(
+                playerDice,
+                group.enemyDiceSpecs,
+                playerSnap,
+                enemySnap,
+                es.roundNumber
+            );
+
+            // Apply report to mutable engine states
+            const livePlayer = getCombatantState('_player');
+            const liveEnemy  = enemyState;
+
+            const changes = applyClashReport(report, livePlayer ?? playerSnap, liveEnemy, es.roundNumber);
+
+            // Accumulate player deltas
+            totalHpDeltaPlayer      += report.hpDeltaPlayer;
+            totalStaggerDeltaPlayer += report.staggerDeltaPlayer;
+            totalSanityDelta        += report.sanityDelta;
+
+            // Log each clash line
+            for (const line of report.logLines) {
+                logLines.push(`  ${line}`);
+            }
+
+            if (changes.playerStaggered) logLines.push('  💫 You are STAGGERED!');
+            if (changes.enemyStaggered)  logLines.push(`  💫 ${group.ownerName} is STAGGERED!`);
+            if (changes.enemyKilled)     logLines.push(`  💀 ${group.ownerName} defeated!`);
+            if (changes.playerKilled)    logLines.push('  💀 You have been defeated...');
+
+            // Log the clash to encounter state
+            const allSkills = [];
+            try { allSkills.push(...(getEquippedSkills() || [])); } catch { /* ok */ }
+            const playerSkillName = allSkills.find(s => s.id === skillId)?.name ?? skillId ?? '(no skill)';
+            logClash('_player', group.ownerName, playerSkillName, group.skillName, report);
+        }
+
+        // ── 9. Write player deltas back to bars ───────────────────────────────
+        if (totalHpDeltaPlayer !== 0 || totalStaggerDeltaPlayer !== 0) {
+            writePlayerDeltas(totalHpDeltaPlayer, totalStaggerDeltaPlayer);
+        }
+
+        return { logLines, sanityDelta: totalSanityDelta };
+    }
+
+    // ── Post-round Sanity / Light / Scene (Session 7) ─────────────────────────
+
+    /**
+     * Apply sanity changes derived from the round's outcome, regen Light,
+     * advance the Scene counter, and refresh the HUD.
+     *
+     * Heuristic:
+     *   - Any enemy that went from hp > 0 to hp ≤ 0  → +12 Sanity (kill)
+     *   - Player HP decreased                         → −3  Sanity (clash loss)
+     *   - Neither of the above and a skill was used   → +3  Sanity (clash win)
+     *
+     * @param {object} newStats       The combatStats object from the AI response.
+     * @param {object} prevStats      Snapshot of combatStats before the round.
+     * @param {number} clashSanityDelta  Net sanity change from per-die clash results (from clashEngine).
+     */
+    _applyPostRoundUpdates(newStats, prevStats, clashSanityDelta = 0) {
+        let sanityDelta = clashSanityDelta;
+
+        // ── Count kills — each kill grants a flat bonus on top of clash wins ──
+        let kills = 0;
+        if (newStats?.enemies && prevStats?.enemies) {
+            newStats.enemies.forEach((enemy, i) => {
+                const prev = prevStats.enemies[i];
+                if (prev && prev.hp > 0 && enemy.hp <= 0) kills++;
+            });
+        }
+        if (kills > 0) {
+            sanityDelta += kills * SANITY_KILL;
+            for (let i = 0; i < kills; i++) {
+                this.addToLog(`Kill! +${SANITY_KILL} Sanity`, 'sanity-gain');
+            }
+        }
+
+        // ── Log per-die sanity result (only if clashEngine contributed) ───────
+        if (clashSanityDelta > 0) {
+            this.addToLog(`+${clashSanityDelta} Sanity (die wins)`, 'sanity-gain');
+        } else if (clashSanityDelta < 0) {
+            this.addToLog(`${clashSanityDelta} Sanity (die losses)`, 'sanity-loss');
+        }
+
+        // ── Apply sanity ──────────────────────────────────────────────────────
+        if (sanityDelta !== 0) {
+            const wasInCorrosion = currentEncounter.corrosion.active;
+            const newSanity      = clampSanity(currentEncounter.sanity.current + sanityDelta);
+
+            currentEncounter.sanity.current = newSanity;
+            currentEncounter.sanityLevel    = calculateSanityLevel(newSanity);
+
+            // Corrosion trigger
+            if (newSanity <= SANITY_MIN && !wasInCorrosion) {
+                currentEncounter.corrosion.active = true;
+                this.addToLog('⚠ E.G.O CORROSION triggered! Only E.G.O skills available until Sanity ≥ 0.', 'corrosion-trigger');
+            }
+            // Corrosion recovery
+            if (wasInCorrosion && newSanity >= 0) {
+                currentEncounter.corrosion.active = false;
+                this.addToLog('✓ E.G.O Corrosion ended. Normal skills restored.', 'corrosion-end');
+            }
+        }
+
+        // ── Regen Light & advance Scene ───────────────────────────────────────
+        regenLight(currentEncounter.light);
+        advanceScene(currentEncounter);
+
+        currentEncounter.selectedSkill = null;
+
+        // ── Refresh HUD and skill buttons ─────────────────────────────────────
+        this.updateHUD();
+        this._refreshCombatSkillsSection();
+    }
+
+    // ── Update combat UI (HP bars etc.) ──────────────────────────────────────
+
     updateCombatUI(combatStats) {
-        // Update enemies
+        // Enemy HP bars
         combatStats.enemies.forEach((enemy, index) => {
             const card = this.modal.querySelector(`[data-enemy-index="${index}"]`);
-            if (card) {
-                const hpPercent = (enemy.hp / enemy.maxHp) * 100;
-                const isDead = enemy.hp <= 0;
-
-                if (isDead) {
-                    card.classList.add('rpg-encounter-dead');
-                }
-
-                const hpBar = card.querySelector('.rpg-encounter-hp-fill');
-                const hpText = card.querySelector('.rpg-encounter-hp-text');
-
-                if (hpBar) hpBar.style.width = `${hpPercent}%`;
-                if (hpText) hpText.textContent = `${enemy.hp}/${enemy.maxHp} HP`;
-            }
+            if (!card) return;
+            const hpPercent = (enemy.hp / enemy.maxHp) * 100;
+            if (enemy.hp <= 0) card.classList.add('rpg-encounter-dead');
+            const hpBar  = card.querySelector('.rpg-encounter-hp-fill');
+            const hpText = card.querySelector('.rpg-encounter-hp-text');
+            if (hpBar)  hpBar.style.width   = `${hpPercent}%`;
+            if (hpText) hpText.textContent  = `${enemy.hp}/${enemy.maxHp} HP`;
         });
 
-        // Update party
+        // Party HP bars
         combatStats.party.forEach((member, index) => {
             const card = this.modal.querySelector(`[data-party-index="${index}"]`);
-            if (card) {
-                const hpPercent = (member.hp / member.maxHp) * 100;
-                const isDead = member.hp <= 0;
-
-                if (isDead) {
-                    card.classList.add('rpg-encounter-dead');
-                }
-
-                const hpBar = card.querySelector('.rpg-encounter-hp-fill');
-                const hpText = card.querySelector('.rpg-encounter-hp-text');
-
-                if (hpBar) hpBar.style.width = `${hpPercent}%`;
-                if (hpText) hpText.textContent = `${member.hp}/${member.maxHp} HP`;
-            }
+            if (!card) return;
+            const hpPercent = (member.hp / member.maxHp) * 100;
+            if (member.hp <= 0) card.classList.add('rpg-encounter-dead');
+            const hpBar  = card.querySelector('.rpg-encounter-hp-fill');
+            const hpText = card.querySelector('.rpg-encounter-hp-text');
+            if (hpBar)  hpBar.style.width   = `${hpPercent}%`;
+            if (hpText) hpText.textContent  = `${member.hp}/${member.maxHp} HP`;
         });
 
-        // Re-render controls if player died OR if player's actions changed
-        const player = combatStats.party.find(m => m.isPlayer);
+        // Re-render controls if player died or actions changed
+        const player           = combatStats.party.find(m => m.isPlayer);
         const controlsContainer = this.modal.querySelector('.rpg-encounter-controls');
 
         if (player && player.hp <= 0) {
@@ -962,71 +1325,38 @@ export class EncounterModal {
                 controlsContainer.innerHTML = '<p class="rpg-encounter-defeated">You have been defeated...</p>';
             }
         } else if (currentEncounter.playerActions && controlsContainer) {
-            // Check if actions have changed by comparing with previous state
-            const actionsChanged = this.haveActionsChanged(currentEncounter.playerActions);
-
-            if (actionsChanged) {
-                // Store the new actions for next comparison
+            if (this.haveActionsChanged(currentEncounter.playerActions)) {
                 this._previousPlayerActions = {
-                    attacks: currentEncounter.playerActions.attacks ? JSON.parse(JSON.stringify(currentEncounter.playerActions.attacks)) : [],
-                    items: currentEncounter.playerActions.items ? [...currentEncounter.playerActions.items] : []
+                    items: currentEncounter.playerActions.items ? [...currentEncounter.playerActions.items] : [],
                 };
-
-                // Re-render the entire controls section with new actions
                 const newControlsHTML = this.renderPlayerControls(combatStats.party, currentEncounter.playerActions);
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = newControlsHTML;
                 const newControls = tempDiv.firstElementChild;
-
-                if (newControls) {
-                    controlsContainer.replaceWith(newControls);
-                }
+                if (newControls) controlsContainer.replaceWith(newControls);
             }
         }
+
+        // ── Session 7: keep HUD in sync ───────────────────────────────────────
+        this.updateHUD();
     }
 
-    /**
-     * Checks if player's available actions have changed
-     * @param {Object} playerActions - Current player actions data with attacks and items
-     * @returns {boolean} True if actions changed
-     */
     haveActionsChanged(playerActions) {
         if (!this._previousPlayerActions) {
-            // First time - store initial actions
             this._previousPlayerActions = {
-                attacks: playerActions.attacks ? JSON.parse(JSON.stringify(playerActions.attacks)) : [],
-                items: playerActions.items ? [...playerActions.items] : []
+                items: playerActions.items ? [...playerActions.items] : [],
             };
             return false;
         }
 
-        const currentAttacks = playerActions.attacks || [];
         const currentItems = playerActions.items || [];
-        const prevAttacks = this._previousPlayerActions.attacks || [];
-        const prevItems = this._previousPlayerActions.items || [];
-
-        // Check if attacks changed
-        if (currentAttacks.length !== prevAttacks.length) return true;
-        for (let i = 0; i < currentAttacks.length; i++) {
-            const curr = typeof currentAttacks[i] === 'string' ? currentAttacks[i] : currentAttacks[i].name;
-            const prev = typeof prevAttacks[i] === 'string' ? prevAttacks[i] : prevAttacks[i].name;
-            if (curr !== prev) return true;
-        }
-
-        // Check if items changed
-        if (currentItems.length !== prevItems.length) return true;
-        for (let i = 0; i < currentItems.length; i++) {
-            if (currentItems[i] !== prevItems[i]) return true;
-        }
+        const prevItems    = this._previousPlayerActions.items || [];
 
         return false;
     }
 
-    /**
-     * Adds multiple log entries sequentially with animation
-     * @param {Array} entries - Array of {message, type} objects
-     * @param {number} delay - Delay between entries in ms
-     */
+    // ── Log helpers ───────────────────────────────────────────────────────────
+
     async addLogsSequentially(entries, delay = 400) {
         for (const entry of entries) {
             this.addToLog(entry.message, entry.type);
@@ -1036,77 +1366,44 @@ export class EncounterModal {
         }
     }
 
-    /**
-     * Adds an entry to the combat log
-     * @param {string} message - Log message
-     * @param {string} type - Log entry type (for styling)
-     */
     addToLog(message, type = '') {
         const logContainer = this.modal.querySelector('#rpg-encounter-log');
         if (!logContainer) return;
-
         const entry = document.createElement('div');
-        entry.className = `rpg-encounter-log-entry ${type}`;
+        entry.className   = `rpg-encounter-log-entry ${type}`;
         entry.style.whiteSpace = 'pre-wrap';
         entry.textContent = message;
-
         logContainer.appendChild(entry);
         logContainer.scrollTop = logContainer.scrollHeight;
     }
 
-    /**
-     * Concludes the encounter early (user-initiated)
-     */
-    async concludeEncounter() {
-        if (!currentEncounter.active) {
-            console.warn('[RPG Companion] No active encounter to conclude');
-            return;
-        }
+    // ── End combat ────────────────────────────────────────────────────────────
 
-        // End combat with "interrupted" result
+    async concludeEncounter() {
+        if (!currentEncounter.active) return;
         await this.endCombat('interrupted');
     }
 
-    /**
-     * Ends the combat and generates summary
-     * @param {string} result - Combat result ('victory', 'defeat', 'fled', 'interrupted')
-     */
     async endCombat(result) {
         try {
-            // Show combat over screen
             this.showCombatOverScreen(result);
 
-            // Generate summary
-            const summaryPrompt = await buildCombatSummaryPrompt(currentEncounter.encounterLog, result);
-
-            const summaryResponse = await safeGenerateRaw({
-                prompt: summaryPrompt,
-                quietToLoud: false
-            });
+            const summaryPrompt   = await buildCombatSummaryPrompt(currentEncounter.encounterLog, result);
+            const summaryResponse = await safeGenerateRaw({ prompt: summaryPrompt, quietToLoud: false });
 
             if (summaryResponse) {
-                // Extract summary (remove [FIGHT CONCLUDED] tag)
-                const summary = summaryResponse.replace(/\[FIGHT CONCLUDED\]\s*/i, '').trim();
-
-                // Determine which character should speak the summary
+                const summary     = summaryResponse.replace(/\[FIGHT CONCLUDED\]\s*/i, '').trim();
                 const speakerName = this.getCombatNarrator();
 
-                // Use /sendas command to safely add summary to chat
-                // This handles group chats properly and won't delete chat history
                 try {
                     await executeSlashCommandsOnChatInput(
                         `/sendas name="${speakerName}" ${summary}`,
                         { clearChatInput: false }
                     );
-
-                    // console.log(`[RPG Companion] Added combat summary to chat as "${speakerName}"`);
-
-                    // Update combat over screen
                     this.updateCombatOverScreen(true, speakerName);
                 } catch (sendError) {
                     console.error('[RPG Companion] Error using /sendas command:', sendError);
-                    // Fallback: try appending to last message
-                    if (chat && chat.length > 0) {
+                    if (chat?.length > 0) {
                         const lastMessage = chat[chat.length - 1];
                         if (lastMessage) {
                             lastMessage.mes += '\n\n' + summary;
@@ -1116,120 +1413,69 @@ export class EncounterModal {
                     this.updateCombatOverScreen(true, 'chat');
                 }
 
-                // Save encounter log
                 const context = getContext();
                 if (context.chatId) {
                     saveEncounterLog(context.chatId, {
-                        log: currentEncounter.encounterLog,
+                        log:     currentEncounter.encounterLog,
                         summary: summary,
-                        result: result
+                        result:  result,
                     });
                 }
             } else {
                 this.updateCombatOverScreen(false);
             }
-
         } catch (error) {
             console.error('[RPG Companion] Error ending combat:', error);
             this.updateCombatOverScreen(false);
         }
     }
 
-    /**
-     * Determines which character should narrate the combat summary
-     * Priority: Narrator character > First active group member > Current character
-     * @returns {string} Character name to use for /sendas
-     */
     getCombatNarrator() {
-        // Check if in group chat
         if (selected_group) {
-            const group = groups.find(g => g.id === selected_group);
+            const group        = groups.find(g => g.id === selected_group);
             const groupMembers = getGroupMembers(selected_group);
 
-            if (groupMembers && groupMembers.length > 0) {
-                const disabledMembers = group?.disabled_members || [];
+            if (groupMembers?.length > 0) {
+                const disabled = group?.disabled_members || [];
 
-                // First priority: Look for a character named "Narrator" or "GM"
-                const narrator = groupMembers.find(member =>
-                    member && member.name &&
-                    !disabledMembers.includes(member.avatar) &&
-                    (member.name.toLowerCase() === 'narrator' ||
-                     member.name.toLowerCase() === 'gm' ||
-                     member.name.toLowerCase() === 'game master')
+                const narrator = groupMembers.find(m =>
+                    m?.name && !disabled.includes(m.avatar) &&
+                    ['narrator', 'gm', 'game master'].includes(m.name.toLowerCase())
                 );
+                if (narrator) return narrator.name;
 
-                if (narrator) {
-                    return narrator.name;
-                }
-
-                // Second priority: First active (non-muted) group member
-                const firstActive = groupMembers.find(member =>
-                    member && member.name &&
-                    !disabledMembers.includes(member.avatar)
-                );
-
-                if (firstActive) {
-                    return firstActive.name;
-                }
+                const firstActive = groupMembers.find(m => m?.name && !disabled.includes(m.avatar));
+                if (firstActive) return firstActive.name;
             }
         }
 
-        // Fallback: Use current character
-        if (this_chid !== undefined && characters && characters[this_chid]) {
-            return characters[this_chid].name;
-        }
-
-        // Last resort: Generic narrator
+        if (this_chid !== undefined && characters?.[this_chid]) return characters[this_chid].name;
         return 'Narrator';
     }
 
-    /**
-     * Shows the combat over screen
-     * @param {string} result - Combat result ('victory', 'defeat', 'fled', 'interrupted')
-     */
     showCombatOverScreen(result) {
         const mainContent = this.modal.querySelector('#rpg-encounter-main');
         if (!mainContent) return;
 
-        const resultIcons = {
-            victory: 'fa-trophy',
-            defeat: 'fa-skull-crossbones',
-            fled: 'fa-person-running',
-            interrupted: 'fa-flag-checkered'
-        };
-
-        const resultColors = {
-            victory: '#4caf50',
-            defeat: '#e94560',
-            fled: '#ff9800',
-            interrupted: '#888'
-        };
-
-        const icon = resultIcons[result] || 'fa-flag-checkered';
-        const color = resultColors[result] || '#888';
+        const icons  = { victory: 'fa-trophy', defeat: 'fa-skull-crossbones', fled: 'fa-person-running', interrupted: 'fa-flag-checkered' };
+        const colors = { victory: '#4caf50',  defeat: '#e94560',              fled: '#ff9800',           interrupted: '#888' };
 
         mainContent.innerHTML = `
-            <div class="rpg-encounter-over" style="text-align: center; padding: 40px 20px;">
-                <i class="fa-solid ${icon}" style="font-size: 72px; color: ${color}; margin-bottom: 24px;"></i>
-                <h2 style="font-size: 32px; margin-bottom: 16px; text-transform: uppercase;">${result}</h2>
-                <p style="font-size: 18px; margin-bottom: 32px; opacity: 0.8;">Generating combat summary...</p>
-                <div class="rpg-encounter-loading" style="display: flex; justify-content: center; align-items: center; gap: 12px;">
-                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
+            <div class="rpg-encounter-over" style="text-align:center;padding:40px 20px;">
+                <i class="fa-solid ${icons[result] || 'fa-flag-checkered'}" style="font-size:72px;color:${colors[result] || '#888'};margin-bottom:24px;"></i>
+                <h2 style="font-size:32px;margin-bottom:16px;text-transform:uppercase;">${result}</h2>
+                <p style="font-size:18px;margin-bottom:32px;opacity:0.8;">Generating combat summary...</p>
+                <div class="rpg-encounter-loading" style="display:flex;justify-content:center;align-items:center;gap:12px;">
+                    <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;"></i>
                     <span>Please wait...</span>
                 </div>
             </div>
         `;
     }
 
-    /**
-     * Updates the combat over screen after summary is added
-     * @param {boolean} success - Whether summary was added successfully
-     * @param {string} speakerName - Name of character who narrated (optional)
-     */
     updateCombatOverScreen(success, speakerName = '') {
         const mainContent = this.modal.querySelector('#rpg-encounter-main');
         if (!mainContent) return;
-
         const overScreen = mainContent.querySelector('.rpg-encounter-over');
         if (!overScreen) return;
 
@@ -1238,92 +1484,55 @@ export class EncounterModal {
                 ? `Combat summary has been added to the chat by ${speakerName}.`
                 : 'Combat summary has been added to the chat.';
             overScreen.querySelector('.rpg-encounter-loading').innerHTML = `
-                <button id="rpg-encounter-close-final" class="rpg-encounter-submit-btn" style="font-size: 18px; padding: 12px 24px;">
+                <button id="rpg-encounter-close-final" class="rpg-encounter-submit-btn" style="font-size:18px;padding:12px 24px;">
                     <i class="fa-solid fa-check"></i> Close Combat Window
                 </button>
             `;
-
-            // Add click handler for close button
-            const closeBtn = overScreen.querySelector('#rpg-encounter-close-final');
-            if (closeBtn) {
-                closeBtn.addEventListener('click', () => {
-                    this.close();
-                });
-            }
+            overScreen.querySelector('#rpg-encounter-close-final')?.addEventListener('click', () => this.close());
         } else {
             overScreen.querySelector('p').textContent = 'Error generating combat summary.';
             overScreen.querySelector('.rpg-encounter-loading').innerHTML = `
-                <p style="color: #e94560;">Failed to create summary. You can close this window.</p>
-                <button id="rpg-encounter-close-final" class="rpg-encounter-submit-btn" style="font-size: 18px; padding: 12px 24px; margin-top: 16px;">
+                <p style="color:#e94560;">Failed to create summary. You can close this window.</p>
+                <button id="rpg-encounter-close-final" class="rpg-encounter-submit-btn" style="font-size:18px;padding:12px 24px;margin-top:16px;">
                     <i class="fa-solid fa-times"></i> Close Combat Window
                 </button>
             `;
-
-            // Add click handler for close button
-            const closeBtn = overScreen.querySelector('#rpg-encounter-close-final');
-            if (closeBtn) {
-                closeBtn.addEventListener('click', () => {
-                    this.close();
-                });
-            }
+            overScreen.querySelector('#rpg-encounter-close-final')?.addEventListener('click', () => this.close());
         }
     }
 
-    /**
-     * Shows a loading state
-     * @param {string} message - Loading message
-     */
+    // ── Error / loading states ────────────────────────────────────────────────
+
     showLoadingState(message) {
         const loadingContent = this.modal.querySelector('#rpg-encounter-loading');
-        const mainContent = this.modal.querySelector('#rpg-encounter-main');
-
-        if (loadingContent) {
-            loadingContent.querySelector('p').textContent = message;
-            loadingContent.style.display = 'flex';
-        }
-
-        if (mainContent) {
-            mainContent.style.display = 'none';
-        }
+        const mainContent    = this.modal.querySelector('#rpg-encounter-main');
+        if (loadingContent) { loadingContent.querySelector('p').textContent = message; loadingContent.style.display = 'flex'; }
+        if (mainContent)    mainContent.style.display = 'none';
     }
 
-    /**
-     * Shows an error message
-     * @param {string} message - Error message
-     */
     showError(message) {
         const loadingContent = this.modal.querySelector('#rpg-encounter-loading');
-
         if (loadingContent) {
             loadingContent.innerHTML = `
-                <i class="fa-solid fa-exclamation-triangle" style="color: #e94560; font-size: 48px;"></i>
-                <p style="color: #e94560;">${message}</p>
+                <i class="fa-solid fa-exclamation-triangle" style="color:#e94560;font-size:48px;"></i>
+                <p style="color:#e94560;">${message}</p>
             `;
         }
     }
 
-    /**
-     * Shows an error message with a regenerate button
-     * @param {string} message - Error message to display
-     */
     showErrorWithRegenerate(message) {
         const loadingContent = this.modal.querySelector('#rpg-encounter-loading');
-        const combatContent = this.modal.querySelector('#rpg-encounter-content');
+        const combatContent  = this.modal.querySelector('#rpg-encounter-content');
+        if (combatContent)  combatContent.style.display  = 'none';
 
-        // Hide combat content if visible
-        if (combatContent) {
-            combatContent.style.display = 'none';
-        }
-
-        // Show error in loading area
         if (loadingContent) {
             loadingContent.style.display = 'flex';
             loadingContent.innerHTML = `
                 <div class="rpg-encounter-error-box">
-                    <i class="fa-solid fa-exclamation-triangle" style="color: #e94560; font-size: 48px; margin-bottom: 1em;"></i>
-                    <p style="color: #e94560; font-weight: bold; font-size: 1.2em; margin: 0 0 0.5em 0;">Wrong Format Detected</p>
-                    <p style="color: var(--rpg-text, #ccc); margin: 0 0 1.5em 0; max-width: 500px;">${message}</p>
-                    <div style="display: flex; gap: 1em;">
+                    <i class="fa-solid fa-exclamation-triangle" style="color:#e94560;font-size:48px;margin-bottom:1em;"></i>
+                    <p style="color:#e94560;font-weight:bold;font-size:1.2em;margin:0 0 0.5em 0;">Wrong Format Detected</p>
+                    <p style="color:var(--rpg-text,#ccc);margin:0 0 1.5em 0;max-width:500px;">${message}</p>
+                    <div style="display:flex;gap:1em;">
                         <button id="rpg-error-regenerate" class="rpg-btn rpg-btn-primary">
                             <i class="fa-solid fa-rotate-right"></i> Regenerate
                         </button>
@@ -1333,78 +1542,31 @@ export class EncounterModal {
                     </div>
                 </div>
             `;
-
-            // Add event listeners
-            const regenerateBtn = loadingContent.querySelector('#rpg-error-regenerate');
-            const closeBtn = loadingContent.querySelector('#rpg-error-close');
-
-            if (regenerateBtn) {
-                regenerateBtn.addEventListener('click', () => this.regenerateLastRequest());
-            }
-
-            if (closeBtn) {
-                closeBtn.addEventListener('click', () => this.close());
-            }
+            loadingContent.querySelector('#rpg-error-regenerate')?.addEventListener('click', () => this.regenerateLastRequest());
+            loadingContent.querySelector('#rpg-error-close')?.addEventListener('click', () => this.close());
         }
     }
 
-    /**
-     * Regenerates the last failed request
-     */
     async regenerateLastRequest() {
-        if (!this.lastRequest) {
-            console.warn('[RPG Companion] No request to regenerate');
-            return;
-        }
-
-        // console.log('[RPG Companion] Regenerating request:', this.lastRequest.type);
-
+        if (!this.lastRequest) return;
         if (this.lastRequest.type === 'init') {
-            // Retry initialization
             this.isInitializing = true;
             await this.initialize();
         } else if (this.lastRequest.type === 'action') {
-            // Retry action
             this.isProcessing = true;
             await this.processCombatAction(this.lastRequest.action);
         }
     }
 
-    /**
-     * Apply environment-based visual styling to the modal
-     * @param {object} styleNotes - Style information from the AI
-     */
     applyEnvironmentStyling(styleNotes) {
         if (!styleNotes || typeof styleNotes !== 'object') return;
-
         const { environmentType, atmosphere, timeOfDay, weather } = styleNotes;
-
-        // Apply environment attribute
-        if (environmentType) {
-            this.modal.setAttribute('data-environment', environmentType.toLowerCase());
-        }
-
-        // Apply atmosphere attribute
-        if (atmosphere) {
-            this.modal.setAttribute('data-atmosphere', atmosphere.toLowerCase());
-        }
-
-        // Apply time attribute
-        if (timeOfDay) {
-            this.modal.setAttribute('data-time', timeOfDay.toLowerCase());
-        }
-
-        // Apply weather attribute
-        if (weather) {
-            this.modal.setAttribute('data-weather', weather.toLowerCase());
-        }
-
-        // console.log('[RPG Companion] Applied environment styling:', styleNotes);
+        if (environmentType) this.modal.setAttribute('data-environment', environmentType.toLowerCase());
+        if (atmosphere)      this.modal.setAttribute('data-atmosphere',  atmosphere.toLowerCase());
+        if (timeOfDay)       this.modal.setAttribute('data-time',        timeOfDay.toLowerCase());
+        if (weather)         this.modal.setAttribute('data-weather',     weather.toLowerCase());
     }
 
-    /**
-     * Closes the modal and resets encounter state
-     */
     close() {
         if (this.modal) {
             this.modal.classList.remove('is-open');
@@ -1413,12 +1575,10 @@ export class EncounterModal {
     }
 }
 
-// Export singleton instance
+// ── Singleton export ──────────────────────────────────────────────────────────
+
 export const encounterModal = new EncounterModal();
 
-/**
- * Opens the encounter modal
- */
 export function openEncounterModal() {
     encounterModal.open();
 }

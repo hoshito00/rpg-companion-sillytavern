@@ -14,6 +14,7 @@ import {
     addLockInstruction
 } from './jsonPromptHelpers.js';
 import { applyLocks } from './lockManager.js';
+import { buildStatSheetBlock } from './statSheetPrompt.js';
 
 // Type imports
 /** @typedef {import('../../types/inventory.js').InventoryV2} InventoryV2 */
@@ -365,7 +366,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
         }
 
         if (enabledTrackers.length > 0) {
-            instructions += '\n\nFORMAT:\n\nProvide EXACTLY ONE JSON code block with ALL tracker sections wrapped in a single object:\n\n```json\n{\n';
+            instructions += '\n\nFORMAT:\n\nProvide EXACTLY ONE JSON code block wrapped inside <rpg_data> XML tags, with ALL tracker sections in a single object:\n\n<rpg_data>\n```json\n{\n';
 
             if (extensionSettings.showUserStats) {
                 instructions += '  "userStats": ';
@@ -390,7 +391,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
                 instructions += charactersJSON.split('\n').map((line, i) => i === 0 ? line : '  ' + line).join('\n');
             }
 
-            instructions += '\n}\n```\n\nDo NOT output multiple separate JSON objects. Everything must be in ONE unified object with the keys shown above.';
+            instructions += '\n}\n```\n</rpg_data>\n\nDo NOT output multiple separate JSON objects. Everything must be in ONE unified object with the keys shown above.';
         }
 
         // Only add continuation instruction if includeContinuation is true
@@ -403,11 +404,13 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
             }
         }
 
-        // Include attributes based on settings (only if includeAttributes is true)
+        // Include attributes based on settings (only if includeAttributes is true).
+        // Suppressed when Stat Sheet is enabled — it owns attributes from that point on.
         if (includeAttributes) {
+            const statSheetActive    = extensionSettings.statSheet?.enabled === true;
             const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
-            const showRPGAttributes = trackerConfig?.userStats?.showRPGAttributes !== false;
-            const shouldSendAttributes = alwaysSendAttributes && showRPGAttributes;
+            const showRPGAttributes  = trackerConfig?.userStats?.showRPGAttributes !== false;
+            const shouldSendAttributes = !statSheetActive && alwaysSendAttributes && showRPGAttributes;
 
             if (shouldSendAttributes) {
                 const attributesString = buildAttributesString();
@@ -417,17 +420,18 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
 
         // Add dice roll context if there was one (independent of attributes)
         if (extensionSettings.lastDiceRoll) {
-            const roll = extensionSettings.lastDiceRoll;
+            const roll             = extensionSettings.lastDiceRoll;
+            const statSheetActive  = extensionSettings.statSheet?.enabled === true;
             const showRPGAttributes = trackerConfig?.userStats?.showRPGAttributes !== false;
             const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
-            const hasAttributes = includeAttributes && (alwaysSendAttributes && showRPGAttributes);
+            const hasAttributes = includeAttributes && !statSheetActive && (alwaysSendAttributes && showRPGAttributes);
 
             if (hasAttributes) {
                 instructions += `${userName} rolled ${roll.total} on the last ${roll.formula} roll. Based on their attributes, decide whether they succeeded or failed the action they attempted.\n\n`;
             } else {
                 instructions += `${userName} rolled ${roll.total} on the last ${roll.formula} roll. Decide whether they succeeded or failed the action they attempted.\n\n`;
             }
-        } else if (includeAttributes && trackerConfig?.userStats?.alwaysSendAttributes && trackerConfig?.userStats?.showRPGAttributes !== false) {
+        } else if (includeAttributes && !extensionSettings.statSheet?.enabled && trackerConfig?.userStats?.alwaysSendAttributes && trackerConfig?.userStats?.showRPGAttributes !== false) {
             instructions += `\n`;
         }
     }
@@ -1072,12 +1076,16 @@ export function generateContextualSummary() {
         }
     }
 
-    // Include attributes based on settings
+    // Stat Sheet injection — replaces the classic attributes block when enabled.
+    const statSheetActive2     = extensionSettings.statSheet?.enabled === true;
     const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
-    const showRPGAttributes = trackerConfig?.userStats?.showRPGAttributes !== false;
-    const shouldSendAttributes = alwaysSendAttributes && showRPGAttributes;
+    const showRPGAttributes    = trackerConfig?.userStats?.showRPGAttributes !== false;
+    const shouldSendAttributes = !statSheetActive2 && alwaysSendAttributes && showRPGAttributes;
 
-    if (shouldSendAttributes) {
+    if (statSheetActive2) {
+        const statSheetBlock = buildStatSheetBlock(userName);
+        if (statSheetBlock) summary += statSheetBlock + '\n';
+    } else if (shouldSendAttributes) {
         const attributesString = buildAttributesString();
         summary += `${userName}'s attributes: ${attributesString}\n`;
     }
@@ -1220,6 +1228,15 @@ export async function generateSeparateUpdatePrompt() {
     systemMessage += `Here is the description of the protagonist for reference:\n`;
     systemMessage += `<protagonist>\n{{persona}}\n</protagonist>\n`;
     systemMessage += `\n`;
+
+    // Stat Sheet injection — include full character sheet when enabled
+    if (extensionSettings.statSheet?.enabled) {
+        const statSheetBlock = buildStatSheetBlock(userName);
+        if (statSheetBlock) {
+            systemMessage += `Here is ${userName}'s current character sheet:\n`;
+            systemMessage += statSheetBlock + '\n\n';
+        }
+    }
 
     systemMessage += `Here are the last few messages in the conversation history (between the user and the roleplayer assistant) you should reference when responding:\n<history>`;
 

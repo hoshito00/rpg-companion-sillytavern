@@ -237,10 +237,12 @@ export async function onMessageReceived(data) {
             updateFabWidgets();
             updateStripWidgets();
 
-            // Then update the DOM to reflect the cleaned message
-            // Using updateMessageBlock to perform macro substitutions + regex formatting
+            // Update the DOM to reflect the cleaned message (macro substitutions + regex formatting)
+            // Only available during active chat, not during initial character auto-load
             const messageId = chat.length - 1;
-            updateMessageBlock(messageId, lastMessage, { rerenderMessage: true });
+            if (typeof updateMessageBlock === 'function') {
+                updateMessageBlock(messageId, lastMessage, { rerenderMessage: true });
+            }
 
             // console.log('[RPG Companion] Cleaned message, removed tracker code blocks from DOM');
 

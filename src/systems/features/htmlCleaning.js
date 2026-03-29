@@ -197,3 +197,37 @@ export async function ensureTrackerCleaningRegex(st_extension_settings, saveSett
         // Don't throw - this is a nice-to-have feature
     }
 }
+
+// ── Session 10: removal helpers ───────────────────────────────────────────────
+
+/**
+ * Removes the HTML cleaning regex script from SillyTavern settings if present.
+ * Called once on startup so previously-injected entries don't linger.
+ * @param {Object} st_extension_settings
+ */
+export function removeHtmlCleaningRegex(st_extension_settings) {
+    if (!Array.isArray(st_extension_settings?.regex)) return;
+    const before = st_extension_settings.regex.length;
+    st_extension_settings.regex = st_extension_settings.regex.filter(
+        s => s?.scriptName !== 'Clean HTML (From Outgoing Prompt)'
+    );
+    if (st_extension_settings.regex.length !== before) {
+        console.log('[RPG Companion] Removed HTML cleaning regex from ST settings.');
+    }
+}
+
+/**
+ * Removes the tracker cleaning regex script from SillyTavern settings if present.
+ * Called once on startup so previously-injected entries don't linger.
+ * @param {Object} st_extension_settings
+ */
+export function removeTrackerCleaningRegex(st_extension_settings) {
+    if (!Array.isArray(st_extension_settings?.regex)) return;
+    const before = st_extension_settings.regex.length;
+    st_extension_settings.regex = st_extension_settings.regex.filter(
+        s => s?.scriptName !== 'Clean RPG Trackers (From Outgoing Prompt)'
+    );
+    if (st_extension_settings.regex.length !== before) {
+        console.log('[RPG Companion] Removed tracker cleaning regex from ST settings.');
+    }
+}

@@ -1,4 +1,3 @@
-
 /* Ensure chat stays centered when panel is visible */
 body:has(.rpg-panel.rpg-position-right) #sheld {
     margin: auto !important;
@@ -11676,4 +11675,7324 @@ body:has(.rpg-panel[data-theme="light"]) .rpg-strip-widget {
         max-width: 2.5rem !important;
         min-width: 2.5rem !important;
     }
+
+}
+
+/* ============================================================================
+   STAT SHEET - DARK THEME
+   ============================================================================ */
+
+/* MODAL CONTAINER */
+.stat-sheet-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    display: none;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+/* OVERLAY */
+.stat-sheet-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 9998;
+    cursor: pointer;
+}
+
+/* MODAL CONTENT */
+.stat-sheet-content {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+    background: var(--SmartThemeBlurTintColor, rgba(15, 18, 22, 0.95));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    width: 85vw;
+    max-width: 1200px;
+    max-height: 85vh;
+    border-radius: 12px;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+    padding: 0;
+    overflow: hidden;
+    pointer-events: all;
+}
+
+/* HEADER */
+.stat-sheet-header {
+    position: relative;
+    padding: 20px 24px;
+    background: var(--black30a, rgba(20, 25, 30, 0.9));
+    border-bottom: 2px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+}
+
+.stat-sheet-header h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.95));
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.stat-sheet-icon {
+    font-size: 28px;
+}
+
+/* CLOSE BUTTON */
+.stat-sheet-close-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--SmartThemeBodyColor, rgba(200, 205, 210, 0.8));
+    z-index: 10000;
+    padding: 8px 12px;
+    line-height: 1;
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-sheet-close-btn:hover {
+    background: var(--SmartThemeQuoteColor, #e94560);
+    color: white;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    transform: scale(1.1);
+}
+
+/* TABS */
+.stat-sheet-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 16px 24px;
+    background: var(--black30a, rgba(25, 30, 35, 0.95));
+    border-bottom: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.4));
+}
+
+.stat-sheet-tab {
+    padding: 10px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--SmartThemeBodyColor, rgba(200, 205, 210, 0.8));
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.stat-sheet-tab:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.stat-sheet-tab.active {
+    background: var(--SmartThemeQuoteColor, #e94560);
+    color: white;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+}
+
+/* TAB CONTENT AREA */
+.stat-sheet-tab-content {
+    min-height: 400px;
+    max-height: calc(85vh - 180px);
+    padding: 24px;
+    overflow-y: auto;
+    background: var(--SmartThemeBlurTintColor, rgba(18, 22, 26, 0.95));
+}
+
+.stat-sheet-tab-content::-webkit-scrollbar { width: 10px; }
+.stat-sheet-tab-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+}
+.stat-sheet-tab-content::-webkit-scrollbar-thumb {
+    background: var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.8));
+    border-radius: 5px;
+}
+.stat-sheet-tab-content::-webkit-scrollbar-thumb:hover {
+    background: var(--SmartThemeQuoteColor, #e94560);
+}
+
+/* PLACEHOLDERS */
+.stat-sheet-placeholder {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--SmartThemeBodyColor, rgba(150, 155, 160, 0.7));
+}
+
+.placeholder-icon {
+    font-size: 72px;
+    margin-bottom: 24px;
+    opacity: 0.5;
+}
+
+.stat-sheet-placeholder h3 {
+    font-size: 24px;
+    margin: 0 0 12px 0;
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.9));
+}
+
+.stat-sheet-placeholder p {
+    font-size: 16px;
+    margin: 8px 0;
+    color: var(--SmartThemeBodyColor, rgba(180, 185, 190, 0.7));
+}
+
+/* ============================================================================
+   STAT SHEET BUTTON (in RPG panel header)
+   ============================================================================ */
+
+#open-stat-sheet-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    color: var(--SmartThemeBodyColor, rgba(200, 205, 210, 0.9));
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    transition: all 0.2s ease;
+}
+
+#open-stat-sheet-btn:hover {
+    background: var(--SmartThemeQuoteColor, #e94560);
+    color: white;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+#open-stat-sheet-btn:active {
+    transform: translateY(0) scale(0.95);
+}
+
+/* ============================================================================
+   ATTRIBUTES TAB
+   ============================================================================ */
+
+.tab-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.tab-header h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.95));
+}
+
+.header-right {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* SHARED BUTTONS */
+.btn-toggle-mode,
+.btn-add,
+.btn-add-small {
+    padding: 8px 16px;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.95));
+}
+
+.btn-toggle-mode:hover,
+.btn-add:hover,
+.btn-add-small:hover {
+    background: var(--SmartThemeQuoteColor, #e94560);
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(233, 69, 96, 0.3);
+}
+
+.btn-toggle-mode {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mode-icon {
+    font-weight: 700;
+    font-size: 16px;
+}
+
+/* ============================================================================
+   LEVEL & EXP
+   ============================================================================ */
+
+.level-exp-section {
+    background: var(--black30a, rgba(25, 30, 35, 0.95));
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    display: flex;
+    gap: 32px;
+    align-items: center;
+}
+
+/* Level group: label + input side by side */
+.level-input-group,
+.level-display {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.level-label,
+.exp-label {
+    font-size: 14px;
+    color: var(--SmartThemeBodyColor, rgba(180, 185, 190, 0.8));
+    font-weight: 500;
+}
+
+/* Level number input — used by renderLevelExpSection() → class="level-input" */
+.level-input {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid var(--SmartThemeQuoteColor, #e94560);
+    border-radius: 0;
+    padding: 4px 6px;
+    color: var(--SmartThemeQuoteColor, #e94560);
+    font-size: 32px;
+    font-weight: 700;
+    width: 80px;
+    text-align: center;
+    transition: border-color 0.2s, background 0.2s;
+
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.level-input::-webkit-outer-spin-button,
+.level-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.level-input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom-color: #fff;
+}
+
+.exp-input-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.exp-input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.95));
+    font-size: 18px;
+    font-weight: 600;
+    width: 140px;
+    transition: all 0.2s;
+
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.exp-input::-webkit-outer-spin-button,
+.exp-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.exp-input:focus {
+    outline: none;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* SECTIONS */
+.attributes-section,
+.saving-throws-section {
+    margin-bottom: 32px;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.section-header h4 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.95));
+}
+
+.attribute-count {
+    font-size: 13px;
+    color: var(--SmartThemeBodyColor, rgba(160, 165, 170, 0.7));
+}
+
+/* LISTS */
+.attributes-list,
+.saving-throws-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ATTRIBUTE ITEM */
+.attribute-item {
+    background: var(--black30a, rgba(25, 30, 35, 0.95));
+    border-radius: 8px;
+    padding: 18px 20px;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-left: 3px solid var(--SmartThemeQuoteColor, #e94560);
+    transition: all 0.2s;
+}
+
+.attribute-item:hover {
+    background: rgba(30, 35, 40, 0.95);
+    border-left-width: 4px;
+}
+
+.attribute-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.attribute-name-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 200px;
+}
+
+/* TEXT INPUTS */
+.attribute-name-input,
+.skill-name-input,
+.st-name-input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.95));
+    font-size: 16px;
+    font-weight: 600;
+    flex: 1;
+    transition: all 0.2s;
+}
+
+.attribute-name-input:focus,
+.skill-name-input:focus,
+.st-name-input:focus {
+    outline: none;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.1);
+}
+
+/* +/- CONTROLS */
+.attribute-value-controls,
+.skill-value-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.btn-decrease-attr, .btn-increase-attr,
+.btn-decrease-skill, .btn-increase-skill {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.95));
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-decrease-attr:hover,
+.btn-decrease-skill:hover {
+    background: rgba(255, 69, 58, 0.3);
+    border-color: rgba(255, 69, 58, 0.6);
+    color: #ff9999;
+    transform: scale(1.15);
+}
+
+.btn-increase-attr:hover,
+.btn-increase-skill:hover {
+    background: rgba(52, 199, 89, 0.3);
+    border-color: rgba(52, 199, 89, 0.6);
+    color: #66ff99;
+    transform: scale(1.15);
+}
+
+/* REMOVE BUTTONS */
+.btn-remove-attr,
+.btn-remove-skill,
+.btn-remove-st {
+    background: rgba(255, 59, 48, 0.15);
+    border: 1px solid rgba(255, 59, 48, 0.4);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: rgba(255, 150, 140, 0.9);
+    flex-shrink: 0;
+}
+
+.btn-remove-attr:hover,
+.btn-remove-skill:hover,
+.btn-remove-st:hover {
+    background: rgba(255, 59, 48, 0.4);
+    border-color: rgba(255, 59, 48, 0.7);
+    color: #ffcccc;
+    transform: scale(1.1);
+}
+
+/* NUMBER VALUE INPUTS (numeric mode) */
+.attribute-value-input,
+.skill-value-input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #4ade80;
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+    width: 80px;
+    transition: all 0.2s;
+}
+
+.attribute-value-input.numeric-input {
+    width: 90px;
+    font-size: 20px;
+}
+
+.attribute-value-input:focus,
+.skill-value-input:focus {
+    outline: none;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.1);
+}
+
+/* RANK SELECT (alphabetic mode) */
+.attribute-rank-select,
+.skill-rank-select {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: #ff6b6b;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 70px;
+}
+
+.attribute-rank-select:focus,
+.skill-rank-select:focus {
+    outline: none;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* DRAG HANDLES */
+.attribute-drag-handle,
+.skill-drag-handle {
+    cursor: grab;
+    color: var(--SmartThemeBodyColor, rgba(120, 125, 130, 0.5));
+    font-size: 18px;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 4px;
+    user-select: none;
+    flex-shrink: 0;
+    transition: color 0.15s;
+}
+
+.attribute-drag-handle:hover,
+.skill-drag-handle:hover {
+    color: var(--SmartThemeBodyColor, rgba(200, 205, 210, 0.9));
+}
+
+.attribute-drag-handle:active,
+.skill-drag-handle:active {
+    cursor: grabbing;
+}
+
+/* SORTABLE PLACEHOLDER */
+.sort-placeholder {
+    background: rgba(233, 69, 96, 0.08);
+    border: 1px dashed var(--SmartThemeQuoteColor, #e94560);
+    border-radius: 6px;
+    visibility: visible !important;
+}
+
+/* ============================================================================
+   SKILLS SECTION
+   ============================================================================ */
+
+.skills-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.4));
+}
+
+.skills-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.skills-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor, rgba(160, 165, 170, 0.8));
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-add-skill {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.95));
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-add-skill:hover {
+    background: var(--SmartThemeQuoteColor, #e94560);
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.skills-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Skill item: drag handle on left, content on right */
+.skill-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.4));
+    border-radius: 6px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s;
+}
+
+.skill-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Takes up remaining space after the drag handle */
+.skill-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.skill-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.skill-value-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* PER-SKILL MODE TOGGLE (ABC / 123) */
+.btn-toggle-skill-mode {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--SmartThemeBodyColor, rgba(200, 205, 210, 0.9));
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    min-width: 40px;
+    text-align: center;
+}
+
+.btn-toggle-skill-mode:hover {
+    background: var(--SmartThemeQuoteColor, #e94560);
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(233, 69, 96, 0.3);
+}
+
+.btn-toggle-skill-mode:active {
+    transform: scale(0.95);
+}
+
+/* ============================================================================
+   EXP COST TIER TOGGLE
+   Appears in Master Mode next to each skill's name.
+   Normal = muted; Expensive = amber.
+   ============================================================================ */
+
+.btn-toggle-exp-cost {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor, rgba(180, 185, 190, 0.85));
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: 0.3px;
+}
+
+.btn-toggle-exp-cost:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--SmartThemeBodyColor, rgba(120, 125, 130, 0.7));
+    transform: translateY(-1px);
+}
+
+.btn-toggle-exp-cost.btn-exp-expensive {
+    background: rgba(240, 182, 35, 0.12);
+    border-color: rgba(240, 182, 35, 0.5);
+    color: #f0b623;
+}
+
+.btn-toggle-exp-cost.btn-exp-expensive:hover {
+    background: rgba(240, 182, 35, 0.22);
+    border-color: rgba(240, 182, 35, 0.75);
+    color: #ffd700;
+}
+
+/* ============================================================================
+   SUB-SKILLS — MASTER MODE
+   ============================================================================ */
+
+/* Section wrapper below the skill's value controls */
+.subskills-section {
+    margin-top: 10px;
+    padding: 10px 12px 12px;
+    background: rgba(0, 0, 0, 0.18);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.4));
+    border-radius: 6px;
+    border-left: 2px solid rgba(74, 222, 128, 0.35);
+}
+
+.subskills-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.subskills-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--SmartThemeBodyColor, rgba(140, 145, 150, 0.75));
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+.btn-add-subskill {
+    background: rgba(74, 222, 128, 0.08);
+    border: 1px dashed rgba(74, 222, 128, 0.4);
+    border-radius: 5px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(74, 222, 128, 0.85);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-add-subskill:hover {
+    background: rgba(74, 222, 128, 0.18);
+    border-color: rgba(74, 222, 128, 0.7);
+    border-style: solid;
+    color: #4ade80;
+    transform: translateY(-1px);
+}
+
+.subskills-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.subskills-empty {
+    font-size: 12px;
+    color: var(--SmartThemeBodyColor, rgba(120, 125, 130, 0.55));
+    font-style: italic;
+    padding: 4px 2px;
+}
+
+/* Individual sub-skill row */
+.subskill-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(70, 80, 90, 0.3);
+    border-radius: 5px;
+    transition: background 0.15s;
+}
+
+.subskill-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.subskill-name-input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.55));
+    border-radius: 5px;
+    padding: 6px 10px;
+    color: var(--SmartThemeBodyColor, rgba(220, 225, 230, 0.95));
+    font-size: 13px;
+    font-weight: 500;
+    min-width: 0;
+    transition: all 0.2s;
+}
+
+.subskill-name-input::placeholder {
+    color: rgba(130, 135, 140, 0.5);
+    font-style: italic;
+}
+
+.subskill-name-input:focus {
+    outline: none;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.08);
+}
+
+.subskill-value-controls {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+.btn-decrease-subskill,
+.btn-increase-subskill {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    width: 26px;
+    height: 26px;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--SmartThemeBodyColor, rgba(210, 215, 220, 0.9));
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.btn-decrease-subskill:hover {
+    background: rgba(255, 69, 58, 0.25);
+    border-color: rgba(255, 69, 58, 0.55);
+    color: #ff9999;
+    transform: scale(1.12);
+}
+
+.btn-increase-subskill:hover {
+    background: rgba(52, 199, 89, 0.25);
+    border-color: rgba(52, 199, 89, 0.55);
+    color: #66ff99;
+    transform: scale(1.12);
+}
+
+.subskill-level-input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 5px;
+    padding: 5px 6px;
+    color: #4ade80;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    width: 54px;
+    transition: all 0.2s;
+
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.subskill-level-input::-webkit-outer-spin-button,
+.subskill-level-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.subskill-level-input:focus {
+    outline: none;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-remove-subskill {
+    background: rgba(255, 59, 48, 0.12);
+    border: 1px solid rgba(255, 59, 48, 0.35);
+    border-radius: 5px;
+    padding: 5px 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: rgba(255, 150, 140, 0.85);
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.btn-remove-subskill:hover {
+    background: rgba(255, 59, 48, 0.35);
+    border-color: rgba(255, 59, 48, 0.65);
+    color: #ffcccc;
+    transform: scale(1.08);
+}
+
+/* ============================================================================
+   SUB-SKILLS — PLAYER MODE (read-only)
+   ============================================================================ */
+
+.subskills-list-view {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 6px;
+    padding: 4px 0 2px 12px;
+    border-left: 2px solid rgba(74, 222, 128, 0.25);
+    margin-left: 4px;
+}
+
+.subskill-item-view {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px 4px 6px;
+    border-radius: 4px;
+    transition: background 0.15s;
+    gap: 8px;
+}
+
+.subskill-item-view:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.subskill-name-view {
+    font-size: 13px;
+    color: var(--SmartThemeBodyColor, rgba(190, 195, 200, 0.85));
+    font-weight: 500;
+    flex: 1;
+    min-width: 0;
+}
+
+.subskill-level-view {
+    font-size: 14px;
+    font-weight: 700;
+    color: #4ade80;
+    font-family: monospace;
+    flex-shrink: 0;
+    min-width: 24px;
+    text-align: right;
+}
+
+.subskill-view-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* ============================================================================
+   RAISE BUTTON — PLAYER MODE
+   ============================================================================ */
+
+.btn-raise-skill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(74, 222, 128, 0.08);
+    border: 1px solid rgba(74, 222, 128, 0.35);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4ade80;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.btn-raise-skill:hover:not(:disabled) {
+    background: rgba(74, 222, 128, 0.2);
+    border-color: rgba(74, 222, 128, 0.65);
+    color: #6fffaa;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(74, 222, 128, 0.2);
+}
+
+.btn-raise-skill:active:not(:disabled) {
+    transform: scale(0.96);
+}
+
+.btn-raise-skill.btn-raise-disabled,
+.btn-raise-skill:disabled {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(70, 80, 90, 0.35);
+    color: var(--SmartThemeBodyColor, rgba(110, 115, 120, 0.5));
+    cursor: not-allowed;
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* EXP cost badge inside the raise button */
+.raise-cost {
+    font-family: monospace;
+    font-size: 11px;
+    opacity: 0.85;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+    padding: 1px 5px;
+}
+
+/* ============================================================================
+   SAVING THROWS (term-based formula builder)
+   ============================================================================ */
+
+.saving-throw-item {
+    background: var(--black30a, rgba(25, 30, 35, 0.95));
+    border-radius: 8px;
+    padding: 16px 20px;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-left: 3px solid rgba(52, 199, 89, 0.6);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: all 0.2s;
+}
+
+.saving-throw-item:hover {
+    background: rgba(30, 35, 40, 0.95);
+    border-left-width: 4px;
+}
+
+.st-name-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.st-total-badge {
+    background: rgba(52, 199, 89, 0.15);
+    border: 1px solid rgba(52, 199, 89, 0.4);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #4ade80;
+    white-space: nowrap;
+    min-width: 48px;
+    text-align: center;
+}
+
+.st-terms-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 4px 0;
+}
+
+.st-no-terms-note {
+    font-size: 12px;
+    color: var(--SmartThemeBodyColor, rgba(130, 135, 140, 0.7));
+    font-style: italic;
+    margin: 0;
+    padding: 4px 0;
+}
+
+.st-term-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(70, 80, 90, 0.35);
+    border-radius: 6px;
+    transition: background 0.15s;
+}
+
+.st-term-row:hover {
+    background: rgba(255, 255, 255, 0.055);
+}
+
+.st-term-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor, rgba(220, 225, 230, 0.95));
+    min-width: 60px;
+}
+
+.st-term-op {
+    font-size: 16px;
+    color: var(--SmartThemeBodyColor, rgba(150, 155, 160, 0.7));
+    font-weight: 700;
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.st-term-multiplier {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    padding: 6px 8px;
+    color: #4ade80;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    width: 72px;
+    transition: all 0.2s;
+}
+
+.st-term-multiplier:focus {
+    outline: none;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.st-term-flat-label {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(70, 80, 90, 0.4);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: var(--SmartThemeBodyColor, rgba(180, 185, 190, 0.8));
+    font-size: 13px;
+    flex: 1;
+    min-width: 80px;
+    font-style: italic;
+    transition: all 0.2s;
+}
+
+.st-term-flat-label:focus {
+    outline: none;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    background: rgba(255, 255, 255, 0.07);
+    font-style: normal;
+}
+
+.st-term-flat-value {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    padding: 6px 8px;
+    color: #93c5fd;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    width: 72px;
+    transition: all 0.2s;
+}
+
+.st-term-flat-value:focus {
+    outline: none;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.st-term-contrib {
+    font-size: 13px;
+    color: var(--SmartThemeBodyColor, rgba(160, 165, 170, 0.7));
+    margin-left: auto;
+    white-space: nowrap;
+    min-width: 40px;
+    text-align: right;
+}
+
+.btn-remove-st-term {
+    background: rgba(255, 59, 48, 0.12);
+    border: 1px solid rgba(255, 59, 48, 0.35);
+    border-radius: 4px;
+    padding: 4px 7px;
+    font-size: 12px;
+    color: rgba(255, 150, 140, 0.85);
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.btn-remove-st-term:hover {
+    background: rgba(255, 59, 48, 0.35);
+    border-color: rgba(255, 59, 48, 0.65);
+    color: #ffcccc;
+}
+
+.st-add-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.st-add-attr-select {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px dashed var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: var(--SmartThemeBodyColor, rgba(180, 185, 190, 0.85));
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1;
+    min-width: 160px;
+}
+
+.st-add-attr-select:focus {
+    outline: none;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    border-style: solid;
+}
+
+.st-no-attrs-note {
+    font-size: 12px;
+    color: var(--SmartThemeBodyColor, rgba(130, 135, 140, 0.6));
+    font-style: italic;
+}
+
+.btn-add-flat-term {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px dashed var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    color: var(--SmartThemeBodyColor, rgba(180, 185, 190, 0.85));
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-add-flat-term:hover {
+    background: rgba(52, 199, 89, 0.15);
+    border-color: rgba(52, 199, 89, 0.5);
+    border-style: solid;
+    color: #4ade80;
+}
+
+.st-formula-preview {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    border-top: 1px solid rgba(70, 80, 90, 0.3);
+    flex-wrap: wrap;
+}
+
+.st-formula-text {
+    font-size: 12px;
+    color: var(--SmartThemeBodyColor, rgba(150, 155, 160, 0.7));
+    font-family: monospace;
+    flex: 1;
+}
+
+.st-formula-eq {
+    font-size: 13px;
+    font-weight: 700;
+    color: #4ade80;
+    white-space: nowrap;
+}
+
+/* ============================================================================
+   FEEDBACK & LOADING
+   ============================================================================ */
+
+.stat-sheet-notification {
+    padding: 14px 20px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 14px;
+    animation: notificationSlide 0.3s ease-out;
+}
+
+@keyframes notificationSlide {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.stat-sheet-notification-success {
+    background: rgba(52, 199, 89, 0.2);
+    color: #66ff99;
+    border: 1px solid rgba(52, 199, 89, 0.4);
+}
+
+.stat-sheet-notification-error {
+    background: rgba(255, 59, 48, 0.2);
+    color: #ff9999;
+    border: 1px solid rgba(255, 59, 48, 0.4);
+}
+
+.stat-sheet-notification-info {
+    background: rgba(74, 158, 255, 0.2);
+    color: #99ccff;
+    border: 1px solid rgba(74, 158, 255, 0.4);
+}
+
+.stat-sheet-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    color: var(--SmartThemeBodyColor, rgba(150, 155, 160, 0.7));
+}
+
+.loading-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(70, 80, 90, 0.3);
+    border-top-color: var(--SmartThemeQuoteColor, #e94560);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.error-message {
+    background: rgba(255, 59, 48, 0.2);
+    border: 1px solid rgba(255, 59, 48, 0.4);
+    border-radius: 8px;
+    padding: 20px 24px;
+    color: #ff9999;
+    font-size: 14px;
+    margin: 20px 0;
+}
+
+.error-message p { margin: 8px 0; }
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 1024px) {
+    .stat-sheet-content { width: 90vw; }
+}
+
+@media (max-width: 768px) {
+    .stat-sheet-content {
+        width: 95vw;
+        max-height: 90vh;
+    }
+
+    .stat-sheet-header h2 { font-size: 20px; }
+
+    .stat-sheet-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+    }
+
+    .stat-sheet-tab {
+        padding: 10px 16px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .attribute-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .attribute-value-controls { justify-content: center; }
+
+    .st-term-row { flex-wrap: wrap; }
+    .st-term-contrib { margin-left: 0; }
+}
+
+@media (max-width: 480px) {
+    .stat-sheet-content { width: 98vw; }
+    .stat-sheet-tab-content { padding: 16px; }
+    .level-exp-section {
+        flex-direction: column;
+        gap: 16px;
+    }
+}
+
+/* ============================================================================
+   ALPHABETIC RANK COLORS & EFFECTS
+   ============================================================================ */
+
+/* F TIER */
+.attribute-rank-select[data-rank="FFF"],
+.skill-rank-select[data-rank="FFF"] { color: #8b0000; border-color: rgba(139, 0, 0, 0.5); }
+.attribute-rank-select[data-rank="FF"],
+.skill-rank-select[data-rank="FF"]  { color: #c0392b; border-color: rgba(192, 57, 43, 0.5); }
+.attribute-rank-select[data-rank="F"],
+.skill-rank-select[data-rank="F"]   { color: #e74c3c; border-color: rgba(231, 76, 60, 0.5); }
+
+/* E TIER */
+.attribute-rank-select[data-rank="E"],
+.skill-rank-select[data-rank="E"]   { color: #c0671a; border-color: rgba(192, 103, 26, 0.5); }
+.attribute-rank-select[data-rank="EE"],
+.skill-rank-select[data-rank="EE"]  { color: #d4821f; border-color: rgba(212, 130, 31, 0.5); }
+.attribute-rank-select[data-rank="EEE"],
+.skill-rank-select[data-rank="EEE"] { color: #e67e22; border-color: rgba(230, 126, 34, 0.5); }
+
+/* D TIER */
+.attribute-rank-select[data-rank="D"],
+.skill-rank-select[data-rank="D"]   { color: #b7950b; border-color: rgba(183, 149, 11, 0.5); }
+.attribute-rank-select[data-rank="DD"],
+.skill-rank-select[data-rank="DD"]  { color: #d4ac0d; border-color: rgba(212, 172, 13, 0.5); }
+.attribute-rank-select[data-rank="DDD"],
+.skill-rank-select[data-rank="DDD"] { color: #f1c40f; border-color: rgba(241, 196, 15, 0.5); }
+
+/* C TIER */
+.attribute-rank-select[data-rank="C"],
+.skill-rank-select[data-rank="C"]   { color: #7f8c8d; border-color: rgba(127, 140, 141, 0.5); }
+.attribute-rank-select[data-rank="CC"],
+.skill-rank-select[data-rank="CC"]  { color: #95a5a6; border-color: rgba(149, 165, 166, 0.5); animation: c-glow 3s ease-in-out infinite; }
+.attribute-rank-select[data-rank="CCC"],
+.skill-rank-select[data-rank="CCC"] { color: #aab7b8; border-color: rgba(170, 183, 184, 0.6); animation: c-glow 2.5s ease-in-out infinite; }
+
+/* B TIER */
+.attribute-rank-select[data-rank="B"],
+.skill-rank-select[data-rank="B"]   { color: #2471a3; border-color: rgba(36, 113, 163, 0.5); animation: b-glow 3s ease-in-out infinite; }
+.attribute-rank-select[data-rank="BB"],
+.skill-rank-select[data-rank="BB"]  { color: #2e86c1; border-color: rgba(46, 134, 193, 0.6); animation: b-glow 2.5s ease-in-out infinite; }
+.attribute-rank-select[data-rank="BBB"],
+.skill-rank-select[data-rank="BBB"] { color: #3498db; border-color: rgba(52, 152, 219, 0.7); animation: b-glow 2s ease-in-out infinite; }
+
+/* A TIER */
+.attribute-rank-select[data-rank="A"],
+.skill-rank-select[data-rank="A"]   { color: #1e8449; border-color: rgba(30, 132, 73, 0.5); animation: a-glow 3s ease-in-out infinite; }
+.attribute-rank-select[data-rank="AA"],
+.skill-rank-select[data-rank="AA"]  { color: #27ae60; border-color: rgba(39, 174, 96, 0.6); animation: a-glow 2.5s ease-in-out infinite; }
+.attribute-rank-select[data-rank="AAA"],
+.skill-rank-select[data-rank="AAA"] { color: #2ecc71; border-color: rgba(46, 204, 113, 0.7); animation: a-glow 2s ease-in-out infinite; }
+
+/* S TIER */
+.attribute-rank-select[data-rank="S"],
+.skill-rank-select[data-rank="S"]   { color: #d4ac0d; border-color: rgba(212, 172, 13, 0.6); animation: gold-shimmer 2.5s ease-in-out infinite; }
+.attribute-rank-select[data-rank="SS"],
+.skill-rank-select[data-rank="SS"]  { color: #f0b623; border-color: rgba(240, 182, 35, 0.7); animation: gold-shimmer 2s ease-in-out infinite; }
+.attribute-rank-select[data-rank="SSS"],
+.skill-rank-select[data-rank="SSS"] { color: #ffd700; border-color: rgba(255, 215, 0, 0.8); animation: gold-shimmer 1.5s ease-in-out infinite; }
+
+/* EX */
+.attribute-rank-select[data-rank="EX"],
+.skill-rank-select[data-rank="EX"] {
+    color: #ffd700;
+    border-color: rgba(255, 215, 0, 0.9);
+    font-weight: 900;
+    letter-spacing: 1px;
+    animation: ex-pulse 2s ease-in-out infinite;
+}
+
+/* ============================================================================
+   THRESHOLD GLOW
+   ============================================================================ */
+
+.attribute-rank-select.rank-threshold-glow,
+.skill-rank-select.rank-threshold-glow {
+    animation: threshold-pulse 1s ease-in-out infinite !important;
+    border-width: 2px !important;
+}
+
+/* ============================================================================
+   RANK ANIMATIONS
+   ============================================================================ */
+
+@keyframes c-glow {
+    0%, 100% { text-shadow: none; }
+    50%       { text-shadow: 0 0 6px rgba(149, 165, 166, 0.7); }
+}
+
+@keyframes b-glow {
+    0%, 100% { text-shadow: 0 0 3px rgba(52, 152, 219, 0.3); }
+    50%       { text-shadow: 0 0 10px rgba(52, 152, 219, 0.8), 0 0 4px rgba(100, 180, 255, 0.5); }
+}
+
+@keyframes a-glow {
+    0%, 100% { text-shadow: 0 0 3px rgba(46, 204, 113, 0.3); }
+    50%       { text-shadow: 0 0 12px rgba(46, 204, 113, 0.9), 0 0 5px rgba(100, 255, 150, 0.5); }
+}
+
+@keyframes gold-shimmer {
+    0%, 100% { text-shadow: 0 0 4px rgba(255, 215, 0, 0.4); }
+    50%       { text-shadow: 0 0 14px rgba(255, 215, 0, 1), 0 0 6px rgba(255, 248, 200, 0.7); }
+}
+
+@keyframes ex-pulse {
+    0%, 100% {
+        text-shadow: 0 0 6px rgba(255, 215, 0, 0.5);
+        filter: brightness(1);
+    }
+    50% {
+        text-shadow: 0 0 18px rgba(255, 215, 0, 1), 0 0 8px rgba(255, 248, 200, 0.8);
+        filter: brightness(1.3);
+    }
+}
+
+@keyframes threshold-pulse {
+    0%, 100% { box-shadow: 0 0 0px transparent; filter: brightness(1); }
+    50%       { box-shadow: 0 0 16px currentColor; filter: brightness(1.4); }
+}
+
+/* ============================================================================
+   TRACKER EDITOR — STAT SHEET TAB STYLES
+   ============================================================================ */
+
+.rpg-threshold-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.rpg-threshold-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(70, 80, 90, 0.4);
+    border-radius: 6px;
+}
+
+.rpg-threshold-attr-name {
+    font-weight: 700;
+    font-size: 14px;
+    min-width: 80px;
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.95));
+}
+
+.rpg-threshold-label {
+    font-size: 13px;
+    color: var(--SmartThemeBodyColor, rgba(160, 165, 170, 0.8));
+    white-space: nowrap;
+}
+
+.rpg-threshold-input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(70, 80, 90, 0.6);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: #4ade80;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    width: 80px;
+    margin-left: auto;
+    transition: all 0.2s;
+}
+
+.rpg-threshold-input:focus {
+    outline: none;
+    border-color: #e94560;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* ============================================================================
+   GRADE VALUE / DICE MAP TABLE
+   ============================================================================ */
+
+.rpg-gvm-table {
+    margin-top: 4px;
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 13px;
+}
+
+.rpg-gvm-table thead th {
+    text-align: center;
+    padding: 6px 8px;
+    opacity: 0.65;
+    font-weight: 600;
+    font-size: 11px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.rpg-gvm-table thead th:first-child {
+    text-align: left;
+}
+
+.rpg-gvm-table tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    transition: background 0.15s;
+}
+
+.rpg-gvm-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.rpg-gvm-table td {
+    padding: 5px 8px;
+    vertical-align: middle;
+    text-align: center;
+}
+
+.rpg-gvm-rank-cell {
+    text-align: left !important;
+    font-family: monospace;
+    font-weight: 700;
+    font-size: 13px;
+    color: rgba(74, 222, 128, 0.85);
+    letter-spacing: 0.05em;
+    min-width: 50px;
+}
+
+/* ============================================================================
+   EDIT TOGGLE BUTTONS
+   ============================================================================ */
+
+.btn-edit-toggle {
+    padding: 8px 16px;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.95));
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-edit-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+.btn-edit-toggle.active {
+    background: rgba(52, 199, 89, 0.2);
+    border-color: rgba(52, 199, 89, 0.5);
+    color: #4ade80;
+}
+
+.btn-edit-toggle.active:hover {
+    background: rgba(52, 199, 89, 0.3);
+    border-color: rgba(52, 199, 89, 0.7);
+}
+
+.btn-exit-edit {
+    padding: 8px 16px;
+    border: 1px solid rgba(52, 199, 89, 0.4);
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(52, 199, 89, 0.1);
+    color: #4ade80;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-exit-edit:hover {
+    background: rgba(52, 199, 89, 0.2);
+    border-color: rgba(52, 199, 89, 0.65);
+    transform: translateY(-1px);
+}
+
+/* ============================================================================
+   VIEW MODE — ATTRIBUTE LAYOUT
+   ============================================================================ */
+
+.btn-collapse-attr {
+    background: none;
+    border: none;
+    color: var(--SmartThemeBodyColor, rgba(130, 135, 140, 0.6));
+    font-size: 13px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+    flex-shrink: 0;
+    width: 22px;
+    text-align: center;
+    line-height: 1;
+}
+
+.btn-collapse-attr:hover {
+    color: var(--SmartThemeBodyColor, rgba(220, 225, 230, 0.95));
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.view-attr-name {
+    flex: 1;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.95));
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(70, 80, 90, 0.3);
+    border-radius: 6px;
+    min-width: 0;
+    letter-spacing: 0.3px;
+}
+
+.view-attr-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.view-rank-badge {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(70, 80, 90, 0.6);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #ff6b6b;
+    min-width: 52px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* Rank tier colours for view-mode badge */
+.view-rank-badge[data-rank="FFF"] { color: #8b0000; border-color: rgba(139, 0, 0, 0.5); }
+.view-rank-badge[data-rank="FF"]  { color: #c0392b; border-color: rgba(192, 57, 43, 0.5); }
+.view-rank-badge[data-rank="F"]   { color: #e74c3c; border-color: rgba(231, 76, 60, 0.5); }
+.view-rank-badge[data-rank="E"]   { color: #c0671a; border-color: rgba(192, 103, 26, 0.5); }
+.view-rank-badge[data-rank="EE"]  { color: #d4821f; border-color: rgba(212, 130, 31, 0.5); }
+.view-rank-badge[data-rank="EEE"] { color: #e67e22; border-color: rgba(230, 126, 34, 0.5); }
+.view-rank-badge[data-rank="D"]   { color: #b7950b; border-color: rgba(183, 149, 11, 0.5); }
+.view-rank-badge[data-rank="DD"]  { color: #d4ac0d; border-color: rgba(212, 172, 13, 0.5); }
+.view-rank-badge[data-rank="DDD"] { color: #f1c40f; border-color: rgba(241, 196, 15, 0.5); }
+.view-rank-badge[data-rank="C"]   { color: #7f8c8d; border-color: rgba(127, 140, 141, 0.5); }
+.view-rank-badge[data-rank="CC"]  { color: #95a5a6; border-color: rgba(149, 165, 166, 0.5); animation: c-glow 3s ease-in-out infinite; }
+.view-rank-badge[data-rank="CCC"] { color: #aab7b8; border-color: rgba(170, 183, 184, 0.6); animation: c-glow 2.5s ease-in-out infinite; }
+.view-rank-badge[data-rank="B"]   { color: #2471a3; border-color: rgba(36, 113, 163, 0.5); animation: b-glow 3s ease-in-out infinite; }
+.view-rank-badge[data-rank="BB"]  { color: #2e86c1; border-color: rgba(46, 134, 193, 0.6); animation: b-glow 2.5s ease-in-out infinite; }
+.view-rank-badge[data-rank="BBB"] { color: #3498db; border-color: rgba(52, 152, 219, 0.7); animation: b-glow 2s ease-in-out infinite; }
+.view-rank-badge[data-rank="A"]   { color: #1e8449; border-color: rgba(30, 132, 73, 0.5); animation: a-glow 3s ease-in-out infinite; }
+.view-rank-badge[data-rank="AA"]  { color: #27ae60; border-color: rgba(39, 174, 96, 0.6); animation: a-glow 2.5s ease-in-out infinite; }
+.view-rank-badge[data-rank="AAA"] { color: #2ecc71; border-color: rgba(46, 204, 113, 0.7); animation: a-glow 2s ease-in-out infinite; }
+.view-rank-badge[data-rank="S"]   { color: #d4ac0d; border-color: rgba(212, 172, 13, 0.6); animation: gold-shimmer 2.5s ease-in-out infinite; }
+.view-rank-badge[data-rank="SS"]  { color: #f0b623; border-color: rgba(240, 182, 35, 0.7); animation: gold-shimmer 2s ease-in-out infinite; }
+.view-rank-badge[data-rank="SSS"] { color: #ffd700; border-color: rgba(255, 215, 0, 0.8); animation: gold-shimmer 1.5s ease-in-out infinite; }
+.view-rank-badge[data-rank="EX"]  {
+    color: #ffd700;
+    border-color: rgba(255, 215, 0, 0.9);
+    font-weight: 900;
+    letter-spacing: 1px;
+    animation: ex-pulse 2s ease-in-out infinite;
+}
+.view-rank-badge.rank-threshold-glow {
+    animation: threshold-pulse 1s ease-in-out infinite !important;
+    border-width: 2px !important;
+}
+
+.view-value-badge {
+    font-size: 20px;
+    font-weight: 700;
+    color: #4ade80;
+    font-family: monospace;
+    min-width: 36px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.attr-skills-view {
+    margin-top: 0;
+    padding-left: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow: hidden;
+}
+
+.attr-skills-view.collapsed { display: none; }
+
+.view-no-skills {
+    font-size: 12px;
+    color: var(--SmartThemeBodyColor, rgba(120, 125, 130, 0.5));
+    font-style: italic;
+    padding: 6px 2px 2px;
+}
+
+/* ============================================================================
+   VIEW MODE — SKILL ROW
+   ============================================================================ */
+
+.view-skill-item {
+    cursor: default;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+/* New rule: keeps the skill name + controls horizontal within the column */
+.view-skill-top-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.view-skill-name {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--SmartThemeBodyColor, rgba(210, 215, 220, 0.9));
+    min-width: 0;
+}
+
+.view-skill-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.view-skill-mode-badge {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(70, 80, 90, 0.45);
+    border-radius: 5px;
+    padding: 4px 9px;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(150, 155, 160, 0.65);
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+}
+
+/* ============================================================================
+   SAVING THROWS — VIEW MODE
+   ============================================================================ */
+
+.saving-throws-list-view {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.st-view-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--black30a, rgba(25, 30, 35, 0.95));
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-left: 3px solid rgba(52, 199, 89, 0.6);
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.st-view-item:hover {
+    background: rgba(30, 35, 40, 0.95);
+    border-left-width: 4px;
+}
+
+.st-view-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor, rgba(220, 225, 230, 0.95));
+    flex-shrink: 0;
+}
+
+.st-view-spacer {
+    flex: 1;
+    height: 1px;
+    background-image: repeating-linear-gradient(
+        to right,
+        rgba(52, 199, 89, 0.22) 0px,
+        rgba(52, 199, 89, 0.22) 3px,
+        transparent 3px,
+        transparent 8px
+    );
+    margin: 0 8px;
+    align-self: center;
+}
+
+.st-view-total {
+    font-size: 24px;
+    font-weight: 700;
+    color: #4ade80;
+    font-family: monospace;
+    min-width: 44px;
+    text-align: right;
+}
+
+/* ============================================================================
+   SAVING THROWS LAYOUT TOGGLE BUTTON
+   ============================================================================ */
+
+.btn-st-layout {
+    margin-left: auto;
+    padding: 5px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--SmartThemeBodyColor, rgba(200, 205, 210, 0.85));
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-st-layout:hover {
+    background: rgba(52, 199, 89, 0.15);
+    border-color: rgba(52, 199, 89, 0.45);
+    color: #4ade80;
+    transform: translateY(-1px);
+}
+
+/* ============================================================================
+   SAVING THROWS — GRID LAYOUT
+   ============================================================================ */
+
+.saving-throws-list-view.st-layout-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.saving-throws-list-view.st-layout-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+}
+
+.st-grid-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 16px 12px;
+    background: var(--black30a, rgba(25, 30, 35, 0.95));
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-top: 3px solid rgba(52, 199, 89, 0.6);
+    border-radius: 8px;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.st-grid-card:hover {
+    background: rgba(30, 35, 40, 0.95);
+    border-top-color: rgba(52, 199, 89, 0.9);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.st-grid-total {
+    font-size: 32px;
+    font-weight: 900;
+    color: #4ade80;
+    font-family: monospace;
+    line-height: 1;
+}
+
+.st-grid-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor, rgba(180, 185, 190, 0.8));
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+/* ============================================================================
+   DICE ROLL BUTTONS
+   ============================================================================ */
+
+.btn-roll-skill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.55));
+    border-radius: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+.btn-roll-skill:hover {
+    background: var(--SmartThemeQuoteColor, #e94560);
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(233, 69, 96, 0.35);
+}
+
+.btn-roll-skill:active { transform: scale(0.95); }
+
+.btn-roll-attr {
+    padding: 9px 18px;
+    border-color: rgba(74, 222, 128, 0.28);
+    background: rgba(74, 222, 128, 0.05);
+}
+
+.btn-roll-attr:hover {
+    background: var(--SmartThemeQuoteColor, #e94560) !important;
+    border-color: var(--SmartThemeQuoteColor, #e94560) !important;
+}
+
+.roll-btn-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.roll-btn-modifier {
+    font-size: 17px;
+    font-weight: 700;
+    color: #4ade80;
+    font-family: monospace;
+    transition: color 0.2s;
+}
+
+.btn-roll-skill:hover .roll-btn-modifier { color: white; }
+
+/* ============================================================================
+   ROLL POPOVER
+   ============================================================================ */
+
+#roll-popover {
+    position: fixed;
+    z-index: 99999;
+    width: 250px;
+    background: var(--SmartThemeBlurTintColor, rgba(14, 18, 24, 0.98));
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.75));
+    border-radius: 12px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255,255,255,0.04);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    animation: popoverIn 0.16s cubic-bezier(0.34, 1.3, 0.64, 1);
+    overflow: visible;
+    pointer-events: all;
+}
+
+@keyframes popoverIn {
+    from { opacity: 0; transform: scale(0.88); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+.roll-popover-arrow {
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+#roll-popover[data-arrow="left"] .roll-popover-arrow {
+    left: -10px;
+    border-width: 10px 10px 10px 0;
+    border-color: transparent var(--SmartThemeBorderColor, rgba(70,80,90,0.75)) transparent transparent;
+}
+#roll-popover[data-arrow="left"] .roll-popover-arrow::after {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: -9px;
+    border-style: solid;
+    border-width: 9px 9px 9px 0;
+    border-color: transparent var(--SmartThemeBlurTintColor, rgba(14,18,24,0.98)) transparent transparent;
+}
+
+#roll-popover[data-arrow="right"] .roll-popover-arrow {
+    right: -10px;
+    border-width: 10px 0 10px 10px;
+    border-color: transparent transparent transparent var(--SmartThemeBorderColor, rgba(70,80,90,0.75));
+}
+#roll-popover[data-arrow="right"] .roll-popover-arrow::after {
+    content: '';
+    position: absolute;
+    right: 2px;
+    top: -9px;
+    border-style: solid;
+    border-width: 9px 0 9px 9px;
+    border-color: transparent transparent transparent var(--SmartThemeBlurTintColor, rgba(14,18,24,0.98));
+}
+
+.roll-popover-inner {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.roll-pop-header {
+    text-align: center;
+    border-bottom: 1px solid rgba(70, 80, 90, 0.45);
+    padding-bottom: 10px;
+}
+
+.roll-pop-skill-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.95));
+}
+
+.roll-mod-breakdown {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--SmartThemeBodyColor, rgba(160, 165, 170, 0.8));
+    line-height: 1.6;
+}
+
+.rmod-attr, .rmod-skill {
+    color: var(--SmartThemeBodyColor, rgba(190, 195, 200, 0.9));
+}
+.rmod-attr strong, .rmod-skill strong { color: #4ade80; }
+.rmod-sep, .rmod-eq { color: rgba(110, 115, 120, 0.8); font-weight: 700; }
+.rmod-total { font-size: 15px; font-weight: 800; color: #4ade80; font-family: monospace; }
+
+.roll-dice-config {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+}
+
+.rdc-label {
+    font-size: 12px;
+    color: var(--SmartThemeBodyColor, rgba(160, 165, 170, 0.8));
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.roll-sides-select {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.65));
+    border-radius: 7px;
+    padding: 7px 10px;
+    color: var(--SmartThemeBodyColor, rgba(220, 225, 230, 0.95));
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.2s;
+}
+
+.roll-sides-select:focus {
+    outline: none;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+}
+
+.btn-execute-roll {
+    width: 100%;
+    padding: 11px;
+    background: var(--SmartThemeQuoteColor, #e94560);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+}
+
+.btn-execute-roll:hover {
+    background: #ff6b87;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(233, 69, 96, 0.5);
+}
+
+.btn-execute-roll:active { transform: scale(0.97); }
+.btn-execute-roll:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+.btn-roll-again {
+    width: 100%;
+    padding: 7px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 7px;
+    color: var(--SmartThemeBodyColor, rgba(190, 195, 200, 0.85));
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: -4px;
+}
+
+.btn-roll-again:hover { background: rgba(255, 255, 255, 0.11); }
+
+.roll-dice-face-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 2px 0;
+}
+
+.roll-dice-face {
+    width: 76px;
+    height: 76px;
+    border-radius: 14px;
+    background: rgba(74, 222, 128, 0.12);
+    border: 2px solid rgba(74, 222, 128, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: diceReveal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+
+@keyframes diceReveal {
+    from { transform: scale(0.3) rotate(-25deg); opacity: 0; }
+    to   { transform: scale(1)   rotate(0deg);   opacity: 1; }
+}
+
+.roll-dice-face.crit {
+    background: rgba(52, 199, 89, 0.22);
+    border-color: rgba(52, 199, 89, 0.85);
+    animation: diceReveal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+               critPulse 1.2s ease-in-out 0.4s infinite;
+}
+
+@keyframes critPulse {
+    0%, 100% { box-shadow: 0 0 16px rgba(52, 199, 89, 0.4); }
+    50%       { box-shadow: 0 0 36px rgba(52, 199, 89, 0.8), 0 0 56px rgba(52, 199, 89, 0.2); }
+}
+
+.roll-dice-face.fumble {
+    background: rgba(255, 59, 48, 0.18);
+    border-color: rgba(255, 59, 48, 0.75);
+    box-shadow: 0 0 20px rgba(255, 59, 48, 0.3);
+}
+
+.roll-dice-face-value {
+    font-size: 34px;
+    font-weight: 900;
+    color: #4ade80;
+    font-family: monospace;
+    line-height: 1;
+}
+
+.roll-dice-face.crit   .roll-dice-face-value { color: #66ff88; }
+.roll-dice-face.fumble .roll-dice-face-value { color: #ff8888; }
+
+.roll-result-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 8px;
+}
+
+.rrb-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+}
+
+.rrb-value {
+    font-weight: 700;
+    color: #4ade80;
+    font-family: monospace;
+    min-width: 42px;
+}
+
+.rrb-label {
+    color: var(--SmartThemeBodyColor, rgba(155, 160, 165, 0.8));
+    font-size: 12px;
+    text-align: right;
+}
+
+.roll-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 12px;
+    background: rgba(74, 222, 128, 0.08);
+    border: 1px solid rgba(74, 222, 128, 0.25);
+    border-radius: 8px;
+}
+
+.roll-total-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    color: rgba(74, 222, 128, 0.65);
+    text-transform: uppercase;
+}
+
+.roll-total-value {
+    font-size: 26px;
+    font-weight: 900;
+    color: #4ade80;
+    font-family: monospace;
+    line-height: 1;
+}
+
+/* ============================================================================
+   JOBS & FEATS TAB — statSheet.jobsFeats.css
+   Additive only. Every class here is absent from statSheet.css.
+   Re-uses existing CSS variables and design tokens throughout.
+   ============================================================================ */
+
+/* ============================================================================
+   TAB WRAPPER & MODE FLAGS
+   ============================================================================ */
+
+.jobs-feats-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* .player-mode / .master-mode: structural flags only — no visual change needed */
+.jobs-section,
+.feats-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.master-section {
+    margin-bottom: 8px;
+}
+
+/* Master mode toggle: override btn-toggle-mode hover to signal "exit" */
+.btn-exit-master:hover {
+    background: rgba(255, 69, 58, 0.25) !important;
+    border-color: rgba(255, 69, 58, 0.55) !important;
+    color: #ff9999 !important;
+    box-shadow: none !important;
+}
+
+/* ============================================================================
+   UNSPENT POINTS BANNER  (player mode)
+   ============================================================================ */
+
+.unspent-points-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(240, 182, 35, 0.08);
+    border: 1px solid rgba(240, 182, 35, 0.35);
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 20px;
+}
+
+.banner-icon {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.banner-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.banner-text strong {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f0b623;
+}
+
+.banner-source {
+    font-size: 12px;
+    color: var(--SmartThemeBodyColor, rgba(160, 165, 170, 0.75));
+}
+
+/* ============================================================================
+   PLAYER MODE — JOB CARD
+   ============================================================================ */
+
+.jobs-list-view,
+.feats-list-view {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.job-view-item {
+    background: var(--black30a, rgba(25, 30, 35, 0.95));
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-left: 3px solid rgba(52, 152, 219, 0.5);
+    border-radius: 8px;
+    padding: 14px 18px;
+    transition: border-left-color 0.2s;
+}
+
+.job-view-item.job-has-points {
+    border-left-color: #f0b623;
+}
+
+.job-view-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.job-view-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.95));
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.job-view-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* Level badge (read-only) */
+.job-level-badge {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--SmartThemeBodyColor, rgba(180, 185, 195, 0.9));
+    white-space: nowrap;
+}
+
+/* MAX badge */
+.job-max-badge {
+    background: rgba(240, 182, 35, 0.12);
+    border: 1px solid rgba(240, 182, 35, 0.45);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #f0b623;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* Unspent points badge */
+.unspent-badge {
+    background: rgba(240, 182, 35, 0.15);
+    border: 1px solid rgba(240, 182, 35, 0.45);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #f0b623;
+    white-space: nowrap;
+    cursor: default;
+}
+
+/* Level-up button */
+.btn-raise-job {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(52, 152, 219, 0.1);
+    border: 1px solid rgba(52, 152, 219, 0.4);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #7ec8f5;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.btn-raise-job:hover:not(:disabled) {
+    background: rgba(52, 152, 219, 0.22);
+    border-color: rgba(52, 152, 219, 0.7);
+    color: #a8dcff;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(52, 152, 219, 0.2);
+}
+
+.btn-raise-job:active:not(:disabled) {
+    transform: scale(0.96);
+}
+
+/* Disabled state is handled by the existing .btn-raise-disabled rule */
+
+.no-subskills-note {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--SmartThemeBodyColor, rgba(120, 125, 130, 0.6));
+    font-style: italic;
+    padding: 0 2px;
+}
+
+/* ============================================================================
+   POINT ALLOCATION  (player mode)
+   ============================================================================ */
+
+.point-allocation-section {
+    margin-top: 10px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(240, 182, 35, 0.25);
+    border-radius: 6px;
+    padding: 10px 14px;
+}
+
+.point-alloc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.point-alloc-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(240, 182, 35, 0.8);
+}
+
+.point-alloc-remaining {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(240, 182, 35, 0.75);
+}
+
+.point-alloc-group {
+    margin-bottom: 6px;
+}
+
+.point-alloc-group:last-child {
+    margin-bottom: 0;
+}
+
+.point-alloc-group-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--SmartThemeBodyColor, rgba(140, 145, 155, 0.7));
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 3px;
+    padding-left: 2px;
+}
+
+.point-alloc-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: background 0.15s;
+}
+
+.point-alloc-row:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.point-alloc-name {
+    flex: 1;
+    font-size: 13px;
+    color: var(--SmartThemeBodyColor, rgba(200, 205, 215, 0.9));
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.point-alloc-level {
+    font-size: 14px;
+    font-weight: 700;
+    color: #4ade80;
+    font-family: monospace;
+    min-width: 22px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.btn-spend-job-point {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 10px;
+    background: rgba(74, 222, 128, 0.08);
+    border: 1px solid rgba(74, 222, 128, 0.35);
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #4ade80;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.btn-spend-job-point:hover {
+    background: rgba(74, 222, 128, 0.2);
+    border-color: rgba(74, 222, 128, 0.65);
+    color: #6fffaa;
+    transform: translateY(-1px);
+}
+
+.btn-spend-job-point:active {
+    transform: scale(0.96);
+}
+
+/* ============================================================================
+   PLAYER MODE — FEAT CARD
+   ============================================================================ */
+
+.feat-view-item {
+    background: var(--black30a, rgba(25, 30, 35, 0.95));
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-left: 3px solid rgba(168, 85, 247, 0.5);
+    border-radius: 8px;
+    padding: 12px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: border-left-width 0.2s;
+}
+
+.feat-view-item:hover {
+    border-left-width: 4px;
+}
+
+.feat-view-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.95));
+}
+
+.feat-view-desc {
+    font-size: 13px;
+    color: var(--SmartThemeBodyColor, rgba(175, 180, 190, 0.85));
+    line-height: 1.5;
+    margin: 0;
+}
+
+.feat-view-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 2px;
+}
+
+/* Read-only tag (player view) */
+.feat-tag {
+    display: inline-block;
+    background: rgba(168, 85, 247, 0.1);
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(200, 160, 240, 0.9);
+    letter-spacing: 0.04em;
+}
+
+/* ============================================================================
+   MASTER MODE — JOB ITEM
+   ============================================================================ */
+
+.jobs-list,
+.feats-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.job-item {
+    background: var(--black30a, rgba(25, 30, 35, 0.95));
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-left: 3px solid rgba(52, 152, 219, 0.6);
+    border-radius: 8px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: border-left-width 0.2s;
+}
+
+.job-item:hover {
+    border-left-width: 4px;
+}
+
+.feat-item {
+    background: var(--black30a, rgba(25, 30, 35, 0.95));
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-left: 3px solid rgba(168, 85, 247, 0.6);
+    border-radius: 8px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: border-left-width 0.2s;
+}
+
+.feat-item:hover {
+    border-left-width: 4px;
+}
+
+.item-disabled {
+    opacity: 0.5;
+}
+
+/* Job header row */
+.job-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.job-name-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Name inputs — mirror .attribute-name-input */
+.jf-job-name-input,
+.jf-feat-name-input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.95));
+    font-size: 15px;
+    font-weight: 600;
+    flex: 1;
+    min-width: 0;
+    transition: all 0.2s;
+}
+
+.jf-job-name-input:focus,
+.jf-feat-name-input:focus {
+    outline: none;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.1);
+}
+
+/* Enable / Disable toggle */
+.btn-toggle-jf-source-enabled {
+    padding: 5px 11px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    color: var(--SmartThemeBodyColor, rgba(150, 155, 165, 0.75));
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.btn-toggle-jf-source-enabled.btn-enabled-state {
+    background: rgba(52, 199, 89, 0.15);
+    border-color: rgba(52, 199, 89, 0.5);
+    color: #4ade80;
+}
+
+.btn-toggle-jf-source-enabled:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--SmartThemeBodyColor, rgba(110, 115, 120, 0.7));
+}
+
+.btn-toggle-jf-source-enabled.btn-enabled-state:hover {
+    background: rgba(52, 199, 89, 0.28);
+    border-color: rgba(52, 199, 89, 0.75);
+}
+
+/* Remove buttons */
+.btn-remove-jf-job,
+.btn-remove-jf-feat {
+    background: rgba(255, 59, 48, 0.12);
+    border: 1px solid rgba(255, 59, 48, 0.35);
+    padding: 5px 9px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: rgba(255, 150, 140, 0.85);
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.btn-remove-jf-job:hover,
+.btn-remove-jf-feat:hover {
+    background: rgba(255, 59, 48, 0.35);
+    border-color: rgba(255, 59, 48, 0.65);
+    color: #ffcccc;
+    transform: scale(1.08);
+}
+
+/* Level controls (Master mode — direct set, no EXP cost) */
+.job-level-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* .level-label already in statSheet.css */
+
+.btn-decrease-job-level,
+.btn-increase-job-level {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.95));
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.btn-decrease-job-level:hover {
+    background: rgba(255, 69, 58, 0.25);
+    border-color: rgba(255, 69, 58, 0.55);
+    color: #ff9999;
+    transform: scale(1.1);
+}
+
+.btn-increase-job-level:hover {
+    background: rgba(52, 199, 89, 0.25);
+    border-color: rgba(52, 199, 89, 0.55);
+    color: #66ff99;
+    transform: scale(1.1);
+}
+
+.job-level-display {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.95));
+    font-family: monospace;
+    min-width: 26px;
+    text-align: center;
+}
+
+/* EXP cost toggle — .btn-exp-expensive modifier from statSheet.css applies */
+.btn-toggle-jf-job-exp-cost {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor, rgba(180, 185, 190, 0.85));
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: 0.3px;
+}
+
+.btn-toggle-jf-job-exp-cost:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--SmartThemeBodyColor, rgba(120, 125, 130, 0.7));
+    transform: translateY(-1px);
+}
+
+/* Details row (points per level + unspent note) */
+.job-details-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.job-field-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--SmartThemeBodyColor, rgba(160, 165, 175, 0.8));
+    white-space: nowrap;
+}
+
+.job-points-per-level-input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    padding: 6px 8px;
+    color: #4ade80;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    width: 60px;
+    transition: all 0.2s;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.job-points-per-level-input::-webkit-outer-spin-button,
+.job-points-per-level-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+.job-points-per-level-input:focus {
+    outline: none;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.job-unspent-note {
+    font-size: 12px;
+    color: var(--SmartThemeBodyColor, rgba(140, 145, 155, 0.65));
+    font-style: italic;
+}
+
+/* ============================================================================
+   MASTER MODE — FEAT ITEM
+   ============================================================================ */
+
+.feat-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Description textarea */
+.jf-feat-description-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--SmartThemeBodyColor, rgba(210, 215, 225, 0.9));
+    font-size: 13px;
+    line-height: 1.5;
+    resize: vertical;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.jf-feat-description-input::placeholder {
+    color: rgba(130, 135, 140, 0.5);
+    font-style: italic;
+}
+
+.jf-feat-description-input:focus {
+    outline: none;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.1);
+}
+
+/* ============================================================================
+   TREE TYPES & FEAT TAGS  (shared pattern, master mode)
+   ============================================================================ */
+
+.feat-tags-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* .subskills-label already in statSheet.css */
+
+.feat-tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+/* Editable chip — feat variant (purple) */
+.feat-tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(168, 85, 247, 0.1);
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    border-radius: 20px;
+    padding: 3px 6px 3px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(200, 160, 240, 0.9);
+    letter-spacing: 0.04em;
+}
+
+/* Tree type chips (inside .job-item) use blue */
+.job-item .feat-tag-chip {
+    background: rgba(52, 152, 219, 0.1);
+    border-color: rgba(52, 152, 219, 0.35);
+    color: rgba(140, 195, 240, 0.9);
+}
+
+.btn-remove-tree-type,
+.btn-remove-jf-feat-tag {
+    background: transparent;
+    border: none;
+    padding: 0 2px;
+    font-size: 13px;
+    color: rgba(160, 165, 180, 0.5);
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.15s;
+}
+
+.btn-remove-tree-type:hover,
+.btn-remove-jf-feat-tag:hover {
+    color: #ff9999;
+}
+
+.feat-tag-add-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.tree-type-new-input,
+.jf-feat-tag-new-input {
+    width: 130px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px dashed var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    padding: 5px 10px;
+    color: var(--SmartThemeBodyColor, rgba(200, 205, 215, 0.9));
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.tree-type-new-input::placeholder,
+.jf-feat-tag-new-input::placeholder {
+    color: rgba(130, 135, 140, 0.5);
+    font-style: italic;
+}
+
+.tree-type-new-input:focus,
+.jf-feat-tag-new-input:focus {
+    outline: none;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    border-style: solid;
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.btn-add-tree-type,
+.btn-add-jf-feat-tag {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px dashed var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    color: var(--SmartThemeBodyColor, rgba(180, 185, 195, 0.85));
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.btn-add-tree-type:hover,
+.btn-add-jf-feat-tag:hover {
+    background: var(--SmartThemeQuoteColor, #e94560);
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    border-style: solid;
+    color: white;
+    transform: translateY(-1px);
+}
+
+/* ============================================================================
+   STAT BONUSES  (shared by jobs and feats)
+   ============================================================================ */
+
+.stat-bonuses-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* .subskills-header and .subskills-label already in statSheet.css */
+
+.jf-stat-bonuses-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* .subskills-empty already in statSheet.css */
+
+.stat-bonus-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(70, 80, 90, 0.35);
+    border-radius: 6px;
+    flex-wrap: wrap;
+    transition: background 0.15s;
+}
+
+.stat-bonus-row:hover {
+    background: rgba(255, 255, 255, 0.045);
+}
+
+/* Type and target selects — mirror st-add-attr-select */
+.jf-stat-bonus-type-select,
+.jf-stat-bonus-target-select {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    padding: 6px 8px;
+    color: var(--SmartThemeBodyColor, rgba(200, 205, 215, 0.9));
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.jf-stat-bonus-type-select {
+    min-width: 95px;
+    flex-shrink: 0;
+}
+
+.jf-stat-bonus-target-select {
+    flex: 1;
+    min-width: 120px;
+}
+
+.jf-stat-bonus-type-select:focus,
+.jf-stat-bonus-target-select:focus {
+    outline: none;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* .st-term-op (the + sign) already in statSheet.css */
+
+/* Value input — mirrors st-term-flat-value */
+.jf-stat-bonus-value-input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    padding: 6px 8px;
+    color: #93c5fd;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    width: 66px;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.jf-stat-bonus-value-input::-webkit-outer-spin-button,
+.jf-stat-bonus-value-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+.jf-stat-bonus-value-input:focus {
+    outline: none;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-remove-jf-stat-bonus {
+    background: rgba(255, 59, 48, 0.1);
+    border: 1px solid rgba(255, 59, 48, 0.3);
+    border-radius: 5px;
+    padding: 4px 7px;
+    font-size: 13px;
+    color: rgba(255, 150, 140, 0.8);
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.btn-remove-jf-stat-bonus:hover {
+    background: rgba(255, 59, 48, 0.32);
+    border-color: rgba(255, 59, 48, 0.62);
+    color: #ffcccc;
+}
+
+/* Add bonus button — same weight as .btn-add-small */
+.btn-add-jf-stat-bonus {
+    padding: 5px 12px;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--SmartThemeBodyColor, rgba(200, 205, 210, 0.9));
+    white-space: nowrap;
+}
+
+.btn-add-jf-stat-bonus:hover {
+    background: var(--SmartThemeQuoteColor, #e94560);
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(233, 69, 96, 0.3);
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+    .job-header { flex-direction: column; align-items: stretch; }
+    .job-level-controls { flex-wrap: wrap; }
+    .job-name-controls  { flex-wrap: wrap; }
+    .stat-bonus-row     { flex-wrap: wrap; }
+    .jf-stat-bonus-target-select { min-width: 0; }
+}
+
+/* ============================================================================
+   JOBS & FEATS — PATCH: Tree Type Attribute Assignment + Linked Feats
+   Append to statSheet.jobsFeats.css
+   ============================================================================ */
+
+/* ── Tree type chip row (chip + attribute select side-by-side) ── */
+
+.tree-types-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+}
+
+.tree-type-chip-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.tree-type-attr-select {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    padding: 4px 8px;
+    color: var(--SmartThemeBodyColor, rgba(180, 185, 195, 0.9));
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 110px;
+}
+
+.tree-type-attr-select:focus {
+    outline: none;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Linked feats section — Master Mode ── */
+
+.linked-feats-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.linked-feat-chip {
+    background: rgba(168, 85, 247, 0.12) !important;
+    border-color: rgba(168, 85, 247, 0.4) !important;
+    color: rgba(210, 170, 255, 0.95) !important;
+}
+
+.link-feat-select {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px dashed var(--SmartThemeBorderColor, rgba(70, 80, 90, 0.6));
+    border-radius: 6px;
+    padding: 5px 8px;
+    color: var(--SmartThemeBodyColor, rgba(180, 185, 195, 0.85));
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 150px;
+}
+
+.link-feat-select:focus {
+    outline: none;
+    border-color: var(--SmartThemeQuoteColor, #e94560);
+    border-style: solid;
+    background: rgba(255, 255, 255, 0.07);
+}
+
+/* ── Linked feats — Player Mode view ── */
+
+.job-linked-feats-view {
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: rgba(168, 85, 247, 0.06);
+    border: 1px solid rgba(168, 85, 247, 0.25);
+    border-left: 3px solid rgba(168, 85, 247, 0.5);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.job-linked-feats-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(200, 160, 240, 0.75);
+}
+
+.job-linked-feats-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.job-linked-feat-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.job-linked-feat-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor, rgba(220, 225, 235, 0.95));
+}
+
+.job-linked-feat-desc {
+    width: 100%;
+    font-size: 12px;
+    color: var(--SmartThemeBodyColor, rgba(165, 170, 180, 0.8));
+    line-height: 1.45;
+    margin: 2px 0 0;
+}
+
+/* ============================================================================
+   Sub-skill Editor Patch CSS
+   Add to statSheet.jobsFeats.css (or import after it)
+   ============================================================================ */
+
+/* ── Player Mode: Create new sub-skill row ─────────────────────────────────── */
+
+.point-alloc-create-row {
+    display:        flex;
+    align-items:    center;
+    gap:            8px;
+    margin-top:     6px;
+    padding-top:    6px;
+    border-top:     1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.point-alloc-create-row .rpg-input {
+    flex:           1;
+    min-width:      0;
+    font-size:      12px;
+    padding:        4px 8px;
+    background:     rgba(255,255,255,0.05);
+    border:         1px solid rgba(255,255,255,0.12);
+    border-radius:  6px;
+    color:          inherit;
+}
+
+.point-alloc-create-row .rpg-input::placeholder {
+    opacity:        0.4;
+    font-style:     italic;
+}
+
+.btn-create-job-subskill {
+    white-space:    nowrap;
+    padding:        4px 10px;
+    font-size:      11px;
+    font-weight:    600;
+    border-radius:  6px;
+    border:         1px solid rgba(100, 200, 120, 0.4);
+    background:     rgba(100, 200, 120, 0.08);
+    color:          #8ecf9a;
+    cursor:         pointer;
+    transition:     background 0.15s, border-color 0.15s;
+}
+
+.btn-create-job-subskill:hover {
+    background:     rgba(100, 200, 120, 0.18);
+    border-color:   rgba(100, 200, 120, 0.6);
+}
+
+/* ── Attributes tab: tree type label above sub-skills ──────────────────────── */
+
+.subskill-tree-type-label {
+    font-size:      10px;
+    font-weight:    700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity:        0.5;
+    margin:         6px 0 3px 12px;
+    color:          #a0c4ff;
+}
+
+/* ── Master Mode: sub-skill editor ────────────────────────────────────────── */
+
+.master-subskills-section {
+    margin-top:     16px;
+}
+
+.master-subskills-list {
+    display:        flex;
+    flex-direction: column;
+    gap:            12px;
+    margin-top:     8px;
+}
+
+.master-subskill-group {
+    background:     rgba(255,255,255,0.03);
+    border:         1px solid rgba(255,255,255,0.07);
+    border-radius:  8px;
+    padding:        10px 12px;
+}
+
+.master-subskill-group-label {
+    font-size:      10px;
+    font-weight:    700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity:        0.5;
+    margin-bottom:  8px;
+    color:          #a0c4ff;
+}
+
+.master-subskill-row {
+    display:        flex;
+    align-items:    center;
+    gap:            6px;
+    margin-bottom:  6px;
+}
+
+.master-subskill-row .rpg-input {
+    font-size:      12px;
+    padding:        4px 8px;
+    background:     rgba(255,255,255,0.05);
+    border:         1px solid rgba(255,255,255,0.12);
+    border-radius:  6px;
+    color:          inherit;
+}
+
+.master-subskill-level-input {
+    width:          52px !important;
+    text-align:     center;
+}
+
+.master-subskill-inc,
+.master-subskill-dec {
+    width:          26px;
+    height:         26px;
+    border-radius:  50%;
+    border:         1px solid rgba(255,255,255,0.15);
+    background:     rgba(255,255,255,0.05);
+    color:          inherit;
+    cursor:         pointer;
+    font-size:      14px;
+    line-height:    1;
+    display:        flex;
+    align-items:    center;
+    justify-content: center;
+    transition:     background 0.15s;
+    flex-shrink:    0;
+}
+
+.master-subskill-inc:hover { background: rgba(100,200,120,0.15); }
+.master-subskill-dec:hover { background: rgba(255,100,100,0.15); }
+
+.master-subskill-add-row {
+    display:        flex;
+    align-items:    center;
+    gap:            8px;
+    margin-top:     8px;
+    padding-top:    8px;
+    border-top:     1px dashed rgba(255,255,255,0.08);
+}
+
+.master-subskill-add-row .rpg-input {
+    flex:           1;
+    min-width:      0;
+    font-size:      12px;
+    padding:        4px 8px;
+    background:     rgba(255,255,255,0.05);
+    border:         1px solid rgba(255,255,255,0.12);
+    border-radius:  6px;
+    color:          inherit;
+}
+
+.master-subskill-add-row .rpg-input::placeholder {
+    opacity:        0.4;
+    font-style:     italic;
+}
+
+.btn-master-add-subskill {
+    white-space:    nowrap;
+    padding:        4px 10px;
+    font-size:      11px;
+    font-weight:    600;
+    border-radius:  6px;
+    border:         1px solid rgba(100, 200, 120, 0.4);
+    background:     rgba(100, 200, 120, 0.08);
+    color:          #8ecf9a;
+    cursor:         pointer;
+    transition:     background 0.15s, border-color 0.15s;
+}
+
+.btn-master-add-subskill:hover {
+    background:     rgba(100, 200, 120, 0.18);
+    border-color:   rgba(100, 200, 120, 0.6);
+}
+
+/* ============================================================================
+   SKILL TREE BUTTONS — Player Mode patch
+   Append to statSheet.jobsFeats.css (or import after it).
+   Covers: spend (+1), refund (−1) on sub-skills and parent skills,
+   and the level badge used inside the skill tree rows.
+   ============================================================================ */
+
+/* Level number displayed inside a skill-tree row */
+.skill-tree-level {
+    font-size: 15px;
+    font-weight: 700;
+    color: #4ade80;
+    font-family: monospace;
+    min-width: 28px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* ── Shared base for all four tree-row action buttons ─────────────────────── */
+.btn-spend-job-point,
+.btn-spend-job-point-on-skill,
+.btn-refund-job-point,
+.btn-refund-job-point-on-skill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 28px;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    flex-shrink: 0;
+    line-height: 1;
+    padding: 0;
+    border: 1px solid transparent;
+}
+
+/* ── Spend / raise (+1) — green ───────────────────────────────────────────── */
+.btn-spend-job-point,
+.btn-spend-job-point-on-skill {
+    background: rgba(74, 222, 128, 0.1);
+    border-color: rgba(74, 222, 128, 0.4);
+    color: #4ade80;
+}
+
+.btn-spend-job-point:hover:not(:disabled),
+.btn-spend-job-point-on-skill:hover:not(:disabled) {
+    background: rgba(74, 222, 128, 0.25);
+    border-color: rgba(74, 222, 128, 0.75);
+    color: #6fffaa;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(74, 222, 128, 0.2);
+}
+
+.btn-spend-job-point:active:not(:disabled),
+.btn-spend-job-point-on-skill:active:not(:disabled) {
+    transform: scale(0.94);
+}
+
+/* ── Refund / decrease (−1) — red ────────────────────────────────────────── */
+.btn-refund-job-point,
+.btn-refund-job-point-on-skill {
+    background: rgba(255, 69, 58, 0.08);
+    border-color: rgba(255, 69, 58, 0.35);
+    color: rgba(255, 150, 140, 0.9);
+}
+
+.btn-refund-job-point:hover:not(:disabled),
+.btn-refund-job-point-on-skill:hover:not(:disabled) {
+    background: rgba(255, 69, 58, 0.22);
+    border-color: rgba(255, 69, 58, 0.65);
+    color: #ffcccc;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(255, 69, 58, 0.15);
+}
+
+.btn-refund-job-point:active:not(:disabled),
+.btn-refund-job-point-on-skill:active:not(:disabled) {
+    transform: scale(0.94);
+}
+
+/* ── Disabled state (shared) ─────────────────────────────────────────────── */
+.btn-spend-job-point.btn-raise-disabled,
+.btn-spend-job-point:disabled,
+.btn-spend-job-point-on-skill.btn-raise-disabled,
+.btn-spend-job-point-on-skill:disabled,
+.btn-refund-job-point.btn-raise-disabled,
+.btn-refund-job-point:disabled,
+.btn-refund-job-point-on-skill.btn-raise-disabled,
+.btn-refund-job-point-on-skill:disabled {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(70, 80, 90, 0.3);
+    color: rgba(110, 115, 120, 0.45);
+    cursor: not-allowed;
+    opacity: 0.55;
+    pointer-events: none;
+    transform: none;
+    box-shadow: none;
+}
+
+/* ── Delete button for level-0 sub-skills ────────────────────────────────── */
+.btn-delete-zero-subskill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    flex-shrink: 0;
+    line-height: 1;
+    padding: 0;
+    background: rgba(255, 59, 48, 0.08);
+    border: 1px solid rgba(255, 59, 48, 0.3);
+    color: rgba(255, 150, 140, 0.7);
+    margin-left: 2px;
+}
+
+.btn-delete-zero-subskill:hover {
+    background: rgba(255, 59, 48, 0.28);
+    border-color: rgba(255, 59, 48, 0.65);
+    color: #ffcccc;
+    transform: scale(1.1);
+}
+
+.btn-delete-zero-subskill:active {
+    transform: scale(0.94);
+}
+
+.point-alloc-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: background 0.15s;
+}
+
+.point-alloc-row:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.point-alloc-name {
+    flex: 1;
+    font-size: 13px;
+    color: var(--SmartThemeBodyColor, rgba(200, 205, 215, 0.9));
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── Parent-skill header row (tree type label + level + buttons) ─────────── */
+.point-alloc-group-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--SmartThemeBodyColor, rgba(140, 145, 155, 0.7));
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 4px;
+    padding: 2px 6px;
+}
+
+/* ── Locked feat (prerequisites not met) ─────────────────────────────────── */
+.feat-view-item.feat-locked {
+    opacity: 0.55;
+    border-color: rgba(255, 80, 80, 0.2);
+    background: rgba(255, 80, 80, 0.04);
+}
+
+.feat-locked-badge {
+    font-size: 11px;
+    color: #ff9999;
+    background: rgba(255, 80, 80, 0.15);
+    border: 1px solid rgba(255, 80, 80, 0.3);
+    border-radius: 4px;
+    padding: 1px 6px;
+    white-space: nowrap;
+}
+
+.feat-prereq-unmet {
+    margin: 4px 0 0 0;
+    padding-left: 18px;
+    font-size: 11px;
+    color: #ff9999;
+    opacity: 0.8;
+}
+
+.feat-prereq-unmet li {
+    margin-bottom: 2px;
+}
+
+/* ============================================================================
+   AUGMENTS TAB
+   Paste this into the bottom of statSheet.css
+   ============================================================================ */
+
+/* ── Tab wrapper ─────────────────────────────────────────────────────────── */
+.aug-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 4px 0;
+}
+
+.aug-tab-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.aug-tab-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+/* ── 3-column grid ───────────────────────────────────────────────────────── */
+.aug-grid {
+    display: grid;
+    grid-template-columns: 1fr 180px 1fr;
+    gap: 12px;
+    align-items: start;
+}
+
+.aug-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* ── Center column ───────────────────────────────────────────────────────── */
+.aug-col-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+}
+
+.aug-body-hint {
+    font-size: 10px;
+    opacity: 0.4;
+    text-align: center;
+    letter-spacing: 0.05em;
+}
+
+.aug-clear-filter {
+    font-size: 11px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    color: rgba(255,255,255,0.6);
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.aug-clear-filter:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+/* ── SVG silhouette ──────────────────────────────────────────────────────── */
+.aug-body-svg {
+    width: 100%;
+    max-width: 160px;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+}
+
+/* Base silhouette fill */
+.aug-silhouette * {
+    fill: rgba(255,255,255,0.07);
+    stroke: rgba(255,255,255,0.18);
+    stroke-width: 1.2;
+}
+
+/* Zone overlays */
+.aug-svg-zone {
+    fill: transparent;
+    stroke: transparent;
+    cursor: pointer;
+    transition: fill 0.2s, stroke 0.2s;
+}
+.aug-svg-zone:hover {
+    fill: rgba(255,255,255,0.06);
+    stroke: rgba(255,255,255,0.3);
+    stroke-width: 1.5;
+}
+.aug-svg-zone.zone-active {
+    fill: rgba(var(--aug-accent-rgb, 100,180,255), 0.10);
+    stroke: rgba(var(--aug-accent-rgb, 100,180,255), 0.35);
+    stroke-width: 1.5;
+    filter: drop-shadow(0 0 4px rgba(100,180,255,0.3));
+}
+.aug-svg-zone.zone-selected {
+    fill: rgba(var(--aug-accent-rgb, 100,180,255), 0.18);
+    stroke: rgba(var(--aug-accent-rgb, 100,180,255), 0.7);
+    stroke-width: 2;
+    filter: drop-shadow(0 0 8px rgba(100,180,255,0.5));
+    animation: aug-zone-pulse 2s ease-in-out infinite;
+}
+@keyframes aug-zone-pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.7; }
+}
+
+/* SVG zone groups — apply same styles to child elements */
+.aug-svg-zone rect,
+.aug-svg-zone circle,
+.aug-svg-zone ellipse {
+    fill: inherit;
+    stroke: inherit;
+    stroke-width: inherit;
+    pointer-events: all;
+}
+
+/* ── Slot panel ──────────────────────────────────────────────────────────── */
+.aug-slot-panel {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+.aug-slot-panel.slot-selected {
+    border-color: rgba(100,180,255,0.45);
+    box-shadow: 0 0 10px rgba(100,180,255,0.15);
+}
+
+.aug-slot-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 10px;
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+}
+.aug-slot-header:hover { background: rgba(255,255,255,0.08); }
+
+.aug-slot-name {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.85;
+}
+.aug-slot-count {
+    font-size: 10px;
+    opacity: 0.4;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Scrollable augment list */
+.aug-slot-list {
+    max-height: 160px;
+    overflow-y: auto;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+.aug-slot-list::-webkit-scrollbar { width: 4px; }
+.aug-slot-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+.aug-empty {
+    font-size: 11px;
+    opacity: 0.3;
+    text-align: center;
+    padding: 10px 0;
+    font-style: italic;
+}
+
+.aug-add-btn {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.4);
+    font-size: 11px;
+    padding: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+}
+.aug-add-btn:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.8); }
+
+.aug-full-note {
+    display: block;
+    font-size: 10px;
+    opacity: 0.3;
+    text-align: center;
+    padding: 5px;
+    font-style: italic;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+/* ── Augment card ────────────────────────────────────────────────────────── */
+.aug-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 5px;
+    padding: 5px 8px;
+    transition: background 0.15s;
+}
+.aug-card:hover { background: rgba(255,255,255,0.08); }
+
+.aug-card-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.aug-card-name {
+    font-size: 12px;
+    font-weight: 600;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.aug-card-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+.aug-card-actions button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    color: rgba(255,255,255,0.5);
+    transition: all 0.15s;
+}
+.aug-card-actions button:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+.aug-short-desc {
+    font-size: 10px;
+    opacity: 0.5;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.aug-btn-view-detail {
+    background: transparent;
+    border: none;
+    font-size: 10px;
+    color: rgba(100,180,255,0.7);
+    cursor: pointer;
+    padding: 2px 0;
+    margin-top: 2px;
+    transition: color 0.15s;
+}
+.aug-btn-view-detail:hover { color: rgb(100,180,255); }
+
+/* ── Slot config (master) ────────────────────────────────────────────────── */
+.aug-slot-manager {
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding-top: 16px;
+}
+.aug-slot-config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.aug-slot-config-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ── Detail popup ────────────────────────────────────────────────────────── */
+.aug-popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(3px);
+}
+
+.aug-popup-modal {
+    background: var(--SmolDrawer-bg, #1a1a1f);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    width: min(600px, 92vw);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    overflow: hidden;
+}
+
+.aug-popup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+    flex-shrink: 0;
+}
+
+.aug-popup-title-text {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+.aug-popup-close-btn {
+    background: transparent;
+    border: none;
+    font-size: 18px;
+    color: rgba(255,255,255,0.5);
+    cursor: pointer;
+    padding: 2px 8px;
+    border-radius: 4px;
+    transition: all 0.15s;
+    line-height: 1;
+}
+.aug-popup-close-btn:hover { background: rgba(255,80,80,0.2); color: #ff9999; }
+
+.aug-popup-body {
+    padding: 18px;
+    overflow-y: auto;
+    flex: 1;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+
+/* View popup */
+.aug-popup-longdesc {
+    font-size: 13px;
+    line-height: 1.65;
+    opacity: 0.85;
+    margin-bottom: 14px;
+    white-space: pre-wrap;
+}
+.aug-popup-section {
+    margin-top: 12px;
+    font-size: 12px;
+    opacity: 0.75;
+}
+.aug-popup-section ul {
+    margin: 4px 0 0 16px;
+    padding: 0;
+}
+.aug-popup-section li { margin-bottom: 2px; }
+
+/* Edit popup grid */
+.aug-edit-grid {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 10px 14px;
+    align-items: start;
+}
+.aug-edit-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.55;
+    padding-top: 8px;
+}
+.aug-edit-color {
+    width: 36px;
+    height: 28px;
+    padding: 2px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+}
+.aug-edit-color-preview {
+    font-size: 13px;
+}
+.aug-stat-bonuses-list,
+.aug-combat-links-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+/* ── Rarity tier picker ──────────────────────────────────────────────────── */
+.aug-rarity-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.aug-rarity-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 5px;
+    color: var(--tier-color, #9e9e9e);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.04em;
+}
+.aug-rarity-btn:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: var(--tier-color, #9e9e9e);
+}
+.aug-rarity-btn.aug-rarity-active {
+    background: rgba(255,255,255,0.08);
+    border-color: var(--tier-color, #9e9e9e);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--tier-color, #9e9e9e) 40%, transparent);
+}
+
+/* ── Generic action buttons (used in popup) ──────────────────────────────── */
+.btn-add-flat-term,
+.btn-add-level-term,
+.aug-add-stat-bonus,
+.aug-add-combat-link {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 5px;
+    color: rgba(255,255,255,0.65);
+    font-size: 11px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.btn-add-flat-term:hover,
+.btn-add-level-term:hover,
+.aug-add-stat-bonus:hover,
+.aug-add-combat-link:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    border-color: rgba(255,255,255,0.3);
+}
+
+/* ── Remove / inline action buttons ─────────────────────────────────────── */
+.aug-sb-remove,
+.aug-link-remove {
+    background: transparent;
+    border: 1px solid rgba(255,80,80,0.3);
+    border-radius: 4px;
+    color: #ff9999;
+    font-size: 12px;
+    padding: 2px 7px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+.aug-sb-remove:hover,
+.aug-link-remove:hover {
+    background: rgba(255,80,80,0.15);
+    border-color: rgba(255,80,80,0.6);
+}
+
+/* ── Stat bonus / link rows ──────────────────────────────────────────────── */
+.aug-stat-bonuses-list .stat-bonus-row,
+.aug-combat-links-list .stat-bonus-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* ── Stat bonus row inputs/selects (popup) ───────────────────────────────── */
+.aug-stat-bonuses-list select,
+.aug-stat-bonuses-list input[type="number"],
+.aug-combat-links-list input[type="text"],
+.aug-combat-links-list input[type="number"] {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    color: inherit;
+    font-size: 12px;
+    padding: 4px 6px;
+}
+.aug-stat-bonuses-list select:focus,
+.aug-stat-bonuses-list input:focus,
+.aug-combat-links-list input:focus {
+    outline: none;
+    border-color: rgba(100,180,255,0.5);
+}
+
+/* .st-term-op (the + sign between fields) */
+.st-term-op {
+    opacity: 0.4;
+    font-size: 13px;
+    flex-shrink: 0;
+}
+
+/* ==========================================================================
+   COMBAT SKILLS TAB  (Session 6)
+   Append these rules to statSheet.css
+   ========================================================================== */
+
+/* ── Tab wrapper ─────────────────────────────────────────────────────────── */
+.cs-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 14px;
+    min-height: 300px;
+}
+
+/* ── Mode bar ────────────────────────────────────────────────────────────── */
+.cs-mode-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.07);
+}
+.cs-mode-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary, #9da5b0);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.cs-toggle-btn {
+    padding: 5px 14px;
+    border-radius: 6px;
+    border: 1px solid rgba(100,140,255,0.4);
+    background: rgba(100,140,255,0.1);
+    color: #7aa0ff;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.cs-toggle-btn:hover { background: rgba(100,140,255,0.2); }
+
+/* ── Section ─────────────────────────────────────────────────────────────── */
+.cs-section {
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.07);
+    overflow: hidden;
+}
+.cs-section-hdr {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.cs-section-title {
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--text-primary, #e2e8f0);
+}
+.cs-count-badge {
+    margin-left: auto;
+    padding: 2px 8px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 10px;
+    font-size: 0.78rem;
+    color: var(--text-secondary, #9da5b0);
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.cs-empty-state {
+    padding: 20px;
+    text-align: center;
+    color: var(--text-secondary, #9da5b0);
+    font-size: 0.85rem;
+    font-style: italic;
+}
+.cs-empty-sm {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    color: var(--text-secondary, #9da5b0);
+    font-style: italic;
+}
+
+/* ── Deck grid ───────────────────────────────────────────────────────────── */
+.cs-deck-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    padding: 12px;
+}
+
+/* ── E.G.O row ───────────────────────────────────────────────────────────── */
+.cs-ego-row {
+    display: flex;
+    gap: 10px;
+    padding: 12px;
+    overflow-x: auto;
+}
+
+/* ── Equipped card ───────────────────────────────────────────────────────── */
+.cs-equipped-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    min-height: 120px;
+    transition: border-color 0.15s;
+}
+.cs-equipped-card:hover {
+    border-color: rgba(100,140,255,0.4);
+}
+.cs-ego-card {
+    border-top-width: 3px;
+}
+.cs-slot-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100px;
+    border: 1px dashed rgba(255,255,255,0.12);
+    border-radius: 8px;
+    color: rgba(255,255,255,0.2);
+    font-size: 0.8rem;
+}
+.cs-ego-slot {
+    min-width: 100px;
+    min-height: 80px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+.cs-ego-slot-tier {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+.cs-ego-slot-cost {
+    font-size: 0.75rem;
+    color: var(--text-secondary, #9da5b0);
+}
+.cs-card-hdr {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+.cs-card-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-primary, #e2e8f0);
+    word-break: break-word;
+}
+.cs-card-dice {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.cs-card-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: auto;
+}
+
+/* ── Available list ──────────────────────────────────────────────────────── */
+.cs-avail-list {
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.cs-avail-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 7px;
+    border: 1px solid rgba(255,255,255,0.06);
+    flex-wrap: wrap;
+}
+.cs-avail-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+.cs-avail-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-primary, #e2e8f0);
+}
+.cs-avail-dice {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+.cs-avail-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* ── Die chip (shared player + master) ───────────────────────────────────── */
+.cs-die-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+/* ── Die chip colour groups (replaces 10 old individual rules) ─────────────── */
+.cs-die-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.cs-dt-offensive {
+    background:   rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.35);
+    color:        #f87171;
+}
+
+.cs-dt-defensive {
+    background:   rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.35);
+    color:        #60a5fa;
+}
+
+.cs-dt-counter {
+    background:   rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.35);
+    color:        #fbbf24;
+}
+
+.cs-no-dice {
+    color: rgba(255, 255, 255, 0.25);
+    font-size: 0.8rem;
+}
+
+/* ── Die editor: restructured top row ──────────────────────────────────────── */
+
+/* Die header: chip label + controls row + remove button, all in one flex line */
+.cs-die-hdr {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Die controls sub-row (type, sides, power) stays grouped */
+.cs-die-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    flex-wrap: wrap;
+}
+
+/* Die N label chip inside .cs-die-idx */
+.cs-die-idx {
+    flex-shrink: 0;
+}
+.cs-die-idx .cs-die-chip {
+    font-size: 0.78rem;
+    padding: 2px 9px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+/* ── Structured effect slots ────────────────────────────────────────────────── */
+
+/* Container for all effect rows within one die */
+.cs-die-effects-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 6px;
+}
+
+/* One effect row: [Tag] [input……………] [✕] */
+.cs-die-effect-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 6px;
+    transition: background 0.15s;
+}
+.cs-die-effect-row:hover {
+    background: rgba(255, 255, 255, 0.045);
+}
+
+/* Coloured tag label pill */
+.cs-effect-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 9px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    flex-shrink: 0;
+    border: 1px solid transparent;
+}
+
+/* On Hit — green */
+.cs-effect-hit {
+    background:   rgba(52, 211, 153, 0.14);
+    border-color: rgba(52, 211, 153, 0.35);
+    color:        #34d399;
+}
+
+/* On Clash Win — blue */
+.cs-effect-win {
+    background:   rgba(96, 165, 250, 0.14);
+    border-color: rgba(96, 165, 250, 0.35);
+    color:        #60a5fa;
+}
+
+/* On Clash Lose — red / amber */
+.cs-effect-lose {
+    background:   rgba(251, 146, 60, 0.14);
+    border-color: rgba(251, 146, 60, 0.35);
+    color:        #fb923c;
+}
+
+/* Text input for the effect description */
+.cs-effect-input {
+    flex: 1;
+    min-width: 0;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    padding: 4px 10px;
+    color: var(--SmartThemeBodyColor, rgba(220, 225, 230, 0.95));
+    font-size: 0.82rem;
+    outline: none;
+    transition: border-color 0.15s;
+}
+.cs-effect-input::placeholder {
+    color: rgba(150, 155, 165, 0.45);
+    font-style: italic;
+}
+.cs-effect-input:focus {
+    border-color: rgba(100, 140, 255, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* ✕ remove button (inherits .cs-btn .cs-btn-icon sizing) */
+.cs-remove-effect-btn {
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid rgba(255, 80, 80, 0.25);
+    border-radius: 4px;
+    color: rgba(255, 150, 140, 0.75);
+    font-size: 0.78rem;
+    padding: 2px 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    line-height: 1;
+}
+.cs-remove-effect-btn:hover {
+    background: rgba(255, 59, 48, 0.18);
+    border-color: rgba(255, 59, 48, 0.55);
+    color: #ffcccc;
+}
+
+/* ── "Add effect" button row ────────────────────────────────────────────────── */
+
+.cs-add-effects-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+    /* Hide completely when no buttons left (all slots filled) */
+    min-height: 0;
+}
+.cs-add-effects-row:empty {
+    display: none;
+}
+
+/* Individual "+ On Hit / On Clash Win / On Clash Lose" buttons */
+.cs-add-effect-btn {
+    /* inherits .cs-btn base — these extra rules refine the look */
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px dashed rgba(255, 255, 255, 0.18);
+    border-radius: 5px;
+    color: rgba(180, 185, 200, 0.75);
+    font-size: 0.76rem;
+    font-weight: 500;
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+.cs-add-effect-btn:hover {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.35);
+    border-style: solid;
+    color: rgba(220, 225, 235, 0.95);
+    transform: translateY(-1px);
+}
+
+/* ── Detail popup: structured effect display ────────────────────────────────── */
+
+/* Wrapper for all effects of one die in the popup */
+.cs-detail-effects-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 6px;
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.18);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* One effect line in the popup: [Tag] [text] */
+.cs-detail-effect {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 0.82rem;
+}
+
+.cs-detail-effect-text {
+    color: var(--SmartThemeBodyColor, rgba(210, 215, 225, 0.9));
+    line-height: 1.4;
+    flex: 1;
+}
+
+/* Die header row in popup */
+.cs-detail-die-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Spacing between dice in popup */
+.cs-detail-die {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 7px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    margin-bottom: 6px;
+}
+.cs-detail-die:last-child {
+    margin-bottom: 0;
+}
+
+.cs-no-dice { color: rgba(255,255,255,0.25); font-size: 0.8rem; }
+
+/* ── Cost pips ───────────────────────────────────────────────────────────── */
+.cs-cost-pips {
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    color: #60a5fa;
+    white-space: nowrap;
+}
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+.cs-tier-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    border: 1px solid;
+}
+.cs-unique-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    background: rgba(250,204,21,0.12);
+    border: 1px solid rgba(250,204,21,0.35);
+    color: #fbbf24;
+}
+.cs-equipped-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    background: rgba(52,211,153,0.12);
+    border: 1px solid rgba(52,211,153,0.3);
+    color: #34d399;
+}
+.cs-sp-cost {
+    font-size: 0.78rem;
+    color: #c084fc;
+    font-weight: 600;
+}
+
+/* ── Buttons (tab-scoped) ────────────────────────────────────────────────── */
+.cs-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.06);
+    color: var(--text-primary, #e2e8f0);
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+}
+.cs-btn:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.2); }
+.cs-btn-sm { padding: 3px 10px; font-size: 0.78rem; }
+.cs-btn-icon { padding: 3px 7px; font-size: 0.8rem; }
+.cs-btn-primary {
+    background: rgba(100,140,255,0.15);
+    border-color: rgba(100,140,255,0.4);
+    color: #93b4ff;
+}
+.cs-btn-primary:hover { background: rgba(100,140,255,0.25); }
+.cs-btn-ego {
+    background: rgba(192,132,252,0.12);
+    border-color: rgba(192,132,252,0.4);
+    color: #d8b4fe;
+}
+.cs-btn-ego:hover { background: rgba(192,132,252,0.22); }
+.cs-btn-equip {
+    background: rgba(52,211,153,0.1);
+    border-color: rgba(52,211,153,0.3);
+    color: #34d399;
+}
+.cs-btn-equip:hover { background: rgba(52,211,153,0.2); }
+.cs-btn-unequip {
+    background: rgba(239,68,68,0.08);
+    border-color: rgba(239,68,68,0.25);
+    color: #f87171;
+}
+.cs-btn-unequip:hover { background: rgba(239,68,68,0.18); }
+.cs-btn-delete { color: #f87171; border-color: rgba(239,68,68,0.25); }
+.cs-btn-delete:hover { background: rgba(239,68,68,0.15); }
+
+/* ── Master Mode ─────────────────────────────────────────────────────────── */
+.cs-master-toolbar {
+    display: flex;
+    gap: 10px;
+}
+.cs-master-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* ── Master card ─────────────────────────────────────────────────────────── */
+.cs-master-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.cs-mc-ego {
+    border-left-width: 3px;
+}
+.cs-mc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.cs-mc-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+.cs-mc-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary, #e2e8f0);
+}
+.cs-mc-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+    align-items: center;
+}
+.cs-mc-body {
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.cs-mc-body.cs-collapsed { display: none; }
+
+/* ── Fields ─────────────────────────────────────────────────────────────── */
+.cs-field-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.cs-field-inline { flex-wrap: wrap; gap: 16px; }
+.cs-field-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.cs-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary, #9da5b0);
+    white-space: nowrap;
+    min-width: 60px;
+}
+.cs-input {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    color: var(--text-primary, #e2e8f0);
+    padding: 5px 10px;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.15s;
+}
+.cs-input:focus { border-color: rgba(100,140,255,0.5); }
+.cs-name-input { flex: 1; min-width: 180px; }
+.cs-textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 7px;
+    color: var(--text-primary, #e2e8f0);
+    padding: 8px 10px;
+    font-size: 0.82rem;
+    font-family: inherit;
+    resize: vertical;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.15s;
+}
+.cs-textarea:focus { border-color: rgba(100,140,255,0.4); }
+.cs-ego-tier-select,
+.cs-cost-select {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    color: var(--text-primary, #e2e8f0);
+    padding: 4px 8px;
+    font-size: 0.82rem;
+    cursor: pointer;
+}
+
+/* ── Toggle checkbox ─────────────────────────────────────────────────────── */
+.cs-toggle-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+.cs-toggle-wrap input[type="checkbox"] {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+.cs-toggle-knob {
+    display: inline-block;
+    width: 34px;
+    height: 18px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 9px;
+    position: relative;
+    transition: background 0.2s;
+}
+.cs-toggle-knob::after {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.2s;
+}
+.cs-toggle-wrap input:checked + .cs-toggle-knob { background: #4f89ff; }
+.cs-toggle-wrap input:checked + .cs-toggle-knob::after { transform: translateX(16px); }
+
+/* ── Subsection ─────────────────────────────────────────────────────────── */
+.cs-subsection {
+    background: rgba(255,255,255,0.02);
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.06);
+    overflow: hidden;
+}
+.cs-subsection-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 12px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary, #9da5b0);
+}
+.cs-dice-list {
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* ── Individual die editor ───────────────────────────────────────────────── */
+.cs-die-editor {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 7px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.cs-die-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.cs-die-idx {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-secondary, #9da5b0);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.cs-die-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.cs-die-type,
+.cs-die-sides {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 5px;
+    color: var(--text-primary, #e2e8f0);
+    padding: 4px 8px;
+    font-size: 0.81rem;
+    cursor: pointer;
+}
+.cs-die-power-wrap {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.cs-die-power-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #9da5b0);
+}
+.cs-die-power {
+    width: 58px;
+    text-align: center;
+}
+
+/* ── Detail popup ────────────────────────────────────────────────────────── */
+.cs-detail-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.cs-detail-popup {
+    background: #1a1d26;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+.cs-detail-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    gap: 10px;
+}
+.cs-detail-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.cs-detail-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary, #e2e8f0);
+}
+.cs-detail-close {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary, #9da5b0);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+.cs-detail-close:hover { background: rgba(255,255,255,0.08); }
+.cs-detail-body {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.cs-detail-block { display: flex; flex-direction: column; gap: 8px; }
+.cs-detail-section-lbl {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary, #9da5b0);
+}
+.cs-detail-die {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 7px;
+    border: 1px solid rgba(255,255,255,0.07);
+}
+.cs-detail-effects {
+    font-size: 0.82rem;
+    color: var(--text-secondary, #9da5b0);
+    line-height: 1.55;
+}
+.cs-detail-text {
+    font-size: 0.84rem;
+    color: var(--text-primary, #e2e8f0);
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+.cs-muted { color: var(--text-secondary, #9da5b0); }
+
+/* ============================================================================
+   ENCOUNTER UI — SESSION 7 PATCH
+   Add to the bottom of your existing encounter CSS file.
+   Covers: Light/Sanity/Scene HUD bar, E.G.O Corrosion visual state,
+           Combat Skills action buttons inside the encounter modal.
+   ============================================================================ */
+
+/* ==========================================================================
+   HUD BAR  (#rpg-encounter-hud)
+   Sits above the battlefield between the modal header and environment row.
+   ========================================================================== */
+
+#rpg-encounter-hud {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 8px 16px;
+    background: rgba(12, 14, 20, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    margin-bottom: 14px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    flex-wrap: wrap;
+    row-gap: 6px;
+}
+
+/* ── Segment (Light / Sanity / Scene) ─────────────────────────────────── */
+
+.rpg-hud-segment {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+/* ── Divider ──────────────────────────────────────────────────────────── */
+
+.rpg-hud-divider {
+    color: rgba(255, 255, 255, 0.12);
+    font-size: 18px;
+    padding: 0 4px;
+    flex-shrink: 0;
+    user-select: none;
+}
+
+/* ── Icon (emoji / fa) ───────────────────────────────────────────────── */
+
+.rpg-hud-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+/* ── Text labels ─────────────────────────────────────────────────────── */
+
+.rpg-hud-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(200, 205, 215, 0.55);
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.rpg-hud-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.95));
+    font-family: monospace;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.rpg-hud-sublabel {
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+    color: rgba(180, 185, 195, 0.75);
+}
+
+/* ── Light pips ──────────────────────────────────────────────────────── */
+
+.rpg-hud-pips {
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: #60a5fa;
+    font-family: monospace;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ── Segment-specific colours ─────────────────────────────────────────── */
+
+.rpg-hud-light .rpg-hud-value { color: #60a5fa; }
+.rpg-hud-scene .rpg-hud-value { color: rgba(200, 205, 215, 0.85); font-family: inherit; font-size: 13px; }
+
+/* ── Sanity segment ──────────────────────────────────────────────────── */
+
+.rpg-hud-sanity {
+    transition: background 0.3s, box-shadow 0.3s;
+}
+
+/* Corrosion glow on the sanity segment */
+.rpg-hud-corrosion-active {
+    background: rgba(233, 69, 96, 0.12);
+    border-radius: 6px;
+    box-shadow: 0 0 12px rgba(233, 69, 96, 0.3) inset;
+    animation: sanity-corrosion-flicker 2s ease-in-out infinite;
+}
+
+@keyframes sanity-corrosion-flicker {
+    0%, 100% { background: rgba(233, 69, 96, 0.12); box-shadow: 0 0 12px rgba(233, 69, 96, 0.3) inset; }
+    50%       { background: rgba(233, 69, 96, 0.20); box-shadow: 0 0 22px rgba(233, 69, 96, 0.5) inset; }
+}
+
+/* ── Corrosion tag (⚠ EGO CORROSION) ─────────────────────────────────── */
+
+.rpg-corrosion-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: rgba(233, 69, 96, 0.25);
+    border: 1px solid rgba(233, 69, 96, 0.6);
+    color: #ff8ca0;
+    white-space: nowrap;
+    animation: corrosion-tag-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes corrosion-tag-pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.65; }
+}
+
+/* ==========================================================================
+   CORROSION — MODAL-LEVEL STYLING
+   Applied to #rpg-encounter-modal when corrosion is active.
+   ========================================================================== */
+
+.rpg-modal-corrosion {
+    box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.5), 0 0 40px rgba(233, 69, 96, 0.15) !important;
+    animation: modal-corrosion-border 2s ease-in-out infinite;
+}
+
+@keyframes modal-corrosion-border {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.5), 0 0 40px rgba(233, 69, 96, 0.15); }
+    50%       { box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.8), 0 0 60px rgba(233, 69, 96, 0.30); }
+}
+
+/* ==========================================================================
+   COMBAT SKILLS GROUP  (.rpg-cs-skills-group)
+   Inside .rpg-encounter-controls, rendered by _renderCombatSkillsSection().
+   ========================================================================== */
+
+.rpg-cs-skills-group {
+    margin-bottom: 2px;
+}
+
+.rpg-cs-no-skills {
+    font-size: 12px;
+    color: rgba(160, 165, 170, 0.6);
+    font-style: italic;
+    padding: 4px 2px;
+}
+
+.rpg-cs-corrosion-note {
+    font-size: 11px;
+    font-weight: 700;
+    color: #ff8ca0;
+    background: rgba(233, 69, 96, 0.1);
+    border: 1px solid rgba(233, 69, 96, 0.3);
+    border-radius: 5px;
+    padding: 4px 10px;
+    margin-bottom: 6px;
+    letter-spacing: 0.03em;
+}
+
+/* ==========================================================================
+   COMBAT SKILL BUTTON  (.rpg-cs-skill-btn)
+   ========================================================================== */
+
+.rpg-cs-skill-btn {
+    /* Base: full-width stacked layout */
+    display: flex !important;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    background: rgba(100, 140, 255, 0.07);
+    border: 1px solid rgba(100, 140, 255, 0.28);
+    border-radius: 7px;
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.95));
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s, box-shadow 0.15s;
+    margin-bottom: 4px;
+}
+
+.rpg-cs-skill-btn:hover:not(:disabled) {
+    background: rgba(100, 140, 255, 0.16);
+    border-color: rgba(100, 140, 255, 0.55);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(100, 140, 255, 0.15);
+}
+
+.rpg-cs-skill-btn:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+/* Unaffordable (not enough Light) */
+.rpg-cs-skill-unaffordable,
+.rpg-cs-skill-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+    filter: saturate(0.4);
+}
+
+/* ── Top line: tier badge + name + cost group ─────────────────────────── */
+
+.rpg-cs-skill-line1 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.rpg-cs-skill-name {
+    flex: 1;
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--SmartThemeBodyColor, rgba(230, 235, 240, 0.97));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Cost group (Light + optional Sanity) */
+.rpg-cs-cost-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+.rpg-cs-light-cost {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #60a5fa;
+    background: rgba(96, 165, 250, 0.1);
+    border: 1px solid rgba(96, 165, 250, 0.3);
+    border-radius: 4px;
+    padding: 1px 6px;
+    white-space: nowrap;
+}
+
+.rpg-cs-pip {
+    font-size: 11px;
+    line-height: 1;
+}
+
+.rpg-cs-sanity-cost {
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    border-radius: 4px;
+    padding: 1px 6px;
+    white-space: nowrap;
+}
+
+/* ── Dice row ────────────────────────────────────────────────────────── */
+
+.rpg-cs-dice-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    width: 100%;
+    /* Reuses cs-die-chip classes from statSheet.css — no extra rules needed */
+}
+
+/* ==========================================================================
+   E.G.O TIER BADGE  (in encounter modal button)
+   Mirrors the ones in combatSkillsTab but scoped inside the encounter.
+   ========================================================================== */
+
+.rpg-cs-tier-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 7px;
+    border-radius: 4px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    flex-shrink: 0;
+    border: 1px solid;
+}
+
+/* ZAYIN — cyan */
+.rpg-cs-tier-zayin {
+    background: rgba(34, 211, 238, 0.12);
+    border-color: rgba(34, 211, 238, 0.4);
+    color: #22d3ee;
+}
+
+/* TETH — green */
+.rpg-cs-tier-teth {
+    background: rgba(74, 222, 128, 0.12);
+    border-color: rgba(74, 222, 128, 0.4);
+    color: #4ade80;
+}
+
+/* HE — amber */
+.rpg-cs-tier-he {
+    background: rgba(251, 191, 36, 0.12);
+    border-color: rgba(251, 191, 36, 0.4);
+    color: #fbbf24;
+}
+
+/* WAW — orange */
+.rpg-cs-tier-waw {
+    background: rgba(251, 146, 60, 0.12);
+    border-color: rgba(251, 146, 60, 0.4);
+    color: #fb923c;
+}
+
+/* ALEPH — red / corrosion colour */
+.rpg-cs-tier-aleph {
+    background: rgba(233, 69, 96, 0.15);
+    border-color: rgba(233, 69, 96, 0.5);
+    color: #ff8ca0;
+    animation: aleph-glow 2s ease-in-out infinite;
+}
+
+@keyframes aleph-glow {
+    0%, 100% { box-shadow: none; }
+    50%       { box-shadow: 0 0 8px rgba(233, 69, 96, 0.4); }
+}
+
+/* ==========================================================================
+   COMBAT LOG ENTRY TYPES  (Session 7 additions)
+   Extends the existing .rpg-encounter-log-entry colour scheme.
+   ========================================================================== */
+
+.rpg-encounter-log-entry.sanity-gain {
+    color: #4ade80;
+    font-style: italic;
+    font-size: 0.82rem;
+    opacity: 0.9;
+}
+
+.rpg-encounter-log-entry.sanity-loss {
+    color: #fb923c;
+    font-style: italic;
+    font-size: 0.82rem;
+    opacity: 0.9;
+}
+
+.rpg-encounter-log-entry.corrosion-trigger {
+    color: #ff8ca0;
+    font-weight: 700;
+    background: rgba(233, 69, 96, 0.1);
+    border: 1px solid rgba(233, 69, 96, 0.3);
+    border-radius: 5px;
+    padding: 5px 10px;
+    margin: 4px 0;
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+    animation: corrosion-log-flash 0.5s ease-out;
+}
+
+@keyframes corrosion-log-flash {
+    from { background: rgba(233, 69, 96, 0.35); }
+    to   { background: rgba(233, 69, 96, 0.10); }
+}
+
+.rpg-encounter-log-entry.corrosion-end {
+    color: #4ade80;
+    font-weight: 600;
+    background: rgba(74, 222, 128, 0.07);
+    border: 1px solid rgba(74, 222, 128, 0.2);
+    border-radius: 5px;
+    padding: 5px 10px;
+    margin: 4px 0;
+    font-size: 0.85rem;
+}
+
+/* ==========================================================================
+   RESPONSIVE ADJUSTMENTS
+   ========================================================================== */
+
+@media (max-width: 600px) {
+    #rpg-encounter-hud {
+        padding: 6px 10px;
+        gap: 0;
+    }
+
+    .rpg-hud-segment {
+        gap: 4px;
+        padding: 3px 5px;
+    }
+
+    .rpg-hud-label  { display: none; }
+    .rpg-hud-value  { font-size: 13px; }
+    .rpg-hud-pips   { font-size: 11px; letter-spacing: 1px; }
+
+    .rpg-cs-skill-btn {
+        padding: 7px 10px;
+    }
+}
+
+/* ============================================================================
+   COMBAT SKILLS — SKILL TAG & DIE EFFECT PATCH
+   Add to / replace combatSkills_tags_patch.css
+   Provides:
+     • Missing die-effect colour tokens (Crit, Check, On Evade)
+     • Skill-level tag system (cs-stag-* classes)
+     • Limit badge in card header
+     • Detail popup tag block
+   ============================================================================ */
+
+/* ============================================================================
+   DIE-EFFECT TAGS — MISSING COLOURS
+   (Hit / Clash Win / Clash Lose already exist in statSheet.css)
+   ============================================================================ */
+
+/* On Crit — gold */
+.cs-effect-crit {
+    background:   rgba(250, 204, 21, 0.14);
+    border-color: rgba(250, 204, 21, 0.4);
+    color:        #fbbf24;
+}
+
+/* On Check — teal */
+.cs-effect-check {
+    background:   rgba(20, 184, 166, 0.14);
+    border-color: rgba(20, 184, 166, 0.4);
+    color:        #2dd4bf;
+}
+
+/* On Evade — violet */
+.cs-effect-evade {
+    background:   rgba(167, 139, 250, 0.14);
+    border-color: rgba(167, 139, 250, 0.4);
+    color:        #a78bfa;
+}
+
+/* ============================================================================
+   SKILL-LEVEL TAG SYSTEM
+   ============================================================================ */
+
+/* ── Container (inside .cs-subsection body) ─────────────────────────────── */
+
+.cs-skill-tags-list {
+    display:        flex;
+    flex-direction: column;
+    gap:            6px;
+    padding:        8px 10px;
+}
+
+/* ── One active skill-tag row ───────────────────────────────────────────── */
+
+.cs-skill-tag-row {
+    display:        flex;
+    align-items:    center;
+    gap:            8px;
+    padding:        5px 8px;
+    background:     rgba(255, 255, 255, 0.025);
+    border:         1px solid rgba(255, 255, 255, 0.07);
+    border-radius:  6px;
+    transition:     background 0.15s;
+}
+
+.cs-skill-tag-row:hover {
+    background: rgba(255, 255, 255, 0.045);
+}
+
+/* ── Tag label pill ─────────────────────────────────────────────────────── */
+/* Shared base — same shape as cs-effect-tag */
+
+.cs-stag-pill {
+    display:     inline-flex;
+    align-items: center;
+    padding:     2px 10px;
+    border-radius: 20px;
+    font-size:   0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    flex-shrink: 0;
+    border:      1px solid transparent;
+    min-width:   80px;
+    justify-content: center;
+}
+
+/* Per-tag colours */
+
+/* [On Use] — indigo / blue-violet */
+.cs-stag-onuse {
+    background:   rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.4);
+    color:        #a5b4fc;
+}
+
+/* [After Use] — sky blue */
+.cs-stag-afteruse {
+    background:   rgba(56, 189, 248, 0.14);
+    border-color: rgba(56, 189, 248, 0.38);
+    color:        #7dd3fc;
+}
+
+/* [On Kill] — crimson red */
+.cs-stag-onkill {
+    background:   rgba(239, 68, 68, 0.14);
+    border-color: rgba(239, 68, 68, 0.38);
+    color:        #f87171;
+}
+
+/* [On Stagger] — orange */
+.cs-stag-onstagger {
+    background:   rgba(249, 115, 22, 0.14);
+    border-color: rgba(249, 115, 22, 0.38);
+    color:        #fb923c;
+}
+
+/* [Eminence] — gold */
+.cs-stag-eminence {
+    background:   rgba(250, 204, 21, 0.13);
+    border-color: rgba(250, 204, 21, 0.38);
+    color:        #fbbf24;
+}
+
+/* [Limit] — purple */
+.cs-stag-limit {
+    background:   rgba(168, 85, 247, 0.15);
+    border-color: rgba(168, 85, 247, 0.42);
+    color:        #c084fc;
+}
+
+/* [Exhaust] — amber / dark-orange */
+.cs-stag-exhaust {
+    background:   rgba(217, 119, 6, 0.15);
+    border-color: rgba(217, 119, 6, 0.40);
+    color:        #f59e0b;
+}
+
+/* [Proactive] — cyan / teal */
+.cs-stag-proactive {
+    background:   rgba(6, 182, 212, 0.13);
+    border-color: rgba(6, 182, 212, 0.38);
+    color:        #22d3ee;
+}
+
+/* [Reactive] — green */
+.cs-stag-reactive {
+    background:   rgba(52, 211, 153, 0.13);
+    border-color: rgba(52, 211, 153, 0.35);
+    color:        #34d399;
+}
+
+/* ── Text input (most tag types) ────────────────────────────────────────── */
+
+.cs-stag-input {
+    flex:       1;
+    min-width:  0;
+    background: rgba(255, 255, 255, 0.05);
+    border:     1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    padding:    4px 10px;
+    color:      var(--SmartThemeBodyColor, rgba(220, 225, 230, 0.95));
+    font-size:  0.82rem;
+    outline:    none;
+    transition: border-color 0.15s;
+    font-family: inherit;
+}
+
+.cs-stag-input::placeholder {
+    color:       rgba(150, 155, 165, 0.45);
+    font-style:  italic;
+}
+
+.cs-stag-input:focus {
+    border-color: rgba(100, 140, 255, 0.5);
+    background:   rgba(255, 255, 255, 0.08);
+}
+
+/* ── Limit tag: number input + "uses" label ─────────────────────────────── */
+
+.cs-stag-limit-wrap {
+    display:     flex;
+    align-items: center;
+    gap:         6px;
+    flex:        1;
+    min-width:   0;
+}
+
+/* Number input — narrow */
+.cs-stag-number {
+    flex:       0 0 72px;
+    width:      72px;
+    text-align: center;
+    color:      #c084fc;
+    font-weight: 700;
+    font-size:  0.88rem;
+    -webkit-appearance: none;
+    -moz-appearance:    textfield;
+    appearance:         textfield;
+}
+
+.cs-stag-number::-webkit-outer-spin-button,
+.cs-stag-number::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.cs-stag-limit-label {
+    font-size:  0.78rem;
+    color:      rgba(180, 185, 200, 0.6);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ── Remove button (mirrors cs-remove-effect-btn) ───────────────────────── */
+
+.cs-remove-stag-btn {
+    flex-shrink:   0;
+    background:    transparent;
+    border:        1px solid rgba(255, 80, 80, 0.25);
+    border-radius: 4px;
+    color:         rgba(255, 150, 140, 0.75);
+    font-size:     0.78rem;
+    padding:       2px 6px;
+    cursor:        pointer;
+    transition:    all 0.15s;
+    line-height:   1;
+}
+
+.cs-remove-stag-btn:hover {
+    background:   rgba(255, 59, 48, 0.18);
+    border-color: rgba(255, 59, 48, 0.55);
+    color:        #ffcccc;
+}
+
+/* ── "Add tag" button row ───────────────────────────────────────────────── */
+
+.cs-add-stags-row {
+    display:     flex;
+    flex-wrap:   wrap;
+    gap:         6px;
+    padding:     6px 10px 8px;
+    min-height:  0;
+}
+
+.cs-add-stags-row:empty {
+    display: none;
+}
+
+/* Individual "+ On Use / + After Use / …" buttons */
+.cs-add-stag-btn {
+    background:   rgba(255, 255, 255, 0.04);
+    border:       1px dashed rgba(255, 255, 255, 0.18);
+    border-radius: 5px;
+    color:        rgba(180, 185, 200, 0.75);
+    font-size:    0.76rem;
+    font-weight:  500;
+    padding:      3px 10px;
+    cursor:       pointer;
+    transition:   all 0.15s;
+    white-space:  nowrap;
+}
+
+.cs-add-stag-btn:hover {
+    background:   rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.35);
+    border-style: solid;
+    color:        rgba(220, 225, 235, 0.95);
+    transform:    translateY(-1px);
+}
+
+/* ============================================================================
+   LIMIT BADGE  (appears in card header when limitUses is set)
+   ============================================================================ */
+
+.cs-limit-badge {
+    display:        inline-flex;
+    align-items:    center;
+    padding:        1px 8px;
+    border-radius:  20px;
+    font-size:      0.70rem;
+    font-weight:    800;
+    letter-spacing: 0.05em;
+    white-space:    nowrap;
+    background:     rgba(168, 85, 247, 0.18);
+    border:         1px solid rgba(168, 85, 247, 0.45);
+    color:          #c084fc;
+}
+
+/* ============================================================================
+   DETAIL POPUP — SKILL TAG BLOCK
+   ============================================================================ */
+
+/* Wrapper sitting above the dice section in the popup */
+.cs-detail-tags-block {
+    display:        flex;
+    flex-direction: column;
+    gap:            5px;
+    padding:        8px 10px;
+    background:     rgba(0, 0, 0, 0.18);
+    border-radius:  7px;
+    border:         1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* One tag line: [pill] [value text] */
+.cs-detail-tag-line {
+    display:     flex;
+    align-items: baseline;
+    gap:         8px;
+    font-size:   0.82rem;
+}
+
+/* The value text to the right of the pill */
+.cs-detail-tag-text {
+    color:      var(--SmartThemeBodyColor, rgba(210, 215, 225, 0.9));
+    line-height: 1.4;
+    flex:        1;
+}
+
+/* Limit tag value in popup — purple tint */
+.cs-detail-tag-line:has(.cs-stag-limit) .cs-detail-tag-text {
+    color:       #c084fc;
+    font-weight: 700;
+    font-family: monospace;
+}
+
+/* ── Prompt Include Toggle Buttons ─────────────────────────────────────── */
+
+.btn-prompt-include {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s, background 0.15s;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+}
+
+.btn-prompt-include.pi-active {
+    background: rgba(99, 190, 123, 0.12);
+    border-color: #4a8a5a;
+    color: #7dda93;
+}
+
+.btn-prompt-include.pi-inactive {
+    background: rgba(160, 80, 80, 0.12);
+    border-color: #7a4040;
+    color: #cc8080;
+}
+
+.btn-prompt-include:hover.pi-active {
+    background: rgba(99, 190, 123, 0.22);
+}
+
+.btn-prompt-include:hover.pi-inactive {
+    background: rgba(160, 80, 80, 0.22);
+}
+
+/* ── Feat Prerequisite Add Buttons ─────────────────────────────────────── */
+
+.btn-add-prereq {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: 5px;
+    border: 1px solid #444;
+    background: rgba(255,255,255,0.05);
+    color: #aaa;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+
+.btn-add-prereq:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: #666;
+    color: #ddd;
+}
+
+.btn-remove-prereq {
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #553333;
+    background: rgba(180,60,60,0.12);
+    color: #cc6666;
+    font-size: 12px;
+    cursor: pointer;
+    line-height: 1;
+    transition: background 0.15s;
+}
+
+.btn-remove-prereq:hover {
+    background: rgba(180,60,60,0.25);
+}
+
+/* ============================================================================
+   MODULE POOL  —  Augments Tab
+   Add this block to statSheet.css
+   ============================================================================ */
+
+/* ── Wrapper ─────────────────────────────────────────────────────────────── */
+
+.mp-section {
+    background: #1a1a2e;
+    border: 1px solid #2a2a42;
+    border-radius: 10px;
+    padding: 14px 16px 12px;
+    margin-bottom: 16px;
+}
+
+/* ── Header row ──────────────────────────────────────────────────────────── */
+
+.mp-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.mp-title {
+    font-size: .95rem;
+    font-weight: 600;
+    color: #e0e0f0;
+    letter-spacing: .02em;
+}
+
+.mp-subtitle {
+    font-size: .78rem;
+    color: #6a6a8a;
+}
+
+/* ── INT attribute selector row ──────────────────────────────────────────── */
+
+.mp-int-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.mp-label {
+    font-size: .82rem;
+    color: #8888aa;
+    white-space: nowrap;
+}
+
+.mp-int-select {
+    background: #16162a;
+    border: 1px solid #3a3a5a;
+    border-radius: 6px;
+    color: #d0d0e8;
+    padding: 4px 8px;
+    font-size: .82rem;
+    cursor: pointer;
+    transition: border-color .15s;
+}
+
+.mp-int-select:hover,
+.mp-int-select:focus {
+    border-color: #5a5a8a;
+    outline: none;
+}
+
+.mp-int-val {
+    font-size: .8rem;
+    color: #7ec8e3;
+    background: rgba(126, 200, 227, .1);
+    border: 1px solid rgba(126, 200, 227, .25);
+    border-radius: 5px;
+    padding: 2px 8px;
+}
+
+/* ── Rank table ──────────────────────────────────────────────────────────── */
+
+.mp-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .83rem;
+    margin-bottom: 10px;
+}
+
+.mp-table thead tr {
+    border-bottom: 1px solid #2a2a42;
+}
+
+.mp-table thead th {
+    text-align: center;
+    padding: 4px 6px 8px;
+    font-size: .75rem;
+    font-weight: 600;
+    color: #5a5a7a;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.mp-table thead th:first-child {
+    text-align: left;
+}
+
+.mp-table tbody tr {
+    border-bottom: 1px solid #1e1e38;
+    transition: background .12s;
+}
+
+.mp-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.mp-table tbody tr:hover {
+    background: rgba(255, 255, 255, .03);
+}
+
+.mp-table tbody td {
+    padding: 7px 6px;
+    vertical-align: middle;
+}
+
+/* ── Rank badge (R1 / R2 / R3) ───────────────────────────────────────────── */
+/* Colors are set inline by JS; CSS provides the shared shape */
+
+.mp-rank-badge {
+    display: inline-block;
+    font-size: .75rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 5px;
+    border: 1px solid;
+    letter-spacing: .05em;
+    min-width: 28px;
+    text-align: center;
+}
+
+/* ── Number cells ────────────────────────────────────────────────────────── */
+
+.mp-num {
+    text-align: center;
+    color: #c0c0d8;
+    font-variant-numeric: tabular-nums;
+}
+
+.mp-free {
+    font-weight: 600;
+}
+
+/* ── Row states ──────────────────────────────────────────────────────────── */
+
+.mp-over {
+    background: rgba(255, 79, 79, .06);
+}
+
+.mp-depleted td.mp-num {
+    color: #5a5a7a;
+}
+
+/* ── Hint line ───────────────────────────────────────────────────────────── */
+
+.mp-hint {
+    font-size: .77rem;
+    color: #5a5a7a;
+    padding-top: 4px;
+    border-top: 1px solid #1e1e38;
+}
+
+.mp-hint strong {
+    color: #8888aa;
+    font-weight: 600;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   DAMAGE AFFINITIES — attributesTab affinity section
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Section wrapper ────────────────────────────────────────────────────────── */
+
+.affinity-section {
+    margin-top: 20px;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+}
+
+/* ── Header row (title + enable/disable button) ─────────────────────────────── */
+
+.affinity-section .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+
+.affinity-section .section-header h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--rpg-text, #eaeaea);
+}
+
+.affinity-section .section-header .aff-section-hint {
+    opacity: 0.4;
+    font-size: 11px;
+    font-style: italic;
+}
+
+/* ── Weakness row ────────────────────────────────────────────────────────────── */
+
+.aff-weakness-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+
+.aff-weakness-row .aff-label {
+    opacity: 0.75;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    min-width: 70px;
+}
+
+.aff-weakness-row .aff-hint {
+    opacity: 0.45;
+    font-size: 11px;
+}
+
+/* ── Slot attribute row ──────────────────────────────────────────────────────── */
+
+.aff-slots-section {
+    margin-bottom: 14px;
+}
+
+.aff-slots-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.aff-slots-header .aff-label {
+    opacity: 0.75;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.aff-slots-header .aff-slot-note {
+    opacity: 0.5;
+    font-size: 11px;
+}
+
+/* ── Individual slot assignment rows ─────────────────────────────────────────── */
+
+#aff-slot-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.aff-slot-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.aff-slot-row .aff-slot-modifier {
+    opacity: 0.6;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.aff-no-slots {
+    opacity: 0.4;
+    font-size: 12px;
+    font-style: italic;
+    padding: 2px 0;
+}
+
+/* ── Summary table ───────────────────────────────────────────────────────────── */
+
+.aff-summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.aff-summary-table th {
+    padding: 7px 14px;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.aff-summary-table th:first-child  { text-align: left; color: rgba(255,255,255,0.5); }
+.aff-summary-table th:nth-child(2) { text-align: center; color: #ff7070; opacity: 1; }
+.aff-summary-table th:nth-child(3) { text-align: center; color: #f0c040; opacity: 1; border-right: none; }
+
+.aff-summary-table td {
+    padding: 7px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+    font-weight: 600;
+}
+
+.aff-summary-table td:first-child  { text-align: left;   opacity: 0.85; font-weight: 400; }
+.aff-summary-table td:nth-child(2) { text-align: center; color: #ff7070; }
+.aff-summary-table td:nth-child(3) { text-align: center; color: #f0c040; border-right: none; }
+
+.aff-summary-table tr:last-child td { border-bottom: none; }
+
+.aff-summary-table tr:hover td { background: rgba(255, 255, 255, 0.03); }
+
+/* Value state overrides — stay within each column's color family */
+.aff-summary-table td:nth-child(2).aff-val-weak    { color: #ff4444; }
+.aff-summary-table td:nth-child(2).aff-val-resist  { color: #ff9999; opacity: 0.8; }
+.aff-summary-table td:nth-child(2).aff-val-neutral { color: #ff7070; opacity: 0.35; }
+
+.aff-summary-table td:nth-child(3).aff-val-weak    { color: #ffd700; }
+.aff-summary-table td:nth-child(3).aff-val-resist  { color: #f0c040; opacity: 0.7; }
+.aff-summary-table td:nth-child(3).aff-val-neutral { color: #f0c040; opacity: 0.35; }
+
+.aff-weak-badge {
+    font-size: 10px;
+    opacity: 0.6;
+    margin-left: 3px;
+    font-weight: 400;
+}
+
+/* ── Scoped rpg-input override — affinity selects must not inherit panel font size ── */
+
+.affinity-section select.rpg-input,
+.affinity-section .rpg-input {
+    font-size: 12px;
+    padding: 4px 7px;
+    width: auto;
+}
+
+/* ── Column color tints (Damage = red, Stagger = yellow) ─────────────────── */
+
+.aff-summary-table th:nth-child(2) { color: #ff7070; opacity: 1; }
+.aff-summary-table th:nth-child(3) { color: #f0c040; opacity: 1; }
+
+.aff-summary-table td:nth-child(2) { color: #ff7070; }
+.aff-summary-table td:nth-child(3) { color: #f0c040; }
+
+/* Override value classes so weak/resist/neutral still show within the tint */
+.aff-summary-table td:nth-child(2).aff-val-weak   { color: #ff4444; }
+.aff-summary-table td:nth-child(2).aff-val-resist  { color: #ff9999; }
+.aff-summary-table td:nth-child(2).aff-val-neutral { color: #ff7070; opacity: 0.4; }
+
+.aff-summary-table td:nth-child(3).aff-val-weak    { color: #ffd700; }
+.aff-summary-table td:nth-child(3).aff-val-resist  { color: #f0c040; opacity: 0.7; }
+.aff-summary-table td:nth-child(3).aff-val-neutral { color: #f0c040; opacity: 0.4; }
+
+/* ============================================================
+   SESSION 9 — Affinity counter grid
+   ============================================================ */
+
+.aff-counter-grid {
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-top: 8px;
+    width: auto;
+}
+.aff-counter-grid th {
+    font-size: 11px;
+    opacity: 0.65;
+    padding: 4px 14px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+.aff-counter-type {
+    font-size: 12px;
+    padding: 5px 10px 5px 4px;
+    opacity: 0.85;
+}
+.aff-counter-cell {
+    text-align: center;
+    padding: 4px 8px;
+    border-right: 1px solid rgba(255,255,255,0.07);
+}
+.aff-counter-cell:last-child { border-right: none; }
+.aff-counter-btn {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #ccc;
+    border-radius: 3px;
+    width: 20px;
+    height: 20px;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    vertical-align: middle;
+    transition: background 0.15s;
+}
+.aff-counter-btn:hover:not(:disabled) { background: rgba(255,255,255,0.15); }
+.aff-counter-btn:disabled { opacity: 0.3; cursor: default; }
+.aff-counter-val {
+    display: inline-block;
+    min-width: 28px;
+    text-align: center;
+    font-size: 12px;
+    vertical-align: middle;
+    color: #aaa;
+}
+
+/* ============================================================
+   SESSION 12 — Speed Dice Section
+   ============================================================ */
+
+.speed-dice-section {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 8px;
+}
+.speed-dice-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.speed-dice-title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: #e2e8f0;
+}
+.speed-dice-enable-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0.85;
+}
+.speed-dice-hint {
+    font-size: 11px;
+    opacity: 0.4;
+}
+.speed-dice-body {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.speed-dice-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+.speed-dice-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.speed-dice-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.5;
+}
+.speed-dice-attr-select {
+    font-size: 12px;
+    padding: 3px 6px;
+    min-width: 120px;
+}
+.speed-dice-number {
+    width: 52px;
+    text-align: center;
+}
+.speed-dice-derived {
+    font-size: 15px;
+    font-weight: 700;
+    color: #7dd3fc;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 3px 0;
+}
+.speed-dice-sides-val {
+    font-size: 18px;
+}
+.speed-dice-attr-hint {
+    font-size: 10px;
+    opacity: 0.5;
+    font-weight: 400;
+}
+.speed-dice-preview {
+    font-size: 20px;
+    font-weight: 700;
+    color: #7dd3fc;
+    letter-spacing: 0.03em;
+    padding-bottom: 2px;
+    text-shadow: 0 0 10px rgba(125,211,252,0.3);
+    align-self: flex-end;
+    margin-left: 4px;
+}
+
+/* Legend table */
+.speed-dice-table-legend {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.025);
+    border-radius: 5px;
+    border: 1px solid rgba(255,255,255,0.06);
+    flex-wrap: wrap;
+}
+.speed-dice-legend-title {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    opacity: 0.4;
+    margin-right: 4px;
+}
+.speed-dice-legend-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+}
+.speed-dice-legend-val {
+    opacity: 0.5;
+}
+.speed-dice-legend-die {
+    color: #7dd3fc;
+    font-weight: 700;
+}
+
+/* Summary tab speed row */
+.summary-speed-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+.summary-speed-attr {
+    font-size: 11px;
+    opacity: 0.45;
+}
+
+/* ============================================================
+   SESSION 9 — Summary Tab
+   ============================================================ */
+
+.summary-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.summary-header-block {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 12px 16px 10px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    flex-shrink: 0;
+}
+.summary-sprite {
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.12);
+    flex-shrink: 0;
+}
+.summary-sprite-placeholder {
+    width: 72px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    background: rgba(255,255,255,0.05);
+    border: 1px dashed rgba(255,255,255,0.15);
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+.summary-header-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 4px;
+}
+.summary-sprite-field {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.summary-body {
+    display: flex;
+    gap: 0;
+    flex: 1;
+    overflow: hidden;
+}
+.summary-col-left,
+.summary-col-right {
+    flex: 1;
+    padding: 12px 14px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.summary-col-left {
+    border-right: 1px solid rgba(255,255,255,0.07);
+}
+
+.summary-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.summary-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.5;
+    padding-bottom: 3px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.summary-level-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-direction: row;
+}
+.summary-stat-label {
+    font-size: 11px;
+    opacity: 0.55;
+}
+.summary-stat-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.summary-attrs-table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 12px;
+}
+.summary-attrs-table td {
+    padding: 3px 6px;
+    vertical-align: middle;
+}
+.summary-attr-name {
+    font-weight: 600;
+    opacity: 0.85;
+    white-space: nowrap;
+    min-width: 60px;
+}
+.summary-attr-val {
+    color: #7dd3fc;
+    font-weight: 600;
+    text-align: right;
+    white-space: nowrap;
+    padding-right: 10px;
+}
+.summary-attr-skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+.summary-skill-chip {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-size: 10px;
+    white-space: nowrap;
+    opacity: 0.75;
+}
+
+.summary-passive-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 5px 8px;
+    background: rgba(255,255,255,0.03);
+    border-left: 2px solid rgba(255,255,255,0.12);
+    border-radius: 0 4px 4px 0;
+    margin-bottom: 4px;
+}
+.summary-passive-source {
+    font-size: 10px;
+    font-weight: 600;
+    opacity: 0.55;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.summary-passive-text {
+    font-size: 12px;
+    opacity: 0.85;
+    white-space: pre-wrap;
+}
+
+/* ── Import / Export bar ── */
+.summary-ie-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+/* ============================================================
+   SESSION 12 — Summary Tab Visual Refresh
+   ============================================================ */
+
+/* Header — gradient depth + subtle grid texture */
+.summary-header-block {
+    background: linear-gradient(135deg, rgba(125,211,252,0.06) 0%, rgba(0,0,0,0) 60%),
+                rgba(255,255,255,0.02);
+    border-bottom: 1px solid rgba(125,211,252,0.15);
+    position: relative;
+    overflow: hidden;
+}
+.summary-header-block::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 24px 24px;
+    pointer-events: none;
+}
+
+/* Sprite — glow frame */
+.summary-sprite-wrapper .summary-sprite {
+    border-color: rgba(125,211,252,0.35);
+    box-shadow: 0 0 12px rgba(125,211,252,0.2), 0 2px 8px rgba(0,0,0,0.5);
+}
+.summary-sprite-wrapper .summary-sprite-placeholder {
+    border-color: rgba(125,211,252,0.2);
+    background: rgba(125,211,252,0.04);
+}
+
+/* Section titles — left tick accent */
+.summary-section-title {
+    color: #7dd3fc;
+    opacity: 1;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.summary-section-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px;
+    height: 10px;
+    background: #7dd3fc;
+    border-radius: 2px;
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+/* Attribute names — uppercase, spaced */
+.summary-attr-name {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.9;
+}
+
+/* Attribute values — large, vivid */
+.summary-attr-val {
+    font-size: 16px;
+    font-weight: 700;
+    color: #e2e8f0;
+    text-align: right;
+    padding-right: 12px;
+    font-variant-numeric: tabular-nums;
+    min-width: 36px;
+}
+
+/* Skill chips — slightly brighter */
+.summary-skill-chip {
+    background: rgba(125,211,252,0.08);
+    border-color: rgba(125,211,252,0.2);
+    color: #bae6fd;
+    opacity: 1;
+}
+
+/* Saving throw rows */
+.summary-attrs-table tr:hover td {
+    background: rgba(125,211,252,0.04);
+}
+
+/* Saving throw value — pill badge */
+.summary-attr-val.summary-st-val {
+    font-size: 13px;
+    background: rgba(125,211,252,0.1);
+    border: 1px solid rgba(125,211,252,0.2);
+    border-radius: 4px;
+    padding: 1px 8px;
+    color: #7dd3fc;
+    text-align: center;
+    min-width: 42px;
+}
+
+/* Level row values */
+.summary-stat-value {
+    color: #7dd3fc;
+    font-size: 18px;
+}
+.summary-stat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+}
+
+/* Passive cards — richer */
+.summary-passive-item {
+    background: rgba(125,211,252,0.04);
+    border-left: 2px solid rgba(125,211,252,0.5);
+    border-radius: 0 6px 6px 0;
+    padding: 7px 10px;
+}
+.summary-passive-source {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: #7dd3fc;
+    opacity: 1;
+}
+.summary-passive-text {
+    opacity: 0.9;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* Column separator — more visible */
+.summary-col-left {
+    border-right: 1px solid rgba(125,211,252,0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Phase 5 — Roll Result Builder (rollResultBuilder.js)
+   Session 12 · append to end of style.css
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Clash block container ───────────────────────────────────────────────── */
+
+.rrb-clash-block {
+    background  : rgba(255,255,255,0.03);
+    border      : 1px solid rgba(255,255,255,0.09);
+    border-radius: 6px;
+    padding     : 8px 10px;
+    margin      : 2px 0;
+    font-size   : 12px;
+    font-family : var(--rpg-font, inherit);
+    line-height : 1.4;
+}
+
+.rrb-clash-header {
+    display        : flex;
+    align-items    : center;
+    gap            : 6px;
+    margin-bottom  : 6px;
+    padding-bottom : 5px;
+    border-bottom  : 1px solid rgba(255,255,255,0.07);
+    font-size      : 12px;
+    flex-wrap      : wrap;
+}
+
+.rrb-enemy-name {
+    color       : #e94560;
+    font-weight : 600;
+    flex-shrink : 0;
+}
+
+.rrb-skill-name {
+    color       : #c0a060;
+    font-style  : italic;
+    flex        : 1;
+    min-width   : 0;
+    overflow    : hidden;
+    text-overflow: ellipsis;
+    white-space : nowrap;
+}
+
+.rrb-speed-badge {
+    color       : #6bcfff;
+    font-size   : 11px;
+    margin-left : auto;
+    flex-shrink : 0;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Pair rows ───────────────────────────────────────────────────────────── */
+
+.rrb-pairs {
+    display        : flex;
+    flex-direction : column;
+    gap            : 2px;
+}
+
+.rrb-pair {
+    display               : grid;
+    grid-template-columns : 1fr 42px 1fr auto;
+    align-items           : center;
+    gap                   : 6px;
+    padding               : 3px 4px;
+    border-radius         : 3px;
+    font-size             : 11px;
+    min-height            : 26px;
+}
+
+/* Outcome tints */
+.rrb-outcome-player       { background: rgba( 76,175, 80, 0.09); }
+.rrb-outcome-enemy        { background: rgba(233, 69, 96, 0.09); }
+.rrb-outcome-tie          { background: rgba(255,255,255, 0.03); }
+.rrb-outcome-unopp-player { background: rgba( 76,175, 80, 0.05); }
+.rrb-outcome-unopp-enemy  { background: rgba(233, 69, 96, 0.05); }
+
+/* ── Die cells ────────────────────────────────────────────────────────────── */
+
+.rrb-die-cell {
+    display     : flex;
+    align-items : center;
+    gap         : 5px;
+    overflow    : hidden;
+}
+
+.rrb-player-side {
+    justify-content : flex-end;
+    flex-direction  : row;       /* chip then roll: [Slash d8] [8] */
+}
+
+.rrb-enemy-side {
+    justify-content : flex-start;
+    flex-direction  : row;       /* roll then chip: [5] [Blunt d6] */
+}
+
+.rrb-die-cell.rrb-empty {
+    min-width : 30px;
+}
+
+/* Counter badge */
+.rrb-counter-tag {
+    color       : #aaaaff;
+    font-size   : 10px;
+    flex-shrink : 0;
+}
+
+/* ── Roll number ──────────────────────────────────────────────────────────── */
+
+.rrb-roll {
+    font-size            : 16px;
+    font-weight          : 700;
+    min-width            : 20px;
+    text-align           : center;
+    line-height          : 1;
+    flex-shrink          : 0;
+    font-variant-numeric : tabular-nums;
+}
+
+.rrb-roll-win  { color: #7ef07e; }
+.rrb-roll-loss { color: #e94560; opacity: 0.65; }
+.rrb-roll-tie  { color: #aaaaaa; }
+
+/* ── Middle separator ────────────────────────────────────────────────────── */
+
+.rrb-pair-mid {
+    display         : flex;
+    align-items     : center;
+    justify-content : center;
+    font-size       : 9px;
+    color           : rgba(255,255,255,0.25);
+    text-align      : center;
+}
+
+.rrb-vs-sep {
+    font-size      : 9px;
+    font-weight    : 700;
+    letter-spacing : 1px;
+    color          : rgba(255,255,255,0.22);
+}
+
+.rrb-unopposed {
+    font-size      : 8px;
+    color          : rgba(255,255,255,0.25);
+    letter-spacing : 0.4px;
+    line-height    : 1.2;
+    text-align     : center;
+}
+
+.rrb-tie-icon {
+    font-size : 11px;
+    color     : #888;
+}
+
+/* ── Damage annotation ───────────────────────────────────────────────────── */
+
+.rrb-damage-cell {
+    font-size      : 11px;
+    text-align     : right;
+    white-space    : nowrap;
+    min-width      : 72px;
+    flex-shrink    : 0;
+}
+
+.rrb-damage {
+    color       : #f0c040;
+    font-weight : 600;
+}
+
+.rrb-deflect {
+    color       : rgba(255,255,255,0.28);
+    font-style  : italic;
+    font-size   : 10px;
+}
+
+/* ── Per-clash totals footer ─────────────────────────────────────────────── */
+
+.rrb-clash-totals {
+    display         : flex;
+    flex-wrap       : wrap;
+    gap             : 8px;
+    align-items     : center;
+    justify-content : flex-end;
+    margin-top      : 5px;
+    padding-top     : 4px;
+    border-top      : 1px solid rgba(255,255,255,0.06);
+    font-size       : 11px;
+}
+
+.rrb-total-player { color: #e94560; }
+.rrb-total-enemy  { color: #7ef07e; }
+
+.rrb-total-sep {
+    color    : rgba(255,255,255,0.2);
+    font-size: 10px;
+}
+
+/* ── Round summary block ─────────────────────────────────────────────────── */
+
+.rrb-round-summary-entry .rrb-round-summary,
+.rrb-round-summary {
+    display     : flex;
+    flex-wrap   : wrap;
+    gap         : 8px;
+    align-items : center;
+    padding     : 5px 8px;
+    background  : rgba(255,255,255,0.02);
+    border-radius: 4px;
+    font-size   : 11px;
+    border      : 1px solid rgba(255,255,255,0.06);
+    margin-top  : 2px;
+}
+
+.rrb-summary-damage {
+    color       : #e94560;
+    font-weight : 600;
+}
+
+.rrb-status-flag {
+    font-weight : 700;
+    font-size   : 12px;
+}
+
+.rrb-flag-staggered { color: #f0c040; }
+.rrb-flag-killed    { color: #e94560; }
+
+/* ── Log entry wrappers ──────────────────────────────────────────────────── */
+
+/* Remove default text padding for HTML-injected blocks */
+.rpg-encounter-log-entry.clash-result-block {
+    padding     : 1px 0;
+    white-space : normal;  /* override pre-wrap set on text entries */
+}
+
+/* Status event lines (STAGGERED / DEFEATED / killed) */
+.rpg-encounter-log-entry.status-event {
+    font-weight : 700;
+    font-size   : 12px;
+    padding     : 1px 4px;
+    color       : #f0c040;
+}
+
+/* ============================================================================
+   GEAR TAB  (Session 14)
+   ============================================================================ */
+
+/* ── Tab layout ─────────────────────────────────────────────────────────────── */
+
+.gear-tab {
+    display        : flex;
+    flex-direction : column;
+    gap            : 14px;
+    padding        : 4px 2px;
+}
+
+/* ── Slot filter bar ────────────────────────────────────────────────────────── */
+
+.gear-slot-filter {
+    display    : flex;
+    flex-wrap  : wrap;
+    gap        : 6px;
+    padding    : 0 2px;
+}
+
+.gear-filter-btn {
+    background    : #1e1e38;
+    border        : 1px solid #3a3a5a;
+    border-radius : 6px;
+    color         : #8888aa;
+    cursor        : pointer;
+    font-size     : .8rem;
+    padding       : 4px 12px;
+    transition    : color .15s, border-color .15s, background .15s;
+}
+
+.gear-filter-btn:hover {
+    border-color : #7ec8e3;
+    color        : #c0d8e8;
+}
+
+.gear-filter-btn.active {
+    background   : rgba(126,200,227,0.12);
+    border-color : #7ec8e3;
+    color        : #7ec8e3;
+}
+
+/* ── Slot panel ─────────────────────────────────────────────────────────────── */
+
+.gear-slots-list {
+    display        : flex;
+    flex-direction : column;
+    gap            : 12px;
+}
+
+.gear-slot-panel {
+    background    : #1a1a2e;
+    border        : 1px solid #2e2e52;
+    border-radius : 8px;
+    overflow      : hidden;
+}
+
+.gear-slot-header {
+    align-items      : center;
+    background       : #1e1e3a;
+    border-bottom    : 1px solid #2e2e52;
+    display          : flex;
+    gap              : 8px;
+    padding          : 8px 12px;
+}
+
+.gear-slot-name {
+    flex        : 1;
+    font-size   : .9rem;
+    font-weight : 600;
+    color       : #c0c8e0;
+}
+
+.gear-slot-count {
+    font-size : .78rem;
+    color     : #6a7a9a;
+}
+
+.gear-slot-count.gear-slot-full {
+    color : #ff9c3a;
+}
+
+.gear-slot-items {
+    display        : flex;
+    flex-direction : column;
+    gap            : 6px;
+    padding        : 8px 10px;
+}
+
+.gear-slot-empty {
+    color     : #4a4a6a;
+    font-size : .82rem;
+    padding   : 8px 4px;
+    text-align: center;
+}
+
+/* ── Gear cards ─────────────────────────────────────────────────────────────── */
+
+.gear-card {
+    background    : #1e1e38;
+    border        : 1px solid #2e2e52;
+    border-radius : 6px;
+    padding       : 8px 10px;
+    transition    : border-color .15s;
+}
+
+.gear-card:hover {
+    border-color : #4a4a7a;
+}
+
+.gear-card.gear-card-unequipped {
+    opacity : 0.55;
+}
+
+.gear-card-header {
+    align-items : center;
+    display     : flex;
+    gap         : 6px;
+    flex-wrap   : wrap;
+}
+
+.gear-card-name {
+    flex        : 1;
+    font-size   : .9rem;
+    font-weight : 600;
+    min-width   : 80px;
+}
+
+.gear-badge-equipped {
+    background    : rgba(76,175,125,0.18);
+    border        : 1px solid rgba(76,175,125,0.4);
+    border-radius : 4px;
+    color         : #4caf7d;
+    font-size     : .72rem;
+    padding       : 1px 7px;
+}
+
+.gear-badge-unequipped {
+    background    : rgba(120,120,160,0.15);
+    border        : 1px solid rgba(120,120,160,0.3);
+    border-radius : 4px;
+    color         : #6a6a8a;
+    font-size     : .72rem;
+    padding       : 1px 7px;
+}
+
+.gear-card-bonuses {
+    display   : flex;
+    flex-wrap : wrap;
+    gap       : 4px;
+    margin-top: 4px;
+}
+
+.gear-bonus-chip {
+    background    : rgba(126,200,227,0.1);
+    border        : 1px solid rgba(126,200,227,0.25);
+    border-radius : 4px;
+    color         : #7ec8e3;
+    font-size     : .72rem;
+    padding       : 1px 6px;
+}
+
+.gear-linked-inv {
+    color     : #8888aa;
+    font-size : .75rem;
+    margin-top: 3px;
+}
+
+.gear-btn-edit,
+.gear-btn-remove {
+    background  : none;
+    border      : none;
+    color       : #6a6a8a;
+    cursor      : pointer;
+    font-size   : .9rem;
+    line-height : 1;
+    padding     : 2px 5px;
+    transition  : color .15s;
+}
+
+.gear-btn-edit:hover   { color: #7ec8e3; }
+.gear-btn-remove:hover { color: #ff4f4f; }
+
+/* ── Popup specific overrides ────────────────────────────────────────────────── */
+
+.gear-stat-bonuses-list,
+.gear-skill-links-list {
+    display        : flex;
+    flex-direction : column;
+    gap            : 6px;
+}
+
+.gear-empty-hint {
+    color     : #4a4a6a;
+    font-size : .8rem;
+    padding   : 4px 0;
 }

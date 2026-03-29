@@ -11,6 +11,7 @@ import { currentEncounter } from '../features/encounterState.js';
 import { repairJSON } from '../../utils/jsonRepair.js';
 import { buildInventorySummary, generateTrackerInstructions, generateTrackerExample } from './promptBuilder.js';
 import { applyLocks } from './lockManager.js';
+import { buildEncounterStatSheetBlock } from './statSheetPrompt.js';
 
 /**
  * Gets character information from the current chat
@@ -231,8 +232,11 @@ export async function buildEncounterInitPrompt() {
         userStatsInfo += `${userName}'s Inventory:\n${inventorySummary}\n\n`;
     }
 
-    // Add classic stats/attributes
-    if (extensionSettings.classicStats) {
+    // Add stat sheet (when enabled) or fall back to classic attributes
+    if (extensionSettings.statSheet?.enabled) {
+        const statSheetBlock = buildEncounterStatSheetBlock(userName);
+        if (statSheetBlock) userStatsInfo += statSheetBlock + '\n\n';
+    } else if (extensionSettings.classicStats) {
         const stats = extensionSettings.classicStats;
         userStatsInfo += `${userName}'s Attributes: `;
         const showLevel = extensionSettings.trackerConfig?.userStats?.showLevel !== false;
@@ -422,8 +426,14 @@ export async function buildCombatActionPrompt(action, combatStats) {
             }
         }
 
-        // Add ONLY classic stats/attributes if enabled
-        if (extensionSettings.classicStats) {
+        // Add stat sheet (when enabled) or fall back to classic attributes
+        if (extensionSettings.statSheet?.enabled) {
+            const statSheetBlock = buildEncounterStatSheetBlock(userName);
+            if (statSheetBlock) {
+                systemMessage += `\n`;
+                systemMessage += statSheetBlock + '\n';
+            }
+        } else if (extensionSettings.classicStats) {
             const stats = extensionSettings.classicStats;
             const config = extensionSettings.trackerConfig?.userStats;
             const rpgAttributes = (config?.rpgAttributes && config.rpgAttributes.length > 0) ? config.rpgAttributes : [
@@ -441,6 +451,9 @@ export async function buildCombatActionPrompt(action, combatStats) {
 
         systemMessage += `</persona>\n\n`;
     }
+
+    // ── SotC combat tag instructions (Rev 3) ──────────────────────────────────
+    systemMessage += buildCombatTagBlock(combatStats, userName);
 
     messages.push({
         role: 'system',
@@ -815,4 +828,89 @@ export function parseEncounterJSON(response) {
         console.error('[RPG Companion] Response was:', response);
         return null;
     }
+}
+
+// ── SotC Combat Tag Instruction Block (Rev 4 — corrected format) ──────────────
+
+/**
+ * Build the SotC combat tag instruction block appended to the GM system prompt.
+ * Tells the model to emit <enemy_action> and <enemy_init> tags after each response.
+ *
+ * Tag formats match the Rev 4 corrected spec exactly:
+ *   enemy_action — one self-closing tag per die, attributes:
+ *     skill, die_index, dice (NdS+B), type, speed (NdS+B or "0"), target
+ *   enemy_init   — one self-closing flat-attribute tag per enemy, attributes:
+ *     name, hp, stagger, aff_slash_dmg, aff_slash_stg,
+ *     aff_blunt_dmg, aff_blunt_stg, aff_pierce_dmg, aff_pierce_stg
+ *
+ * @param {object} combatStats — current combatStats (used to list living enemy names)
+ * @param {string} userName    — player name
+ * @returns {string}
+ */
+export function buildCombatTagBlock(combatStats, userName) {
+    const enemyNames = (combatStats?.enemies ?? [])
+        .filter(e => (e.hp ?? 0) > 0)
+        .map(e => `"${e.name}"`)
+        .join(', ');
+
+    return `
+─── COMBAT ENGINE TAGS (emit at end of every response, after narrative and JSON) ───────────────
+
+The combat engine resolves all dice rolls locally. After your narrative and JSON update, you
+MUST append machine-readable tags so the engine knows what each enemy is doing this round.
+
+━━━ enemy_action  (one self-closing tag per die) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Emit one <enemy_action .../> tag per die. Multi-die skills share the same skill name and use
+die_index to indicate order. All tags are self-closing (end with />).
+
+Attributes (ALL required, ALL quoted):
+  skill      — display name of the enemy skill
+  die_index  — position within the skill, starting at 1 (1, 2, 3 …)
+  dice       — roll notation in NdS+B format: "1d20+4" | "2d12+0" | "1d8-1"
+  type       — one of: Slash | Pierce | Blunt | Block | Evade
+  speed      — for die_index=1 only: speed notation e.g. "1d10+3"; set to "0" for all other dice
+  target     — always "player" in v1
+
+Example — single-die skill:
+<enemy_action skill="Stone Fist" die_index="1" dice="1d10+2" type="Blunt" speed="1d6+1" target="player"/>
+
+Example — two-die skill (same skill name, die_index increments, speed "0" on second):
+<enemy_action skill="Petrified Slam" die_index="1" dice="1d20+4" type="Blunt" speed="1d10+3" target="player"/>
+<enemy_action skill="Petrified Slam" die_index="2" dice="1d12+2" type="Blunt" speed="0" target="player"/>
+
+Rules:
+  • Emit at least one enemy_action per living enemy each round.
+  • Enemy names are NOT included in enemy_action tags — the engine matches by skill name.
+  • Living enemies this round: ${enemyNames || '(see enemies list)'}
+  • Choose skills that fit the enemy's situation and remaining HP.
+  • Defensive skills use Block or Evade type; offensive skills use Slash, Pierce, or Blunt.
+  • Do NOT emit enemy_action for defeated enemies (hp ≤ 0).
+
+━━━ enemy_init  (emit ONCE per enemy, on their first appearance) ━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Emit one self-closing <enemy_init .../> tag the very first time an enemy acts. Never repeat it.
+All six affinity attributes are REQUIRED even if their value is 0.
+
+Attributes (ALL required, ALL quoted):
+  name           — must match the enemy name exactly as used in combatStats
+  hp             — current HP (integer)
+  stagger        — stagger resist pool (integer, typically 20–60)
+  aff_slash_dmg  — slash damage affinity  (negative = resistant, positive = weakness, 0 = neutral)
+  aff_slash_stg  — slash stagger affinity
+  aff_blunt_dmg  — blunt damage affinity
+  aff_blunt_stg  — blunt stagger affinity
+  aff_pierce_dmg — pierce damage affinity
+  aff_pierce_stg — pierce stagger affinity
+
+Example:
+<enemy_init name="Ancient Grendel" hp="80" stagger="40" aff_slash_dmg="0" aff_slash_stg="0" aff_blunt_dmg="+2" aff_blunt_stg="-1" aff_pierce_dmg="0" aff_pierce_stg="+1"/>
+
+━━━ placement rule ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Place ALL tags at the very end of your response, after the narrative and JSON block.
+Emit enemy_init before enemy_action tags if it is an enemy's first appearance.
+${userName} does not see these tags.
+
+──────────────────────────────────────────────────────────────────────────────────────────────\n`;
 }

@@ -42,7 +42,7 @@ import {
     setMusicPlayerContainer,
     clearSessionAvatarPrompts
 } from './src/core/state.js';
-import { loadSettings, saveSettings, saveChatData, loadChatData, updateMessageSwipeData } from './src/core/persistence.js';
+import { loadSettings, saveSettings, saveChatData, loadChatData, updateMessageSwipeData, loadStatSheetData, saveStatSheetData } from './src/core/persistence.js';
 import { registerAllEvents } from './src/core/events.js';
 
 // Generation & Parsing modules
@@ -73,6 +73,8 @@ import { renderQuests } from './src/systems/rendering/quests.js';
 import { renderMusicPlayer } from './src/systems/rendering/musicPlayer.js';
 import { toggleSnowflakes, initSnowflakes } from './src/systems/ui/snowflakes.js';
 import { toggleDynamicWeather, initWeatherEffects, updateWeatherEffect } from './src/systems/ui/weatherEffects.js';
+import { initializeStatSheet } from './src/systems/statSheet/statSheetState.js';
+import { initializeStatSheetUI, openModal, refreshStatSheetIfOpen } from './src/systems/statSheet/statSheetUI.js';
 
 // Interaction modules
 import { initInventoryEventListeners } from './src/systems/interaction/inventoryActions.js';
@@ -138,8 +140,8 @@ import {
 // Feature modules
 import { setupPlotButtons, sendPlotProgression } from './src/systems/features/plotProgression.js';
 import { setupClassicStatsButtons } from './src/systems/features/classicStats.js';
-import { ensureHtmlCleaningRegex, detectConflictingRegexScripts, ensureTrackerCleaningRegex } from './src/systems/features/htmlCleaning.js';
-import { ensureJsonCleaningRegex, removeJsonCleaningRegex } from './src/systems/features/jsonCleaning.js';
+import { detectConflictingRegexScripts, removeHtmlCleaningRegex, removeTrackerCleaningRegex } from './src/systems/features/htmlCleaning.js';
+import { removeJsonCleaningRegex } from './src/systems/features/jsonCleaning.js';
 import { parseAndStoreSpotifyUrl } from './src/systems/features/musicPlayer.js';
 import { DEFAULT_HTML_PROMPT } from './src/systems/generation/promptBuilder.js';
 import { openEncounterModal } from './src/systems/ui/encounterUI.js';
@@ -1198,6 +1200,25 @@ async function initUI() {
     updateDiceDisplay();
     setupDiceRoller();
     setupClassicStatsButtons();
+    
+    // Initialize Stat Sheet system (v4.0)
+    try {
+        console.log('[RPG Companion] 🎲 Initializing Stat Sheet...');
+        initializeStatSheet();
+        initializeStatSheetUI();
+        
+        // Add button to open stat sheet
+        $(document).on('click', '#open-stat-sheet-btn', () => {
+            console.log('[RPG Companion] Stat sheet button clicked');
+            openModal();
+        });
+        
+        console.log('[RPG Companion] Stat Sheet initialized successfully');
+    } catch (error) {
+        console.error('[RPG Companion] Stat Sheet initialization failed:', error);
+        // Non-critical - continue without it
+    }
+    
     setupSettingsPopup();
     initTrackerEditor();
     initPromptsEditor();
@@ -1231,11 +1252,24 @@ async function initUI() {
 //  onMessageSwiped, updatePersonaAvatar, clearExtensionPrompts)
 
 /**
+ * Handles stat sheet data when the active chat changes.
+ * Loads the new chat's character data and refreshes the UI if open.
+ */
+function onStatSheetChatChanged() {
+    try {
+        loadStatSheetData();
+        refreshStatSheetIfOpen();
+    } catch (error) {
+        console.error('[RPG Companion] Stat sheet chat change handler failed:', error);
+    }
+}
+
+/**
  * Main initialization function.
  */
 jQuery(async () => {
     try {
-        console.log('[RPG Companion] Starting initialization...');
+        console.log('[RPG Companion] 🎲 Starting initialization...');
 
         // Load settings with validation
         try {
@@ -1283,6 +1317,7 @@ jQuery(async () => {
         // Load chat-specific data for current chat
         try {
             loadChatData();
+            loadStatSheetData();
             // Initialize FAB widgets and strip widgets with any loaded data
             updateFabWidgets();
             updateStripWidgets();
@@ -1290,29 +1325,17 @@ jQuery(async () => {
             console.error('[RPG Companion] Chat data load failed, using defaults:', error);
         }
 
-        // Import the HTML cleaning regex if needed
+        // Session 10: Auto-regex removed. Run a one-time cleanup to remove any
+        // previously-injected regex scripts so they don't linger in ST settings.
         try {
-            await ensureHtmlCleaningRegex(st_extension_settings, saveSettingsDebounced);
+            let regexChanged = false;
+            if (typeof removeHtmlCleaningRegex    === 'function') { removeHtmlCleaningRegex(st_extension_settings);    regexChanged = true; }
+            if (typeof removeTrackerCleaningRegex === 'function') { removeTrackerCleaningRegex(st_extension_settings); regexChanged = true; }
+            if (typeof removeJsonCleaningRegex    === 'function') { removeJsonCleaningRegex(st_extension_settings);    regexChanged = true; }
+            if (regexChanged) saveSettingsDebounced();
+            console.log('[RPG Companion] Auto-regex cleanup complete.');
         } catch (error) {
-            console.error('[RPG Companion] HTML regex import failed:', error);
-            // Non-critical - continue without it
-        }
-
-        // Import the tracker cleaning regex (removes old together mode JSON from prompts)
-        try {
-            await ensureTrackerCleaningRegex(st_extension_settings, saveSettingsDebounced);
-        } catch (error) {
-            console.error('[RPG Companion] Tracker cleaning regex import failed:', error);
-            // Non-critical - continue without it
-        }
-
-        // Import the JSON cleaning regex to clean up JSON in messages
-        // This cleans historical messages when displayed
-        try {
-            await ensureJsonCleaningRegex(st_extension_settings, saveSettingsDebounced);
-        } catch (error) {
-            console.error('[RPG Companion] JSON cleaning regex setup failed:', error);
-            // Non-critical - continue without it
+            console.error('[RPG Companion] Auto-regex cleanup failed (non-critical):', error);
         }
 
         // Detect conflicting regex scripts from old manual formatters
@@ -1352,7 +1375,7 @@ jQuery(async () => {
                 [event_types.MESSAGE_RECEIVED]: onMessageReceived,
                 [event_types.GENERATION_STOPPED]: onGenerationEnded,
                 [event_types.GENERATION_ENDED]: onGenerationEnded,
-                [event_types.CHAT_CHANGED]: [onCharacterChanged, updatePersonaAvatar, restoreCheckpointOnLoad, clearSessionAvatarPrompts],
+                [event_types.CHAT_CHANGED]: [onCharacterChanged, updatePersonaAvatar, restoreCheckpointOnLoad, clearSessionAvatarPrompts, onStatSheetChatChanged],
                 [event_types.MESSAGE_SWIPED]: onMessageSwiped,
                 [event_types.USER_MESSAGE_RENDERED]: updatePersonaAvatar,
                 [event_types.SETTINGS_UPDATED]: updatePersonaAvatar

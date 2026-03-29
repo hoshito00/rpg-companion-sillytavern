@@ -29,6 +29,7 @@ import {
     DEFAULT_CONTEXT_INSTRUCTIONS_PROMPT,
     SPOTIFY_FORMAT_INSTRUCTION
 } from './promptBuilder.js';
+import { buildStatSheetBlock, buildEncounterStatSheetBlock } from './statSheetPrompt.js';
 import { restoreCheckpointOnLoad } from '../features/chapterCheckpoint.js';
 
 // Track suppression state for event handler
@@ -725,6 +726,23 @@ export async function onGenerationStarted(type, data, dryRun) {
         // Clear separate mode context injection - we don't use contextual summary in together mode
         setExtensionPrompt('rpg-companion-context', '', extension_prompt_types.IN_CHAT, 1, false);
 
+        // Stat Sheet injection — inject full character sheet for together mode when enabled.
+        // Uses encounter-aware variant if a combat encounter is active.
+        // Injected at depth 1 (same slot as separate mode's context) as a SYSTEM message,
+        // so it sits just before the last user message — close to generation but not inside instructions.
+        if (!shouldSuppress && extensionSettings.statSheet?.enabled) {
+            const userName = getContext().name1;
+            const statSheetBlock = buildEncounterStatSheetBlock(userName);
+            if (statSheetBlock) {
+                const wrappedStatSheet = `\n<context>\n${statSheetBlock}\n</context>`;
+                setExtensionPrompt('rpg-companion-statsheet', wrappedStatSheet, extension_prompt_types.IN_CHAT, 1, false);
+            } else {
+                setExtensionPrompt('rpg-companion-statsheet', '', extension_prompt_types.IN_CHAT, 1, false);
+            }
+        } else {
+            setExtensionPrompt('rpg-companion-statsheet', '', extension_prompt_types.IN_CHAT, 1, false);
+        }
+
         // console.log('[RPG Companion] Example:', example ? 'exists' : 'empty');
         // console.log('[RPG Companion] Chat length:', chat ? chat.length : 'chat is null');
 
@@ -948,11 +966,13 @@ ${contextInstructionsText}
         // Clear together mode injections
         setExtensionPrompt('rpg-companion-inject', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-example', '', extension_prompt_types.IN_CHAT, 0, false);
+        setExtensionPrompt('rpg-companion-statsheet', '', extension_prompt_types.IN_CHAT, 1, false);
     } else {
         // Clear all injections
         setExtensionPrompt('rpg-companion-inject', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-example', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-context', '', extension_prompt_types.IN_CHAT, 1, false);
+        setExtensionPrompt('rpg-companion-statsheet', '', extension_prompt_types.IN_CHAT, 1, false);
         setExtensionPrompt('rpg-companion-html', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-dialogue-coloring', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-deception', '', extension_prompt_types.IN_CHAT, 0, false);
@@ -990,4 +1010,3 @@ export function initHistoryInjectionListeners() {
 
     console.log('[RPG Companion] History injection listeners initialized');
 }
-

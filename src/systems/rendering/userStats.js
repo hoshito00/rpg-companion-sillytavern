@@ -12,7 +12,6 @@ import {
     $userStatsContainer,
     FALLBACK_AVATAR_DATA_URI
 } from '../../core/state.js';
-import { i18n } from '../../core/i18n.js';
 import {
     saveSettings,
     saveChatData,
@@ -274,7 +273,7 @@ export function renderUserStats() {
     // Check if stats bars section is locked
     const isStatsLocked = isItemLocked('userStats', 'stats');
     const lockIcon = isStatsLocked ? '🔒' : '🔓';
-    const lockTitle = isStatsLocked ? i18n.getTranslation('userStats.statsLocked') : i18n.getTranslation('userStats.statsUnlocked');
+    const lockTitle = isStatsLocked ? 'Locked - AI cannot change stats' : 'Unlocked - AI can change stats';
     const lockedClass = isStatsLocked ? ' locked' : '';
 
     let html = '<div class="rpg-stats-content">';
@@ -287,8 +286,8 @@ export function renderUserStats() {
             <img src="${userPortrait}" alt="${userName}" class="rpg-user-portrait" onerror="this.style.opacity='0.5';this.onerror=null;" />
             <span class="rpg-user-name">${userName}</span>
             ${showLevel ? `<span style="opacity: 0.5;">|</span>
-            <span class="rpg-level-label">${i18n.getTranslation('userStats.level')}</span>
-            <span class="rpg-level-value rpg-editable" contenteditable="true" data-field="level" title="${i18n.getTranslation('userStats.clickToEditLevel')}">${extensionSettings.level}</span>` : ''}
+            <span class="rpg-level-label">LVL</span>
+            <span class="rpg-level-value rpg-editable" contenteditable="true" data-field="level" title="Click to edit level">${extensionSettings.level}</span>` : ''}
         </div>
     `;
 
@@ -299,17 +298,29 @@ export function renderUserStats() {
     }
     html += '<div class="rpg-stats-grid">';
     const enabledStats = config.customStats.filter(stat => stat && stat.enabled && stat.name && stat.id);
-    const displayMode = config.statsDisplayMode || 'percentage';
-
     for (const stat of enabledStats) {
         const value = stats[stat.id] !== undefined ? stats[stat.id] : 100;
-        const maxValue = stat.maxValue || 100;
+        
+        // Determine max value: use stat sheet scaling if configured, otherwise use static maxValue
+        let maxValue = stat.maxValue || 100;
+        if (stat.scaleWithAttribute && extensionSettings.statSheet?.enabled) {
+            const attr = extensionSettings.statSheet.attributes?.find(a => a.id === stat.scaleWithAttribute && a.enabled);
+            if (attr) {
+                const attrValue = extensionSettings.statSheet.mode === 'numeric' ? attr.value : attr.rankValue;
+                const multiplier = parseFloat(stat.scaleMultiplier) || 1;
+                const bonus = parseFloat(stat.scaleBonus) || 0;
+                maxValue = Math.max(1, Math.floor(attrValue * multiplier) + bonus);
+            }
+        }
+        
+        // Use per-stat display mode only
+        const statDisplayMode = stat.displayMode || 'percentage';
 
         // Calculate percentage for bar fill
         let percentage;
         let displayValue;
 
-        if (displayMode === 'number') {
+        if (statDisplayMode === 'number') {
             // In number mode, value is already the number (0 to maxValue)
             percentage = maxValue > 0 ? (value / maxValue) * 100 : 100;
             displayValue = `${value}/${maxValue}`;
@@ -321,11 +332,11 @@ export function renderUserStats() {
 
         html += `
             <div class="rpg-stat-row">
-                <span class="rpg-stat-label rpg-editable-stat-name" contenteditable="true" data-field="${stat.id}" title="${i18n.getTranslation('userStats.clickToEditStatName')}">${stat.name}:</span>
+                <span class="rpg-stat-label rpg-editable-stat-name" contenteditable="true" data-field="${stat.id}" title="Click to edit stat name">${stat.name}:</span>
                 <div class="rpg-stat-bar" style="background: ${gradient}">
                     <div class="rpg-stat-fill" style="width: ${100 - percentage}%"></div>
                 </div>
-                <span class="rpg-stat-value rpg-editable-stat" contenteditable="true" data-field="${stat.id}" data-max="${maxValue}" data-mode="${displayMode}" title="${i18n.getTranslation('userStats.clickToEditStatValue')}">${displayValue}</span>
+                <span class="rpg-stat-value rpg-editable-stat" contenteditable="true" data-field="${stat.id}" data-max="${maxValue}" data-mode="${statDisplayMode}" title="Click to edit">${displayValue}</span>
             </div>
         `;
     }
@@ -335,7 +346,7 @@ export function renderUserStats() {
     if (config.statusSection.enabled) {
         const isMoodLocked = isItemLocked('userStats', 'status');
         const moodLockIcon = isMoodLocked ? '🔒' : '🔓';
-        const moodLockTitle = isMoodLocked ? i18n.getTranslation('userStats.moodLocked') : i18n.getTranslation('userStats.moodUnlocked');
+        const moodLockTitle = isMoodLocked ? 'Locked - AI cannot change mood' : 'Unlocked - AI can change mood';
         const moodLockedClass = isMoodLocked ? ' locked' : '';
         html += '<div class="rpg-mood">';
         if (showLockIcons) {
@@ -343,7 +354,7 @@ export function renderUserStats() {
         }
 
         if (config.statusSection.showMoodEmoji) {
-            html += `<div class="rpg-mood-emoji rpg-editable" contenteditable="true" data-field="mood" title="${i18n.getTranslation('userStats.clickToEditEmoji')}">${stats.mood}</div>`;
+            html += `<div class="rpg-mood-emoji rpg-editable" contenteditable="true" data-field="mood" title="Click to edit emoji">${stats.mood}</div>`;
         }
 
         // Render custom status fields
@@ -369,7 +380,7 @@ export function renderUserStats() {
     if (config.skillsSection.enabled) {
         const isSkillsLocked = isItemLocked('userStats', 'skills');
         const skillsLockIcon = isSkillsLocked ? '🔒' : '🔓';
-        const skillsLockTitle = isSkillsLocked ? i18n.getTranslation('userStats.skillsLocked') : i18n.getTranslation('userStats.skillsUnlocked');
+        const skillsLockTitle = isSkillsLocked ? 'Locked - AI cannot change skills' : 'Unlocked - AI can change skills';
         const skillsLockedClass = isSkillsLocked ? ' locked' : '';
         let skillsValue = 'None';
         // Handle JSON array format: [{name: "Art"}, {name: "Coding"}]
@@ -386,7 +397,7 @@ export function renderUserStats() {
         }
         html += `
                 <span class="rpg-skills-label">${config.skillsSection.label}:</span>
-                <div class="rpg-skills-value rpg-editable" contenteditable="true" data-field="skills" title="${i18n.getTranslation('userStats.clickToEditSkills')}">${skillsValue}</div>
+                <div class="rpg-skills-value rpg-editable" contenteditable="true" data-field="skills" title="Click to edit skills">${skillsValue}</div>
             </div>
         `;
     }
@@ -395,7 +406,10 @@ export function renderUserStats() {
 
     // RPG Attributes section (dynamically generated from config)
     // Check if RPG Attributes section is enabled
-    const showRPGAttributes = config.showRPGAttributes !== undefined ? config.showRPGAttributes : true;
+    // Hide classic stats if stat sheet is enabled
+    const showRPGAttributes = extensionSettings.statSheet?.enabled 
+        ? false 
+        : (config.showRPGAttributes !== undefined ? config.showRPGAttributes : true);
 
     if (showRPGAttributes) {
         // Use attributes from config, with fallback to defaults if not configured
@@ -410,15 +424,15 @@ export function renderUserStats() {
         const enabledAttributes = rpgAttributes.filter(attr => attr && attr.enabled && attr.name && attr.id);
 
         if (enabledAttributes.length > 0) {
-            html += `
+        html += `
             <div class="rpg-stats-right">
                 <div class="rpg-classic-stats">
                     <div class="rpg-classic-stats-grid">
         `;
 
-            enabledAttributes.forEach(attr => {
-                const value = extensionSettings.classicStats[attr.id] !== undefined ? extensionSettings.classicStats[attr.id] : 10;
-                html += `
+        enabledAttributes.forEach(attr => {
+            const value = extensionSettings.classicStats[attr.id] !== undefined ? extensionSettings.classicStats[attr.id] : 10;
+            html += `
                         <div class="rpg-classic-stat" data-stat="${attr.id}">
                             <span class="rpg-classic-stat-label">${attr.name}</span>
                             <div class="rpg-classic-stat-buttons">
@@ -428,9 +442,9 @@ export function renderUserStats() {
                             </div>
                         </div>
             `;
-            });
+        });
 
-            html += `
+        html += `
                     </div>
                 </div>
             </div>
@@ -449,7 +463,7 @@ export function renderUserStats() {
     // console.log('[RPG UserStats Render] ✓ HTML rendered to #rpg-user-stats container');
 
     // Add event listeners for editable stat values
-    $('.rpg-editable-stat').on('blur', function () {
+    $('.rpg-editable-stat').on('blur', function() {
         const field = $(this).data('field');
         const mode = $(this).data('mode');
         const maxValue = parseInt($(this).data('max')) || 100;
@@ -493,7 +507,7 @@ export function renderUserStats() {
     });
 
     // Add event listeners for mood/conditions editing
-    $('.rpg-mood-emoji.rpg-editable').on('blur', function () {
+    $('.rpg-mood-emoji.rpg-editable').on('blur', function() {
         const value = $(this).text().trim();
         extensionSettings.userStats.mood = value || '😐';
 
@@ -505,7 +519,7 @@ export function renderUserStats() {
         updateMessageSwipeData();
     });
 
-    $('.rpg-mood-conditions.rpg-editable').on('blur', function () {
+    $('.rpg-mood-conditions.rpg-editable').on('blur', function() {
         const value = $(this).text().trim();
         const fieldKey = $(this).data('field');
         extensionSettings.userStats[fieldKey] = value || 'None';
@@ -519,7 +533,7 @@ export function renderUserStats() {
     });
 
     // Add event listener for skills editing
-    $('.rpg-skills-value.rpg-editable').on('blur', function () {
+    $('.rpg-skills-value.rpg-editable').on('blur', function() {
         const value = $(this).text().trim();
         extensionSettings.userStats.skills = value || 'None';
 
@@ -532,7 +546,7 @@ export function renderUserStats() {
     });
 
     // Add event listeners for stat name editing
-    $('.rpg-editable-stat-name').on('blur', function () {
+    $('.rpg-editable-stat-name').on('blur', function() {
         const field = $(this).data('field');
         const value = $(this).text().trim().replace(':', '');
 
@@ -556,7 +570,7 @@ export function renderUserStats() {
     });
 
     // Add event listener for level editing
-    $('.rpg-level-value.rpg-editable').on('blur', function () {
+    $('.rpg-level-value.rpg-editable').on('blur', function() {
         let value = parseInt($(this).text().trim());
         if (isNaN(value) || value < 1) {
             value = 1;
@@ -574,15 +588,15 @@ export function renderUserStats() {
     });
 
     // Prevent line breaks in level field
-    $('.rpg-level-value.rpg-editable').on('keydown', function (e) {
+    $('.rpg-level-value.rpg-editable').on('keydown', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
             $(this).blur();
         }
     });
 
-    // Add event listener for section lock icon clicks (support both click and touch)
-    $('.rpg-section-lock-icon').on('click touchend', function (e) {
+// Add event listener for section lock icon clicks (support both click and touch)
+    $('.rpg-section-lock-icon').on('click touchend', function(e) {
         e.preventDefault();
         e.stopPropagation();
         const $icon = $(this);
@@ -595,7 +609,7 @@ export function renderUserStats() {
 
         // Update icon
         const newIcon = !currentlyLocked ? '🔒' : '🔓';
-        const newTitle = !currentlyLocked ? i18n.getTranslation('infoBox.locked') : i18n.getTranslation('infoBox.unlocked');
+        const newTitle = !currentlyLocked ? 'Locked - AI cannot change this section' : 'Unlocked - AI can change this section';
         $icon.text(newIcon);
         $icon.attr('title', newTitle);
 

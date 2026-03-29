@@ -52,6 +52,9 @@
                 <i class="fa-solid fa-dice-d20"></i>
                 <span id="rpg-panel-title" data-i18n-key="template.mainPanel.title">RPG Companion</span>
             </h3>
+            <button id="open-stat-sheet-btn" style="background: rgba(20, 25, 30, 0.95); border: 1px solid rgba(70, 80, 90, 0.6); color: rgba(200, 205, 210, 0.9); width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 16px; cursor: pointer; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);" title="Character Stats">
+                <i class="fa-solid fa-chart-bar"></i>
+            </button>
         </div>
 
         <div id="rpg-panel-content">
@@ -943,6 +946,9 @@
                 <i class="fa-solid fa-clock-rotate-left"></i> <span
                     data-i18n-key="template.trackerEditorModal.tabs.historyPersistence">History Persistence</span>
             </button>
+            <button class="rpg-editor-tab" data-tab="statSheet">
+                <i class="fa-solid fa-chart-bar"></i> <span>Stat Sheet</span>
+            </button>
         </div>
 
         <div class="rpg-settings-popup-body">
@@ -951,6 +957,7 @@
             <div id="rpg-editor-tab-infoBox" class="rpg-editor-tab-content" style="display: none;"></div>
             <div id="rpg-editor-tab-presentCharacters" class="rpg-editor-tab-content" style="display: none;"></div>
             <div id="rpg-editor-tab-historyPersistence" class="rpg-editor-tab-content" style="display: none;"></div>
+            <div id="rpg-editor-tab-statSheet" class="rpg-editor-tab-content" style="display: none;"></div>
         </div>
 
         <footer class="rpg-settings-popup-footer">

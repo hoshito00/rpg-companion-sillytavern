@@ -31,20 +31,14 @@ function validateSettings(settings) {
         return false;
     }
 
-    // Check for required top-level properties
+    // Only validate fields that are actually present in global settings.json.
+    // NOTE: userStats, classicStats, quests, infoBox, characterThoughts, and npcAvatars
+    // are all listed in GLOBAL_SETTINGS_OMIT and are intentionally ABSENT from
+    // settings.json. Do NOT require them here — their absence is correct, not corrupt.
+    // They are loaded per-chat via loadChatData() / loadStatSheetData() instead.
     if (typeof settings.enabled !== 'boolean' ||
-        typeof settings.autoUpdate !== 'boolean' ||
-        !settings.userStats || typeof settings.userStats !== 'object') {
-        console.warn('[RPG Companion] Settings validation failed: missing required properties');
-        return false;
-    }
-
-    // Validate userStats structure
-    const stats = settings.userStats;
-    if (typeof stats.health !== 'number' ||
-        typeof stats.satiety !== 'number' ||
-        typeof stats.energy !== 'number') {
-        console.warn('[RPG Companion] Settings validation failed: invalid userStats structure');
+        typeof settings.autoUpdate !== 'boolean') {
+        console.warn('[RPG Companion] Settings validation failed: missing required top-level properties');
         return false;
     }
 
@@ -79,6 +73,22 @@ export function loadSettings() {
             }
 
             updateExtensionSettings(savedSettings);
+
+            // Guard: userStats may have been stored as a JSON string in older saves.
+            // Parse it back to an object so downstream code can safely access properties.
+            if (typeof extensionSettings.userStats === 'string') {
+                try {
+                    extensionSettings.userStats = JSON.parse(extensionSettings.userStats);
+                } catch (e) {
+                    console.warn('[RPG Companion] Failed to parse userStats string, resetting to defaults');
+                    extensionSettings.userStats = {
+                        stats: [],
+                        status: { mood: '😐', conditions: 'None' },
+                        inventory: { onPerson: [], stored: [] },
+                        quests: { active: [], completed: [] }
+                    };
+                }
+            }
 
             // Perform settings migrations based on version
             const currentVersion = extensionSettings.settingsVersion || 1;
@@ -183,6 +193,20 @@ export function loadSettings() {
 /**
  * Saves the extension settings to the global settings object.
  */
+/**
+ * Fields on extensionSettings that are character/chat-specific and must NOT
+ * be written to the global settings.json. Already persisted per-chat via
+ * saveChatData() / saveStatSheetData().
+ */
+const GLOBAL_SETTINGS_OMIT = new Set([
+    'userStats',        // live stat bar values
+    'classicStats',     // D&D-style attribute values
+    'quests',           // active/completed quest lists
+    'infoBox',          // current date/weather/location values
+    'characterThoughts',// current NPC thoughts snapshot
+    'npcAvatars',       // base64 avatar images — the largest offender
+]);
+
 export function saveSettings() {
     const context = getContext();
     const extension_settings = context.extension_settings || context.extensionSettings;
@@ -192,7 +216,26 @@ export function saveSettings() {
         return;
     }
 
-    extension_settings[extensionName] = extensionSettings;
+    // Build a shallow copy with per-chat fields stripped so they never
+    // bloat settings.json. The in-memory extensionSettings is NOT mutated.
+    const globalSnapshot = Object.assign({}, extensionSettings);
+    for (const key of GLOBAL_SETTINGS_OMIT) {
+        delete globalSnapshot[key];
+    }
+
+    // Strip character-specific fields from statSheet, keeping only global prefs
+    // (enabled, mode, editorSettings, promptIncludes, modulesPool).
+    if (globalSnapshot.statSheet) {
+        const ssClean = {};
+        for (const [k, v] of Object.entries(globalSnapshot.statSheet)) {
+            if (!STAT_SHEET_CHAT_FIELDS.includes(k)) {
+                ssClean[k] = v;
+            }
+        }
+        globalSnapshot.statSheet = ssClean;
+    }
+
+    extension_settings[extensionName] = globalSnapshot;
     saveSettingsDebounced();
 }
 
@@ -204,13 +247,7 @@ export function saveChatData() {
         return;
     }
 
-    // console.log('[RPG Companion] 💾 saveChatData called - committedTrackerData:', {
-    //     userStats: committedTrackerData.userStats ? `${committedTrackerData.userStats.substring(0, 50)}...` : 'null',
-    //     infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
-    //     characterThoughts: committedTrackerData.characterThoughts ? 'exists' : 'null'
-    // });
-    // console.log('[RPG Companion] 💾 saveChatData RAW committedTrackerData:', committedTrackerData);
-    // console.log('[RPG Companion] 💾 saveChatData RAW lastGeneratedData:', lastGeneratedData);
+    const existingStatSheet = chat_metadata.rpg_companion?.statSheet;
 
     chat_metadata.rpg_companion = {
         userStats: extensionSettings.userStats,
@@ -221,11 +258,224 @@ export function saveChatData() {
         timestamp: Date.now()
     };
 
+    if (existingStatSheet !== undefined) {
+        chat_metadata.rpg_companion.statSheet = existingStatSheet;
+    }
+
+    saveChatDebounced();
+}
+
+// ============================================================================
+// STAT SHEET PER-CHAT PERSISTENCE
+// ============================================================================
+
+/**
+ * The character-specific fields of the stat sheet.
+ * These are stored per-chat, NOT in global settings.
+ */
+const STAT_SHEET_CHAT_FIELDS = [
+    'attributes',
+    'savingThrows',
+    'level',
+    'jobs',
+    'feats',
+    'augments',
+    'augmentSlots',      // Character-specific body-slot layout — MUST be per-chat
+    'augmentTemplates',  // Character-specific saved augment templates — MUST be per-chat
+    'combatSkills',
+    'anatomicalDiagram',
+    'maxEquippedPages',
+    'maxEGOPerTier',
+    'affinities',   // Phase 0.5 — per-character, not global
+    'speedDice',    // Session 9 — optional speed dice config
+    'spriteUrl',    // Session 9 — character sprite URL (stores 'idb:<key>' or plain URL)
+    'gear',         // Session 14 — equipped gear items
+    'gearSlots'     // Session 14 — configurable gear slot definitions
+];
+
+/**
+ * Saves stat sheet character data into the current chat's metadata.
+ * Called whenever character data changes (addAttribute, removeSkill, etc.)
+ */
+export function saveStatSheetData() {
+    if (!chat_metadata) return;
+    if (!extensionSettings.statSheet) return;
+
+    if (!chat_metadata.rpg_companion) {
+        chat_metadata.rpg_companion = {};
+    }
+
+    const snapshot = {};
+    for (const field of STAT_SHEET_CHAT_FIELDS) {
+        if (extensionSettings.statSheet[field] !== undefined) {
+            snapshot[field] = extensionSettings.statSheet[field];
+        }
+    }
+
+    chat_metadata.rpg_companion.statSheet = snapshot;
     saveChatDebounced();
 }
 
 /**
- * Updates the last assistant message's swipe data with current tracker data.
+ * Loads stat sheet character data from the current chat's metadata.
+ * Falls back to a clean default state for new/empty chats.
+ * Global prefs (enabled, mode, editorSettings) are always preserved.
+ */
+export function loadStatSheetData() {
+    if (!extensionSettings.statSheet) return;
+
+    const saved = chat_metadata?.rpg_companion?.statSheet;
+
+    if (saved) {
+        // Restore only the per-chat fields — never touch global prefs
+        for (const field of STAT_SHEET_CHAT_FIELDS) {
+            if (saved[field] !== undefined) {
+                extensionSettings.statSheet[field] = saved[field];
+            }
+        }
+        console.log('[RPG Companion] Stat sheet data loaded from chat metadata');
+    } else {
+        // No chat metadata found. Only reset to defaults if in-memory state is
+        // also empty — this protects against a toggle disable→re-enable cycle
+        // where saveStatSheetData() hadn't yet committed data to chat_metadata.
+        const hasLiveData = Array.isArray(extensionSettings.statSheet.attributes)
+            && extensionSettings.statSheet.attributes.length > 0;
+
+        if (hasLiveData) {
+            console.log('[RPG Companion] No chat metadata for stat sheet but live data present — skipping reset');
+            return;
+        }
+
+        // New chat — reset character data to clean defaults
+        resetStatSheetCharacterData();
+        console.log('[RPG Companion] No stat sheet data for this chat — reset to defaults');
+    }
+}
+
+/**
+ * Resets only the per-chat character data fields to clean defaults.
+ * Preserves global prefs: enabled, mode, editorSettings.
+ */
+export function resetStatSheetCharacterData() {
+    if (!extensionSettings.statSheet) return;
+
+    // Current schema — matches what _migrate() expects so no migration needed on first load
+    const defaultAttributes = [
+        { id: 'str', name: 'STR', value: 10, rank: 'C', rankValue: 10, threshold: 0, enabled: true, collapsed: false, skills: [] },
+        { id: 'dex', name: 'DEX', value: 10, rank: 'C', rankValue: 10, threshold: 0, enabled: true, collapsed: false, skills: [] },
+        { id: 'con', name: 'CON', value: 10, rank: 'C', rankValue: 10, threshold: 0, enabled: true, collapsed: false, skills: [] },
+        { id: 'int', name: 'INT', value: 10, rank: 'C', rankValue: 10, threshold: 0, enabled: true, collapsed: false, skills: [] },
+        { id: 'wis', name: 'WIS', value: 10, rank: 'C', rankValue: 10, threshold: 0, enabled: true, collapsed: false, skills: [] },
+        { id: 'cha', name: 'CHA', value: 10, rank: 'C', rankValue: 10, threshold: 0, enabled: true, collapsed: false, skills: [] }
+    ];
+
+    extensionSettings.statSheet.attributes = defaultAttributes;
+
+    // Current saving throw schema (terms[] not sources/flatModifier)
+    extensionSettings.statSheet.savingThrows = [
+        { id: 'fortitude', name: 'Fortitude', terms: [{ id: 'fort_con', type: 'attribute', attrId: 'con', multiplier: 1 }], enabled: true },
+        { id: 'reflex',    name: 'Reflex',    terms: [{ id: 'ref_dex',  type: 'attribute', attrId: 'dex', multiplier: 1 }], enabled: true },
+        { id: 'will',      name: 'Will',      terms: [{ id: 'will_wis', type: 'attribute', attrId: 'wis', multiplier: 1 }], enabled: true }
+    ];
+    extensionSettings.statSheet.level = {
+        current: 1, autoCalculate: false, calculationMode: 'manual',
+        exp: 0, expCurve: 'linear', expPerLevel: 1000,
+        customCurve: [], showLevel: true, showExp: true
+    };
+    extensionSettings.statSheet.jobs             = [];
+    extensionSettings.statSheet.feats            = [];
+    extensionSettings.statSheet.augments         = [];
+    extensionSettings.statSheet.combatSkills     = [];
+    extensionSettings.statSheet.anatomicalDiagram = { enabled: true, highlightedParts: [] };
+    extensionSettings.statSheet.maxEquippedPages  = 9;
+    extensionSettings.statSheet.maxEGOPerTier     = 1;
+
+    // Seed a fresh affinities block for this character (disabled by default)
+    extensionSettings.statSheet.affinities = {
+        enabled:     false,
+        weakness:    { type: 'Slash', pool: 'damage' },
+        modifiers:   { Slash: { damage: 0, stagger: 0 }, Blunt: { damage: 0, stagger: 0 }, Pierce: { damage: 0, stagger: 0 } },
+        assignments: { Slash: { damage: 0, stagger: 0 }, Blunt: { damage: 0, stagger: 0 }, Pierce: { damage: 0, stagger: 0 } },
+        slotAttrId:  ''
+    };
+    extensionSettings.statSheet.speedDice = { enabled: false, count: 1, sides: 6, modifier: 0 };
+    extensionSettings.statSheet.spriteUrl = '';
+    // Reset augment slot data so ensureAugmentSlots() rebuilds clean defaults for this character
+    extensionSettings.statSheet.augmentSlots     = [];
+    extensionSettings.statSheet.augmentTemplates = [];
+}
+
+/**
+ * Export the full stat sheet as a JSON string for download.
+ * Includes both global prefs and the current per-chat character data.
+ *
+ * @returns {string|null} JSON string, or null if no stat sheet.
+ */
+export function exportStatSheet() {
+    const ss = extensionSettings.statSheet;
+    if (!ss) return null;
+    try {
+        return JSON.stringify(ss, null, 2);
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Import a stat sheet from a JSON string.
+ * Runs the migration guard so any old-schema data is upgraded on import.
+ * Requires user confirmation before overwriting — that prompt lives in the UI layer.
+ *
+ * @param {string} jsonText  — raw file text from FileReader
+ * @returns {boolean} true on success, false on parse/validation error
+ */
+export async function importStatSheet(jsonText) {
+    try {
+        const parsed = JSON.parse(jsonText);
+        if (typeof parsed !== 'object' || parsed === null) return false;
+
+        // Support both bare exports ({ mode, attributes, ... })
+        // and wrapped exports ({ version, exportDate, statSheet: { ... } })
+        const data = (parsed.statSheet && typeof parsed.statSheet === 'object')
+            ? parsed.statSheet
+            : parsed;
+
+        // Minimal sanity check — must have at least one recognisable stat sheet field
+        const SS_KEYS = new Set(['attributes','mode','enabled','jobs','feats','combatSkills','savingThrows']);
+        const looksLikeStatSheet = Object.keys(data).some(k => SS_KEYS.has(k));
+        if (!looksLikeStatSheet) return false;
+
+        if (!confirm('Replace current stat sheet data with the imported file?\n\nThis cannot be undone.')) {
+            return false;
+        }
+
+        // Merge: preserve extensionSettings identity, overwrite statSheet fields.
+        // Global prefs (enabled, mode, editorSettings, promptIncludes) come from the
+        // LIVE settings — NOT from the imported file. Importing a template that was
+        // exported with enabled:false or specific promptIncludes should never silently
+        // override what the user has configured in this session.
+        const IMPORT_GLOBAL_PREFS = ['enabled', 'mode', 'editorSettings', 'promptIncludes', 'modulesPool'];
+        const preserved = {};
+        for (const k of IMPORT_GLOBAL_PREFS) {
+            if (extensionSettings.statSheet[k] !== undefined) {
+                preserved[k] = extensionSettings.statSheet[k];
+            }
+        }
+        Object.assign(extensionSettings.statSheet, data);
+        // Restore global prefs so the import never clobbers them
+        Object.assign(extensionSettings.statSheet, preserved);
+        // Run migration to handle any schema differences in the imported data
+        const { initializeStatSheet } = await import('../systems/statSheet/statSheetState.js');
+        initializeStatSheet(); // migrate schema gaps before saving
+        saveSettings();
+        saveStatSheetData();
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
  * This ensures user edits are preserved across swipes and included in generation context.
  */
 export function updateMessageSwipeData() {
@@ -1110,4 +1360,3 @@ export function importPresets(importData, overwrite = false) {
 
     return importCount;
 }
-
