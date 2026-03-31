@@ -55,7 +55,7 @@ i want to be upfront that i used Claude (the AI) extensively to write and debug 
 
 this is important to me to credit properly because i built basically nothing from scratch conceptually — i just adapted and combined things that already existed.
 
-- **[Project Moon games]** (Library of Ruina, Limbus Company) — the entire combat engine structure, the clash system, die types, E.G.O Corrosion, Light and Sanity as resources. if you've played these games the combat system will feel very familiar.
+- **Project Moon games** (Library of Ruina, Limbus Company) — the entire combat engine structure, the clash system, die types, E.G.O Corrosion, Light and Sanity as resources. if you've played these games the combat system will feel very familiar.
 - **[Jakkafang's Stars of the City system](https://docs.google.com/document/d/1BnU-VNWkLPjhtYfSfpaErkzdUd_LYk2deGrSQgsatXk/edit?tab=t.zgcrpcvhyh3f)** — the direct mechanical inspiration for the clash engine. this is a fan-made TTRPG system based on Project Moon's combat that i used as the blueprint for the local resolution logic. if you're interested in the TTRPG system check out this doc.
 - **[Pathfinder](https://paizo.com/pathfinder)** — the job/feat structure, skill trees, and a lot of the general character sheet architecture is pulling from Pathfinder 2e's design sensibility
 - **[Cyberpunk RED](https://rtalsoriangames.com/cyberpunk/)** — stat design, the augment system
