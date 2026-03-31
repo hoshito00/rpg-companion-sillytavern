@@ -14,7 +14,7 @@ fair warning: i am not a developer. like, at all. most of this was built by desc
 
 a full character sheet that replaces the attribute grid. has tabs for everything — summary, attributes, jobs and feats, gear, augments, and combat skills.
 
-attributes can be numeric (STR 18 style) or alphabetic (letter ranks, going from FFF up to EX — yes i was thinking about Limbus Company when i designed this). there's a full skill tree, specialty point allocation, a gear slot system with stat bonuses, a body-slot augment system, and a combat skill deck builder.
+attributes can be numeric (STR 18 style) or alphabetic (letter ranks, going from FFF up to EX). there's a full skill tree, specialty point allocation, a gear slot system with stat bonuses, a body-slot augment system, and a combat skill deck builder.
 
 the deck builder is probably the most elaborate thing in here. skills have die sequences, tag modules (on hit effects, clash win effects, eminence triggers, etc.), and there's a separate pool for E.G.O skills which work differently.
 
