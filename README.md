@@ -1,290 +1,86 @@
-# RPG Companion Extension for SillyTavern
+# hoshito's RPG Companion — SillyTavern Fork
 
-An immersive RPG extension for browsers that tracks character stats, scene information, and character thoughts in a beautiful, customizable UI panel. All automated! Works with any preset. Choose between Together or Separate generation modes for context and generation control.
+a fork of [SpicyMarinara's RPG Companion](https://github.com/SpicyMarinara/rpg-companion-sillytavern). i've been messing with this thing for way too long and it's become kind of its own beast at this point, so i figured i'd give it its own page.
 
-[![My Discord](https://img.shields.io/badge/Discord-Join%20Server-7289da)](https://discord.com/invite/KdAkTg94ME)
-[![Support Me](https://img.shields.io/badge/Ko--fi-Support%20Creator-ff5e5b)](https://ko-fi.com/marinara_spaghetti)
+fair warning: i am not a developer. like, at all. most of this was built by describing what i wanted to Claude and then piecing together what it gave me until it stopped breaking. if you look at the source code and feel confused, that's valid and same.
 
-## 🆕 What's New
-
-### v3.7.2
- 
-- Minor bug fixes
-
-**Special thanks to all the other contributors for this project:**
-Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, Amauragis, Tomt610, and Jakstein!
-
-## 📥 Installation
-
-1. Open SillyTavern
-
-2. Go to the Extensions tab (cubes icon at the top)
-
-3. Go to Install extension
-
-4. Copy-paste this link: https://github.com/SpicyMarinara/rpg-companion-sillytavern
-
-5. Press Install for all users/Install just for me
-
-![png](https://i.imgur.com/DYuIMWt.png)
-
-![png](https://i.imgur.com/IJyIEMF.png)
-
-## ✨ Features
-
-![png](https://i.imgur.com/cVCAby0.png)
-
-### Core Functionality
-
-- **📊 User Stats Tracker**: Fully customizable stats with visual progress bars, custom status fields, skills section, and dynamic inventory management
-- **🌍 Info Box Dashboard**: Configurable widgets for date, weather, temperature, time, location, and recent events
-- **💭 Present Characters Panel**: Track multiple characters with custom fields, relationship badges, character-specific stats, and internal thoughts
-- **🎭 Floating Thought Bubbles**: Optional thought bubbles positioned next to character avatars in chat
-- **🎲 Classic RPG Stats**: STR, DEX, CON, INT, WIS, CHA attributes with dice roll support
-- **📦 Advanced Inventory System**: Multi-location storage (On Person, Stored locations, Assets) with v2 format
-- **🎯 Character Stats**: Track health, energy, or any custom stats for each present character with color interpolation
-- **📜 Immersive HTML**: Enhance the immersion by including creative HTML/CSS/JS elements in your roleplay
-- **➡️ Plot Progression**: Progress the plot with randomized events or natural progression with a click of a button
-- **🎨 Multiple Themes**: Cyberpunk, Fantasy, Minimal, Dark, Light, and Custom themes
-- **✏️ Live Editing**: Edit all tracker fields directly in the panels with auto-save
-- **💾 Per-Swipe Data Storage**: Each swipe preserves its own tracker data
-- **🎛️ Tracker Configuration**: Customize every aspect of trackers - add/remove stats, fields, widgets, and more
-
-### Smart Features
-
-- **🔄 Swipe Detection**: Automatically handles swipes and maintains correct tracker context
-- **📝 Context-Aware**: Weather, stats, and character states naturally influence the narrative
-- **🎭 Multiple Characters**: Tracks thoughts, relationships, and stats for all present characters
-- **📍 Thought Bubbles in Chat**: Optional floating thought bubbles positioned next to character avatars
-- **🌈 Customizable Colors**: Create your own theme with custom color schemes
-- **📱 Mobile Support**: Responsive design with horizontal scrolling for stats
-- **🔧 Advanced Configuration**: Add custom stats, fields, and widgets through Tracker Settings
-- **🎨 Color Interpolation**: Stats smoothly transition from low to high colors based on values
-- **💬 Multi-line Format**: Clean, structured format for AI generation and parsing
-- **🧹 Auto-cleanup**: Automatically removes placeholder brackets from AI responses
-
-### To-Do
-
-1. Allow users to use a different model for the separate trackers generation
-
-## ⚙️ Settings
-
-### Main Panel Controls
-
-- **Panel Position**: Left or Right side of the chat
-- **Theme**: Choose from 6 built-in themes or create a custom
-- **Auto-update after messages**: Automatically refresh RPG data after each message
-- **Context Messages**: How many recent messages to include when generating updates (only for Separate generation mode)
-
-### Display Options
-
-- **Show User Stats**: Display the character stats panel
-- **Show Info Box**: Display the scene information panel
-- **Show Character Thoughts**: Display the AI character's internal thoughts
-
-### Generation Modes
-
-#### Together Mode
-
-Tracker data is generated within the main AI response and automatically extracted:
-
-Example:
-User: walks into the tavern
-
-AI: Trackers + Full roleplay response
-
-↓ Extension extracts tracker data from the response
-
-↓ Displays in sidebar panels
-
-↓ Main chat shows clean roleplay text
-
-Pros:
-- Single API call
-- Faster response
-- Simpler setup
-
-Cons:
-- Tracker formatting mixed in AI response
-- May affect roleplay quality slightly
-
-#### Separate Mode
-
-Tracker data is generated in a separate API call after the main response:
-
-Example:
-User: walks into the tavern
-
-AI: Pure roleplay response - no tracker data
-
-AI: Separate call with just the tracker data
-
-↓ Extension sends a separate request with context
-
-↓ AI generates only tracker data
-
-↓ Displays in sidebar panels
-
-↓ Context summary injected into the next generation
-
-Pros:
-- Clean roleplay responses
-- Better roleplay quality
-- Contextual summary enhances immersion
-
-Cons:
-- Extra API call
-- Slightly slower
-
-### Model Selection
-
-- **Use main chat model**: Use the same model as your chat (recommended)
-- Custom model selection (coming soon)
-
-## 📝 How to Use
-
-### Quick Start
-
-1. Enable the extension in the Extensions tab
-2. Choose your generation mode: Together or Separate
-3. Select which panels to display (User Stats, Info Box, Character Thoughts)
-4. Start chatting! The tracker updates automatically
-
-### Editing Tracker Data
-
-You can edit most fields by clicking on them:
-
-- **User Stats**: Click on stat percentages, mood emoji, status fields, skills, inventory items, or quests
-- **Info Box**: Click on date fields, weather, temperature, time, location, or recent events
-- **Present Characters**: Click on character emoji, name, custom fields, relationship badge, or stats
-- **Thought Bubbles**: Click on thought text to edit (bubble will refresh to maintain positioning)
-
-### Tracker Configuration
-
-Access comprehensive customization through the Tracker Settings button:
-
-**User Stats Configuration:**
-- Add/remove custom stats with unique names
-- Configure Status section (mood emoji + custom fields)
-- Configure Skills section with custom skill fields
-- Toggle RPG attributes display
-
-**Info Box Configuration:**
-- Enable/disable individual widgets (Date, Weather, Temperature, Time, Location, Recent Events)
-- Choose temperature unit (Celsius/Fahrenheit)
-
-**Present Characters Configuration:**
-- Add custom character fields (appearance, action, demeanor, etc.)
-- Configure relationship status options
-- Enable character-specific stats tracking
-- Customize thought bubble label and description
-- All fields are dynamically generated in prompts
-
-### Swipe Support
-
-The extension fully supports swipes:
-
-- Each swipe stores its own tracker data
-- Swiping loads the data for that specific swipe
-- New swipe generation uses the committed data from before the swipe
-- User edits are preserved across swipes
-
-### Manual Update
-
-You can click the "Refresh RPG Info" button in the settings to refresh the RPG data at any time in separate generation mode.
-
-### Compatibility with Guided Generations
-
-This extension detects when a "guided generation" prompt is submitted (for example, via the GuidedGenerations extension which injects an ephemeral `instruct` prompt), and will avoid adding its tracker injection instructions (requests for stats, info box, and context prompts) to the generation context. This prevents conflicting instructions and ensures guided generations behave as the user expects.
-
-If you want tracker prompts to apply during a guided generation, run the update via separate generation or temporarily disable guided generation in the other extension.
-
-There is a new setting "Skip Tracker & HTML Injections during Guided Generations" in the RPG Companion settings (Advanced section). It now supports three modes:
-- none: never skip (always inject the tracker prompts as usual, default)
-- impersonation: only skip when an impersonation-style guided generation is detected
-- guided: skip whenever a guided `instruct` or `quiet_prompt` generation is detected
-
-
-## 🎨 Themes
-
-Choose from 6 beautiful themes:
-
-- **Cyberpunk**: Neon pink and cyan with futuristic vibes
-- **Fantasy**: Purple and gold with mystical aesthetics
-- **Minimal**: Clean monochrome design
-- **Dark**: Deep blacks and subtle accents
-- **Light**: Bright and airy interface
-- **Custom**: Create your own with custom colors
-
-## 🛠️ Technical Details
-
-If you ever have an awesome idea to do your own SillyTavern extension, don't.
-
-## 🐛 Troubleshooting
-
-### Extension doesn't appear
-
-- Refresh your browser
-- Restart SillyTavern
-- Ensure it's enabled in the Extensions tab
-
-### Stats not updating
-
-- Check that "Auto-update" is enabled
-- Try clicking "Manual Update" to test
-- Verify your AI backend is responding correctly
-- Check console for error messages
-
-### Display issues
-
-- Try refreshing the page
-- Check if other extensions are conflicting
-- Verify CSS is loading correctly
-
-### Thought bubble positioning
-
-- Bubbles use a fixed 350px width for consistent positioning
-- Bubbles refresh after edits to maintain alignment
-- If issues persist, try toggling the Character Thoughts display
-
-## 📜 License
-
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-Copyright (C) 2024 marinara_spaghetti
-
-## 💖 Support
-
-If you enjoy this extension, consider supporting development:
-
-- [Join our Discord community](https://discord.com/invite/KdAkTg94ME)
-- [Support on Ko-fi](https://ko-fi.com/marinara_spaghetti)
-
-## 🙏 Credits
-
-**Contributors:**
-SpicyMarinara, Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, Amauragis, Tomt610, and Jakstein.
-
-## 🚀 Planned Features
-
-- Support for selecting a different model for RPG updates
-
-## 💡 Tips
-
-1. **Context Messages**: Start with 4 messages and adjust based on your needs. More messages = better context, but slower updates
-2. **Performance**: If updates are slow, consider reducing the context depth or using a faster model
-3. **Customization**: You can modify the prompts in index.js to add your own stat categories or change the format
-
-## 📋 Compatibility
-
-- Requires SillyTavern 1.11.0 or higher
-- Works with all AI backends (OpenAI, Claude, KoboldAI, etc.)
+### also it might not work as intended because it's still in an unfinished state.
 
 ---
 
-Made with ❤️ by Marinara
+## what's in here
 
-PS I'm looking for a job or a sponsor to fund my custom AI frontend, contact me if interested:
-mgrabower97@gmail.com
+### the stat sheet
+
+a full character sheet that replaces the attribute grid. has tabs for everything — summary, attributes, jobs and feats, gear, augments, and combat skills.
+
+attributes can be numeric (STR 18 style) or alphabetic (letter ranks, going from FFF up to EX — yes i was thinking about Limbus Company when i designed this). there's a full skill tree, specialty point allocation, a gear slot system with stat bonuses, a body-slot augment system, and a combat skill deck builder.
+
+the deck builder is probably the most elaborate thing in here. skills have die sequences, tag modules (on hit effects, clash win effects, eminence triggers, etc.), and there's a separate pool for E.G.O skills which work differently.
+
+---
+
+### the combat engine
+
+this is the part i'm most proud of, and also the part that took the longest and broke the most. it's a local dice resolution system for turn-based encounters, meaning the actual clash math happens client-side rather than being left up to the AI to figure out.
+
+it works like this: you hit **Start Encounter**, pick a combat skill or type a custom action, and the AI generates enemy actions wrapped in tags. the extension parses those tags and resolves everything locally — damage, clashing, stagger, affinities, speed order. the results feed back into the HP bars and the HUD.
+
+the die types are slash, pierce, blunt for attacking, and block or evade for defense. clashes resolve in a linear queue, ties cancel, evade has a recycle mechanic. it's very specifically based on how combat works in Project Moon's games (Limbus Company / Library of Ruina), adapted for a text RPG context.
+
+the HUD is supposed to track:
+- **Light** — currency for using combat skills, refills every round
+- **Sanity** — goes up when you win clashes and land kills, goes down when you lose them. if it hits -45 you go into E.G.O Corrosion and can only use E.G.O skills until you recover
+- **Round** — current round counter
+
+---
+
+## settings
+
+the main panel has controls for position (left, right, or top), theme, whether to auto-update, how many context messages to include in Separate mode, and generation mode.
+
+inside the **Tracker Settings** button there's a lot more: configuring which stats exist and how they display, setting up the info box widgets, customizing the present characters panel, and controlling which fields get injected into historical messages.
+
+there's also a **Preset Manager** so you can have different tracker configurations for different characters or genres and switch between them.
+
+---
+
+## a note on how this was built
+
+i want to be upfront that i used Claude (the AI) extensively to write and debug most of the code in this fork. i had a clear vision for what i wanted, i understood the systems i was adapting, and i did a lot of the design work — but the actual implementation was very much a collaboration with an AI because i don't know how to code.
+
+---
+
+## where the ideas came from
+
+this is important to me to credit properly because i built basically nothing from scratch conceptually — i just adapted and combined things that already existed.
+
+- **[Project Moon games]** (Library of Ruina, Limbus Company) — the entire combat engine structure, the clash system, die types, E.G.O Corrosion, Light and Sanity as resources. if you've played these games the combat system will feel very familiar.
+- **[Jakkafang's Stars of the City system](https://docs.google.com/document/d/1BnU-VNWkLPjhtYfSfpaErkzdUd_LYk2deGrSQgsatXk/edit?tab=t.zgcrpcvhyh3f)** — the direct mechanical inspiration for the clash engine. this is a fan-made TTRPG system based on Project Moon's combat that i used as the blueprint for the local resolution logic. if you're interested in the TTRPG system check out this doc.
+- **[Pathfinder](https://paizo.com/pathfinder)** — the job/feat structure, skill trees, and a lot of the general character sheet architecture is pulling from Pathfinder 2e's design sensibility
+- **[Cyberpunk RED](https://rtalsoriangames.com/cyberpunk/)** — stat design, the augment system
+
+and of course the original extension by **SpicyMarinara**, which is what all of this is built on top of.
+
+---
+
+## license
+
+GNU Affero General Public License v3.0 or later. see [LICENSE](LICENSE).
+
+---
+
+## credits
+
+**original author:** SpicyMarinara
+
+**original contributors:** Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, Amauragis, Tomt610, Jakstein
+
+**this fork:** hoshito00
+
+---
+
+## support the original
+
+- [SpicyMarinara's Discord](https://discord.com/invite/KdAkTg94ME)
+- [SpicyMarinara on Ko-fi](https://ko-fi.com/marinara_spaghetti)
