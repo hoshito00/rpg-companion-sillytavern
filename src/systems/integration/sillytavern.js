@@ -51,6 +51,10 @@ import { updateStripWidgets } from '../ui/desktop.js';
 import { updateAllCheckpointIndicators } from '../ui/checkpointUI.js';
 import { restoreCheckpointOnLoad } from '../features/chapterCheckpoint.js';
 
+// Stat tag processing (Session 18)
+import { parseStatTags } from '../generation/parseStatTags.js';
+import { advanceAttributeGrade } from '../statSheet/statSheetState.js';
+
 /**
  * Commits the tracker data from the last assistant message to be used as source for next generation.
  * This should be called when the user has replied to a message, ensuring all swipes of the next
@@ -275,6 +279,32 @@ export async function onMessageReceived(data) {
                 updateFabWidgets();
                 updateStripWidgets();
             }, 500);
+        }
+    }
+
+// ── Process stat mutation tags (<attr_advance>) ────────────────────────────
+    // Runs on every new AI message in all generation modes.
+    // Guarded by isAwaitingNewMessage to skip history loads.
+    // OQ-11 note: currently fires on any AI message, not just combat.
+    //             Restrict to encounter context here if that changes.
+    if (extensionSettings.statSheet?.enabled && isAwaitingNewMessage) {
+        const _statMsg = chat[chat.length - 1];
+        if (_statMsg && !_statMsg.is_user) {
+            const { attrAdvances, hasTags } = parseStatTags(_statMsg.mes);
+            if (hasTags) {
+                let anyAdvanced = false;
+                for (const { attrId } of attrAdvances) {
+                    const result = advanceAttributeGrade(attrId);
+                    if (result.success) {
+                        console.log(`[RPG Companion] <attr_advance> "${attrId}" → ${result.newRank}`);
+                        anyAdvanced = true;
+                    } else {
+                        console.warn(`[RPG Companion] <attr_advance> skipped for "${attrId}": ${result.reason}`);
+                    }
+                }
+                // If any attributes advanced, the stat sheet UI will reflect changes
+                // on next open — no active panel refresh needed here.
+            }
         }
     }
 

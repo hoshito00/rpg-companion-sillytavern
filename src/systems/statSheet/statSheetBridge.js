@@ -4,6 +4,7 @@
 
 import { extensionSettings } from '../../core/state.js';
 import { saveSettings, saveStatSheetData } from '../../core/persistence.js';
+import { resolveEquippedGearAffinities, resolveEquippedGearBonuses } from '../interaction/gearActions.js';
 
 // ============================================================================
 // CONSTANTS
@@ -1243,6 +1244,91 @@ function _resolveModValue(mod, ss) {
     return 0;
 }
 
+// ============================================================================
+// CONDITION BAR MAX RESOLUTION  (Tier 3)
+// ============================================================================
+
+/**
+ * Resolve the effective maximum value for a condition bar (customStat).
+ *
+ * Supports four scale sources:
+ *   'attribute'   — existing behaviour, keyed by scaleWithAttribute or scaleId
+ *   'skill'       — skill.level (numeric) or gradeValue (alphabetic)
+ *   'subskill'    — subSkill.level
+ *   'savingThrow' — calculateSavingThrowValue()
+ *
+ * Falls back to stat.maxValue if the stat sheet is disabled or the target
+ * is not found / not enabled.
+ *
+ * Schema fields read from stat:
+ *   maxValue        {number}  — base max (fallback)
+ *   scaleSource     {string}  — 'attribute'|'skill'|'subskill'|'savingThrow'
+ *   scaleId         {string}  — target ID (skill/subskill/ST); for 'attribute'
+ *                               falls back to legacy scaleWithAttribute
+ *   scaleWithAttribute {string} — legacy attribute ID (kept for backwards compat)
+ *   scaleMultiplier {number}  — applied to the resolved value (default 1)
+ *   scaleBonus      {number}  — flat added after multiply (default 0)
+ *
+ * @param {object} stat  — a customStat config object from trackerConfig
+ * @returns {number}
+ */
+export function resolveBarMax(stat) {
+    const baseMax = stat.maxValue || 100;
+    const ss      = extensionSettings.statSheet;
+
+    // Determine which source type to use (default: attribute for backwards compat)
+    const source = stat.scaleSource
+        || (stat.scaleWithAttribute ? 'attribute' : null);
+
+    if (!source || !ss?.enabled) return baseMax;
+
+    const multiplier = parseFloat(stat.scaleMultiplier) || 1;
+    const bonus      = parseFloat(stat.scaleBonus)      || 0;
+    const es         = ss.editorSettings;
+    const gvm        = es?.gradeValueMap    || {};
+    const divisor    = es?.attrValueDivisor || 100;
+
+    let scaleValue = 0;
+
+    if (source === 'attribute') {
+        const attrId = stat.scaleId || stat.scaleWithAttribute;
+        const attr   = (ss.attributes || []).find(a => a.id === attrId && a.enabled);
+        if (!attr) return baseMax;
+        scaleValue = ss.mode === 'numeric'
+            ? (attr.value ?? 0)
+            : (gvm[attr.rank] ?? 0) + Math.floor((attr.rankValue ?? 0) / divisor);
+
+    } else if (source === 'skill') {
+        for (const attr of (ss.attributes || [])) {
+            if (!attr.enabled) continue;
+            const sk = (attr.skills || []).find(s => s.id === stat.scaleId && s.enabled);
+            if (!sk) continue;
+            scaleValue = sk.mode === 'alphabetic'
+                ? (gvm[sk.rank ?? 'C'] ?? 0) + Math.floor((sk.rankValue ?? 0) / divisor)
+                : (sk.level ?? 0);
+            break;
+        }
+
+    } else if (source === 'subskill') {
+        outer: for (const attr of (ss.attributes || [])) {
+            if (!attr.enabled) continue;
+            for (const sk of (attr.skills || [])) {
+                if (!sk.enabled) continue;
+                const sub = (sk.subSkills || []).find(s => s.id === stat.scaleId && s.enabled);
+                if (!sub) continue;
+                scaleValue = sub.level ?? 0;
+                break outer;
+            }
+        }
+
+    } else if (source === 'savingThrow') {
+        const st = (ss.savingThrows || []).find(s => s.id === stat.scaleId && s.enabled);
+        if (st) scaleValue = calculateSavingThrowValue(st);
+    }
+
+    return Math.max(1, Math.floor(scaleValue * multiplier) + bonus);
+}
+
 /**
  * Build a lightweight snapshot of the player suitable for use in resolveClash.
  *
@@ -1259,25 +1345,32 @@ export function buildPlayerSnap({ isStaggered = false } = {}) {
     const hpStat   = extensionSettings.trackerConfig?.userStats?.customStats
                          ?.find(s => s.id === 'health');
     const maxHp    = hpStat?.maxValue ?? 100;
-    const hp       = Math.max(0, Math.min(maxHp, us.health ?? maxHp));
+
+    // Include gear stat bonuses in HP calculation
+    const gearBonuses = resolveEquippedGearBonuses();
+    const hpStatId    = hpStat?.id || 'health';
+    const gearHpBonus = gearBonuses[hpStatId] ?? 0;
+    const maxHpWithGear = Math.max(1, maxHp + gearHpBonus);
+    const hp       = Math.max(0, Math.min(maxHpWithGear, us.health ?? maxHpWithGear));
 
     // Stagger defaults — overridden by encounter engine if a prior state exists.
     const maxStaggerResist = 20;
     const staggerResist    = maxStaggerResist;
 
-    // Build affinities map from statSheet modifiers.
-    const ssAff  = extensionSettings.statSheet?.affinities?.modifiers ?? {};
+    // Merge pre-computed stat sheet affinity modifiers + equipped gear affinity bonuses
+    const ssAff      = extensionSettings.statSheet?.affinities?.modifiers ?? {};
+    const gearAff    = resolveEquippedGearAffinities();
     const affinities = {};
-    for (const [dmgType, pools] of Object.entries(ssAff)) {
+    for (const dmgType of ['Slash', 'Blunt', 'Pierce']) {
         affinities[dmgType] = {
-            damage:  pools.damage  ?? 0,
-            stagger: pools.stagger ?? 0,
+            damage:  (ssAff[dmgType]?.damage  ?? 0) + (gearAff[dmgType]?.damage  ?? 0),
+            stagger: (ssAff[dmgType]?.stagger ?? 0) + (gearAff[dmgType]?.stagger ?? 0),
         };
     }
 
     return {
         hp,
-        maxHp,
+        maxHp: maxHpWithGear,
         staggerResist,
         maxStaggerResist,
         affinities,

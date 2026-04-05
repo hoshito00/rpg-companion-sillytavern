@@ -298,6 +298,9 @@ function closeTrackerEditor() {
 function applyTrackerConfig() {
     tempConfig = null; // Clear temp config
 
+    // BUG-01 guard: never write RPG attribute config when Stat Sheet is active
+    const statSheetActive = extensionSettings.statSheet?.enabled === true;
+
     // Apply pending association changes
     if (tempAssociation) {
         if (tempAssociation.presetId !== null) {
@@ -316,7 +319,19 @@ function applyTrackerConfig() {
     // Save to the current preset
     const currentPresetId = getActivePresetId();
     if (currentPresetId) {
-        saveToPreset(currentPresetId);
+        // If stat sheet is active, strip RPG attribute fields from the saved config
+        if (statSheetActive) {
+            const saved = JSON.parse(JSON.stringify(extensionSettings.trackerConfig));
+            // These keys are managed by the Stat Sheet — don't overwrite with stale UI values
+            delete saved.userStats.rpgAttributes;
+            delete saved.userStats.showRPGAttributes;
+            delete saved.userStats.showLevel;
+            delete saved.userStats.alwaysSendAttributes;
+            extensionSettings.presetManager.presets[currentPresetId].trackerConfig = saved;
+            saveSettings();
+        } else {
+            saveToPreset(currentPresetId);
+        }
     } else {
         saveSettings();
     }
@@ -335,10 +350,10 @@ function resetToDefaults() {
     extensionSettings.trackerConfig = {
         userStats: {
             customStats: [
-                { id: 'health',  name: 'Health',  enabled: true, displayMode: 'percentage', maxValue: 100, scaleWithAttribute: '', scaleMultiplier: 1, scaleBonus: 0, persistInHistory: false },
-                { id: 'satiety', name: 'Satiety', enabled: true, displayMode: 'percentage', maxValue: 100, scaleWithAttribute: '', scaleMultiplier: 1, scaleBonus: 0, persistInHistory: false },
-                { id: 'energy',  name: 'Energy',  enabled: true, displayMode: 'percentage', maxValue: 100, scaleWithAttribute: '', scaleMultiplier: 1, scaleBonus: 0, persistInHistory: false },
-                { id: 'hygiene', name: 'Hygiene', enabled: true, displayMode: 'percentage', maxValue: 100, scaleWithAttribute: '', scaleMultiplier: 1, scaleBonus: 0, persistInHistory: false }
+                { id: 'health',  name: 'Health',  enabled: true, displayMode: 'percentage', maxValue: 100, scaleSource: '', scaleId: '', scaleWithAttribute: '', scaleMultiplier: 1, scaleBonus: 0, persistInHistory: false },
+                { id: 'satiety', name: 'Satiety', enabled: true, displayMode: 'percentage', maxValue: 100, scaleSource: '', scaleId: '', scaleWithAttribute: '', scaleMultiplier: 1, scaleBonus: 0, persistInHistory: false },
+                { id: 'energy',  name: 'Energy',  enabled: true, displayMode: 'percentage', maxValue: 100, scaleSource: '', scaleId: '', scaleWithAttribute: '', scaleMultiplier: 1, scaleBonus: 0, persistInHistory: false },
+                { id: 'hygiene', name: 'Hygiene', enabled: true, displayMode: 'percentage', maxValue: 100, scaleSource: '', scaleId: '', scaleWithAttribute: '', scaleMultiplier: 1, scaleBonus: 0, persistInHistory: false }
             ],
             showRPGAttributes: true,
             rpgAttributes: [
@@ -528,6 +543,8 @@ function migrateTrackerPreset(config) {
                 displayMode:        stat.displayMode        ?? 'percentage',
                 maxValue:           stat.maxValue           ?? 100,
                 scaleWithAttribute: stat.scaleWithAttribute ?? '',
+                scaleSource:        stat.scaleSource        ?? (stat.scaleWithAttribute ? 'attribute' : ''),
+                scaleId:            stat.scaleId            ?? stat.scaleWithAttribute ?? '',
                 scaleMultiplier:    stat.scaleMultiplier    ?? 1,
                 scaleBonus:         stat.scaleBonus         ?? 0,
                 persistInHistory:   stat.persistInHistory   ?? false
@@ -739,17 +756,67 @@ function renderUserStatsTab() {
     html += '<div class="rpg-editor-stats-list" id="rpg-editor-stats-list">';
 
     config.customStats.forEach((stat, index) => {
-        const statDisplayMode = stat.displayMode || 'percentage'; // Per-stat display mode
-        const maxValue = stat.maxValue || 100;
-        const scaleAttr = stat.scaleWithAttribute || '';
+        const statDisplayMode = stat.displayMode || 'percentage';
+        const maxValue        = stat.maxValue    || 100;
+
+        // ── Normalise legacy fields so the UI always reads from scaleSource/scaleId ──
+        const scaleSource = stat.scaleSource || (stat.scaleWithAttribute ? 'attribute' : '');
+        const scaleId     = stat.scaleId     || stat.scaleWithAttribute || '';
         const scaleMultiplier = stat.scaleMultiplier || 1;
-        const scaleBonus = stat.scaleBonus || 0;
-        
-        // Get available stat sheet attributes for scaling dropdown
-        const statSheetAttrs = extensionSettings.statSheet?.attributes?.filter(a => a.enabled) || [];
-        const attrOptions = statSheetAttrs.map(a => 
-            `<option value="${a.id}" ${scaleAttr === a.id ? 'selected' : ''}>${a.name}</option>`
+        const scaleBonus      = stat.scaleBonus      || 0;
+
+        // ── Build option lists for each source type ───────────────────────────────
+        const ss = extensionSettings.statSheet;
+
+        const attrList = (ss?.attributes || []).filter(a => a.enabled);
+        const attrOpts = attrList.map(a =>
+            `<option value="${a.id}" ${scaleSource === 'attribute' && scaleId === a.id ? 'selected' : ''}>${a.name}</option>`
         ).join('');
+
+        // Skills: flat list across all attributes
+        const skillList = [];
+        for (const attr of attrList) {
+            for (const sk of (attr.skills || [])) {
+                if (sk.enabled) skillList.push({ id: sk.id, label: `${attr.name} › ${sk.name}` });
+            }
+        }
+        const skillOpts = skillList.map(s =>
+            `<option value="${s.id}" ${scaleSource === 'skill' && scaleId === s.id ? 'selected' : ''}>${s.label}</option>`
+        ).join('');
+
+        // Sub-skills: flat list with breadcrumb label
+        const subSkillList = [];
+        for (const attr of attrList) {
+            for (const sk of (attr.skills || [])) {
+                if (!sk.enabled) continue;
+                for (const sub of (sk.subSkills || [])) {
+                    if (sub.enabled) subSkillList.push({ id: sub.id, label: `${attr.name} › ${sk.name} › ${sub.name}` });
+                }
+            }
+        }
+        const subSkillOpts = subSkillList.map(s =>
+            `<option value="${s.id}" ${scaleSource === 'subskill' && scaleId === s.id ? 'selected' : ''}>${s.label}</option>`
+        ).join('');
+
+        // Saving throws
+        const stList = (ss?.savingThrows || []).filter(s => s.enabled);
+        const stOpts = stList.map(s =>
+            `<option value="${s.id}" ${scaleSource === 'savingThrow' && scaleId === s.id ? 'selected' : ''}>${s.name}</option>`
+        ).join('');
+
+        // Whether ANY scale is active (drives formula row visibility)
+        const hasScale = !!scaleSource;
+
+        // Helper: build the ID dropdown for a given source type
+        function _idDropdown(src) {
+            if (src === 'attribute')   return attrOpts     ? `<select class="rpg-stat-scale-id rpg-input" data-index="${index}" style="padding:4px 8px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:inherit;"><option value="">— pick attribute —</option>${attrOpts}</select>` : '<em style="opacity:.5">No attributes defined</em>';
+            if (src === 'skill')       return skillOpts    ? `<select class="rpg-stat-scale-id rpg-input" data-index="${index}" style="padding:4px 8px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:inherit;"><option value="">— pick skill —</option>${skillOpts}</select>` : '<em style="opacity:.5">No skills defined</em>';
+            if (src === 'subskill')    return subSkillOpts ? `<select class="rpg-stat-scale-id rpg-input" data-index="${index}" style="padding:4px 8px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:inherit;"><option value="">— pick sub-skill —</option>${subSkillOpts}</select>` : '<em style="opacity:.5">No sub-skills defined</em>';
+            if (src === 'savingThrow') return stOpts       ? `<select class="rpg-stat-scale-id rpg-input" data-index="${index}" style="padding:4px 8px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:inherit;"><option value="">— pick saving throw —</option>${stOpts}</select>` : '<em style="opacity:.5">No saving throws defined</em>';
+            return '';
+        }
+
+        const sourceLabel = { attribute: 'Attribute', skill: 'Skill', subskill: 'Sub-Skill', savingThrow: 'Saving Throw' }[scaleSource] || '';
         
         html += `
             <div class="rpg-editor-stat-item-expanded" data-index="${index}" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 12px; margin-bottom: 10px;">
@@ -771,26 +838,36 @@ function renderUserStatsTab() {
                         </select>
                     </div>
                     
-                    <!-- Max value (shown when number mode AND not scaling) -->
-                    <div class="rpg-stat-control-group ${statDisplayMode === 'number' && !scaleAttr ? '' : 'rpg-hidden'}" data-control="max-value" style="display: flex; flex-direction: column; gap: 4px;">
+                    <!-- Max value (shown when number mode AND no scaling) -->
+                    <div class="rpg-stat-control-group ${statDisplayMode === 'number' && !hasScale ? '' : 'rpg-hidden'}" data-control="max-value" style="display: flex; flex-direction: column; gap: 4px;">
                         <label class="rpg-control-label" style="opacity: 0.7; font-size: 0.85em; font-weight: 600;">Max Value:</label>
                         <input type="number" value="${maxValue}" class="rpg-stat-max rpg-input" data-index="${index}" placeholder="100" min="1" step="1" style="padding: 4px 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: inherit; width: 80px;">
                     </div>
                     
-                    <!-- Stat sheet scaling -->
+                    <!-- Scale source type -->
                     <div class="rpg-stat-control-group" style="display: flex; flex-direction: column; gap: 4px;">
-                        <label class="rpg-control-label" style="opacity: 0.7; font-size: 0.85em; font-weight: 600;">Scale with Attribute:</label>
-                        <select class="rpg-stat-scale-attr rpg-input" data-index="${index}" style="padding: 4px 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: inherit;">
+                        <label class="rpg-control-label" style="opacity: 0.7; font-size: 0.85em; font-weight: 600;">Scale Source:</label>
+                        <select class="rpg-stat-scale-source rpg-input" data-index="${index}" style="padding: 4px 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: inherit;">
                             <option value="">None (manual)</option>
-                            ${attrOptions}
+                            <option value="attribute"   ${scaleSource === 'attribute'   ? 'selected' : ''}>Attribute</option>
+                            <option value="skill"       ${scaleSource === 'skill'       ? 'selected' : ''}>Skill</option>
+                            <option value="subskill"    ${scaleSource === 'subskill'    ? 'selected' : ''}>Sub-Skill</option>
+                            <option value="savingThrow" ${scaleSource === 'savingThrow' ? 'selected' : ''}>Saving Throw</option>
                         </select>
                     </div>
+
+                    <!-- Scale target ID (conditional on source) -->
+                    ${hasScale ? `
+                    <div class="rpg-stat-control-group" data-control="scale-id" style="display: flex; flex-direction: column; gap: 4px;">
+                        <label class="rpg-control-label" style="opacity: 0.7; font-size: 0.85em; font-weight: 600;">Scale Target (${sourceLabel}):</label>
+                        ${_idDropdown(scaleSource)}
+                    </div>` : ''}
                 </div>
                 
-                <!-- Scaling formula (shown when attribute selected) -->
-                <div class="rpg-stat-scaling-formula ${scaleAttr ? '' : 'rpg-hidden'}" data-control="scaling" style="margin-top: 8px; padding: 8px; background: rgba(100,150,200,0.1); border: 1px solid rgba(100,150,200,0.2); border-radius: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 0.9em;">
+                <!-- Scaling formula (shown when a scale source is active) -->
+                <div class="rpg-stat-scaling-formula ${hasScale ? '' : 'rpg-hidden'}" data-control="scaling" style="margin-top: 8px; padding: 8px; background: rgba(100,150,200,0.1); border: 1px solid rgba(100,150,200,0.2); border-radius: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 0.9em;">
                     <span class="rpg-formula-part" style="opacity: 0.8; font-weight: 600;">Max =</span>
-                    <span class="rpg-formula-part" style="opacity: 0.7;">Attribute ×</span>
+                    <span class="rpg-formula-part" style="opacity: 0.7;">${sourceLabel || 'Source'} value ×</span>
                     <input type="number" value="${scaleMultiplier}" class="rpg-stat-scale-mult rpg-input" data-index="${index}" step="0.1" placeholder="1" title="Multiplier" style="width: 60px; padding: 4px 6px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); border-radius: 3px; color: inherit;">
                     <span class="rpg-formula-part" style="opacity: 0.7;">+</span>
                     <input type="number" value="${scaleBonus}" class="rpg-stat-scale-bonus rpg-input" data-index="${index}" step="1" placeholder="0" title="Flat bonus" style="width: 60px; padding: 4px 6px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); border-radius: 3px; color: inherit;">
@@ -805,83 +882,75 @@ function renderUserStatsTab() {
 
     // RPG Attributes section — dimmed when Stat Sheet is enabled (they're mutually exclusive)
     const statSheetEnabled = extensionSettings.statSheet?.enabled === true;
-    const dimStyle = statSheetEnabled
-        ? 'opacity:0.35; pointer-events:none; user-select:none; position:relative;'
-        : '';
-    const dimNote = statSheetEnabled
-        ? `<div style="
-               position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-               pointer-events:auto; cursor:default; z-index:2;
-           ">
-               <span style="
-                   background:rgba(20,24,32,0.85); border:1px solid rgba(255,255,255,0.12);
-                   border-radius:6px; padding:8px 14px; font-size:12px; color:rgba(255,255,255,0.6);
-                   text-align:center; backdrop-filter:blur(2px);
-               ">
-                   <i class='fa-solid fa-lock' style='margin-right:6px;opacity:0.7;'></i>
-                   Disabled — Stat Sheet is active
-               </span>
-           </div>`
-        : '';
 
-    html += `<div style="position:relative;">`;
-    if (dimNote) html += dimNote;
-    html += `<div style="${dimStyle}">`;
-    html += `<h4 style="margin-top:24px;"><i class="fa-solid fa-dice-d20"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.rpgAttributesTitle')}</h4>`;
-
-    // Enable/disable toggle for entire RPG Attributes section
-    const showRPGAttributes = config.showRPGAttributes !== undefined ? config.showRPGAttributes : true;
-    html += '<div class="rpg-editor-toggle-row">';
-    html += `<input type="checkbox" id="rpg-show-rpg-attrs" ${showRPGAttributes ? 'checked' : ''}>`;
-    html += `<label for="rpg-show-rpg-attrs">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.enableRpgAttributes')}</label>`;
-    html += '</div>';
-
-    // Show/hide level toggle
-    const showLevel = config.showLevel !== undefined ? config.showLevel : true;
-    html += '<div class="rpg-editor-toggle-row">';
-    html += `<input type="checkbox" id="rpg-show-level" ${showLevel ? 'checked' : ''}>`;
-    html += `<label for="rpg-show-level">Show Level</label>`;
-    html += '</div>';
-
-    // Always send attributes toggle
-    const alwaysSendAttributes = config.alwaysSendAttributes !== undefined ? config.alwaysSendAttributes : false;
-    html += '<div class="rpg-editor-toggle-row">';
-    html += `<input type="checkbox" id="rpg-always-send-attrs" ${alwaysSendAttributes ? 'checked' : ''}>`;
-    html += `<label for="rpg-always-send-attrs">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.alwaysIncludeAttributes')}</label>`;
-    html += '</div>';
-    html += `<small class="rpg-editor-note">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.alwaysIncludeAttributesNote')}</small>`;
-
-    html += '<div class="rpg-editor-stats-list" id="rpg-editor-attrs-list">';
-
-    // Ensure rpgAttributes exists in the actual config (not just local fallback)
-    if (!config.rpgAttributes || config.rpgAttributes.length === 0) {
-        config.rpgAttributes = [
-            { id: 'str', name: 'STR', enabled: true },
-            { id: 'dex', name: 'DEX', enabled: true },
-            { id: 'con', name: 'CON', enabled: true },
-            { id: 'int', name: 'INT', enabled: true },
-            { id: 'wis', name: 'WIS', enabled: true },
-            { id: 'cha', name: 'CHA', enabled: true }
-        ];
-        // Save the defaults back to the actual config
-        extensionSettings.trackerConfig.userStats.rpgAttributes = config.rpgAttributes;
-    }
-
-    const rpgAttributes = config.rpgAttributes;
-
-    rpgAttributes.forEach((attr, index) => {
+    // BUG-01 fix: when Stat Sheet is active, fully hide the RPG Attributes section
+    // instead of a dim overlay — dim leaves checkboxes readable on Save & Apply.
+    if (statSheetEnabled) {
         html += `
-            <div class="rpg-editor-stat-item" data-index="${index}">
-                <input type="checkbox" ${attr.enabled ? 'checked' : ''} class="rpg-attr-toggle" data-index="${index}">
-                <input type="text" value="${attr.name}" class="rpg-attr-name" data-index="${index}" placeholder="Attribute Name">
-                <button class="rpg-attr-remove" data-index="${index}" title="Remove attribute"><i class="fa-solid fa-trash"></i></button>
+            <div class="rpg-editor-section" style="opacity:0.35; pointer-events:none; user-select:none;">
+                <h4><i class="fa-solid fa-dice-d20"></i> RPG Attributes
+                    <span style="margin-left:8px; font-size:11px; font-weight:400; color:#ff9999;">
+                        (hidden — Stat Sheet is active)
+                    </span>
+                </h4>
+                <p class="rpg-editor-hint" style="color:#ff9999; font-size:11px;">
+                    Classic RPG Attributes are disabled while the Stat Sheet system is enabled.
+                    Disable the Stat Sheet in the Stat Sheet tab to edit these.
+                </p>
             </div>
         `;
-    });
+    } else {
+        // Normal render — Stat Sheet is off, show full RPG Attributes editor
+        html += `<h4 style="margin-top:24px;"><i class="fa-solid fa-dice-d20"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.rpgAttributesTitle')}</h4>`;
 
-    html += '</div>';
-    html += `<button class="rpg-btn-secondary" id="rpg-add-attr"><i class="fa-solid fa-plus"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.addAttributeButton')}</button>`;
-    html += `</div></div>`; // close dimmed inner div + position:relative wrapper
+        const showRPGAttributes = config.showRPGAttributes !== undefined ? config.showRPGAttributes : true;
+        html += '<div class="rpg-editor-toggle-row">';
+        html += `<input type="checkbox" id="rpg-show-rpg-attrs" ${showRPGAttributes ? 'checked' : ''}>`;
+        html += `<label for="rpg-show-rpg-attrs">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.enableRpgAttributes')}</label>`;
+        html += '</div>';
+
+        const showLevel = config.showLevel !== undefined ? config.showLevel : true;
+        html += '<div class="rpg-editor-toggle-row">';
+        html += `<input type="checkbox" id="rpg-show-level" ${showLevel ? 'checked' : ''}>`;
+        html += `<label for="rpg-show-level">Show Level</label>`;
+        html += '</div>';
+
+        const alwaysSendAttributes = config.alwaysSendAttributes !== undefined ? config.alwaysSendAttributes : false;
+        html += '<div class="rpg-editor-toggle-row">';
+        html += `<input type="checkbox" id="rpg-always-send-attrs" ${alwaysSendAttributes ? 'checked' : ''}>`;
+        html += `<label for="rpg-always-send-attrs">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.alwaysIncludeAttributes')}</label>`;
+        html += '</div>';
+        html += `<small class="rpg-editor-note">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.alwaysIncludeAttributesNote')}</small>`;
+
+        html += '<div class="rpg-editor-stats-list" id="rpg-editor-attrs-list">';
+
+        if (!config.rpgAttributes || config.rpgAttributes.length === 0) {
+            config.rpgAttributes = [
+                { id: 'str', name: 'STR', enabled: true },
+                { id: 'dex', name: 'DEX', enabled: true },
+                { id: 'con', name: 'CON', enabled: true },
+                { id: 'int', name: 'INT', enabled: true },
+                { id: 'wis', name: 'WIS', enabled: true },
+                { id: 'cha', name: 'CHA', enabled: true }
+            ];
+            extensionSettings.trackerConfig.userStats.rpgAttributes = config.rpgAttributes;
+        }
+
+        const rpgAttributes = config.rpgAttributes;
+
+        rpgAttributes.forEach((attr, index) => {
+            html += `
+                <div class="rpg-editor-stat-item" data-index="${index}">
+                    <input type="checkbox" ${attr.enabled ? 'checked' : ''} class="rpg-attr-toggle" data-index="${index}">
+                    <input type="text" value="${attr.name}" class="rpg-attr-name" data-index="${index}" placeholder="Attribute Name">
+                    <button class="rpg-attr-remove" data-index="${index}" title="Remove attribute"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        html += `<button class="rpg-btn-secondary" id="rpg-add-attr"><i class="fa-solid fa-plus"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.addAttributeButton')}</button>`;
+    }
 
     // Status Section
     html += `<h4><i class="fa-solid fa-face-smile"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.statusSectionTitle')}</h4>`;
@@ -931,6 +1000,8 @@ function setupUserStatsListeners() {
             enabled: true,
             displayMode: 'percentage',
             maxValue: 100,
+            scaleSource: '',
+            scaleId: '',
             scaleWithAttribute: '',
             scaleMultiplier: 1,
             scaleBonus: 0,
@@ -977,17 +1048,33 @@ function setupUserStatsListeners() {
         renderUserStatsTab(); // Re-render to show/hide max value field
     });
 
-    // Stat sheet scaling - attribute selection
-    $('.rpg-stat-scale-attr').off('change').on('change', function() {
-        const index = $(this).data('index');
-        const attrId = $(this).val();
-        extensionSettings.trackerConfig.userStats.customStats[index].scaleWithAttribute = attrId;
-        // Set defaults when attribute is selected
-        if (attrId && !extensionSettings.trackerConfig.userStats.customStats[index].scaleMultiplier) {
-            extensionSettings.trackerConfig.userStats.customStats[index].scaleMultiplier = 1;
-            extensionSettings.trackerConfig.userStats.customStats[index].scaleBonus = 0;
+    // Scale source type selection (Attribute / Skill / Sub-Skill / Saving Throw / None)
+    $('.rpg-stat-scale-source').off('change').on('change', function() {
+        const index  = $(this).data('index');
+        const source = $(this).val();
+        const stat   = extensionSettings.trackerConfig.userStats.customStats[index];
+        stat.scaleSource = source;
+        stat.scaleId     = '';   // reset target when source type changes
+        // Keep legacy field in sync for backwards compat
+        if (source === 'attribute') {
+            stat.scaleWithAttribute = '';
+        } else {
+            stat.scaleWithAttribute = '';
         }
-        renderUserStatsTab(); // Re-render to show/hide scaling formula
+        if (!stat.scaleMultiplier) stat.scaleMultiplier = 1;
+        if (!stat.scaleBonus)      stat.scaleBonus      = 0;
+        renderUserStatsTab();
+    });
+
+    // Scale target ID (populated by source type)
+    $('.rpg-stat-scale-id').off('change').on('change', function() {
+        const index = $(this).data('index');
+        const id    = $(this).val();
+        const stat  = extensionSettings.trackerConfig.userStats.customStats[index];
+        stat.scaleId = id;
+        // Keep legacy field in sync so resolveBarMax backwards compat branch works
+        if (stat.scaleSource === 'attribute') stat.scaleWithAttribute = id;
+        renderUserStatsTab();
     });
 
     // Stat sheet scaling - multiplier

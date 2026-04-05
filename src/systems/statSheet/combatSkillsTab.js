@@ -14,6 +14,7 @@ import {
 } from './statSheetState.js';
 import { saveStatSheetData } from '../../core/persistence.js';
 import { refreshCurrentTab, showNotification, buildPromptIncludeToggle } from './statSheetUI.js';
+import { logDiceRoll } from '../interaction/diceLog.js';
 
 // ============================================================================
 // CONSTANTS
@@ -810,9 +811,87 @@ function _isOffensiveDie(die) {
     const t = die.diceType || '';
     return !['Block', 'Evade', 'Counter-Block', 'Counter-Evade'].includes(t);
 }
+
 function _isEvadeDie(die) {
     const t = die.diceType || '';
     return t === 'Evade' || t === 'Counter-Evade';
+}
+
+/**
+ * Roll all dice for a combat skill, log each to diceLog, and show a popover near $btn.
+ * Uses _resolveModLive() so attribute/skill/ST modifiers are applied live.
+ * @param {jQuery} $btn   — the button that was clicked (used for positioning)
+ * @param {object} skill  — the combat skill object
+ */
+function _showSkillRollPopover($btn, skill) {
+    // Dismiss any existing popover
+    $('.cs-roll-popover').remove();
+
+    if (!skill.dice?.length) {
+        showNotification('This skill has no dice to roll.', 'info');
+        return;
+    }
+
+    const results = skill.dice.map(die => {
+        const resolvedMod = _resolveModLive(die.modifier);
+        const rawRoll     = Math.floor(Math.random() * (die.sides || 6)) + 1;
+        const total       = rawRoll + resolvedMod;
+        const modStr      = resolvedMod > 0 ? `+${resolvedMod}` : resolvedMod < 0 ? `${resolvedMod}` : '';
+        const formula     = `1d${die.sides || 6}${modStr}`;
+        return { die, rawRoll, total, resolvedMod, formula };
+    });
+
+    // Log all dice as one grouped entry: label = skill name, formula = "XdY+M / XdY", total = sum
+    {
+        const groupFormula = results.map(r => r.formula).join(' / ');
+        const groupTotal   = results.reduce((sum, r) => sum + r.total, 0);
+        const groupRolls   = results.map(r => r.rawRoll);
+        logDiceRoll(groupFormula, groupTotal, groupRolls, skill.name);
+    }
+
+    const rows = results.map(r => {
+        const modStr  = r.resolvedMod > 0 ? `+${r.resolvedMod}` : r.resolvedMod < 0 ? `${r.resolvedMod}` : '';
+        const isCrit  = r.rawRoll === r.die.sides;
+        const isFail  = r.rawRoll === 1;
+        const cls     = isCrit ? 'cs-rp-crit' : isFail ? 'cs-rp-fail' : '';
+        const glyph   = isCrit ? ' ✨' : isFail ? ' 💀' : '';
+        return `
+            <div class="cs-rp-row">
+                <span class="cs-die-chip ${_dieClass(r.die.diceType)}">${_esc(r.die.diceType || '?')} d${r.die.sides || 6}${modStr}</span>
+                <span class="cs-rp-result ${cls}">${r.total}${glyph}</span>
+            </div>`;
+    }).join('');
+
+    const $pop = $(`
+        <div class="cs-roll-popover">
+            <div class="cs-rp-title">🎲 ${_esc(skill.name || 'Roll')}</div>
+            ${rows}
+            <button class="cs-rp-close">✕</button>
+        </div>
+    `);
+
+    $('body').append($pop);
+
+    // Position using getBoundingClientRect (works correctly for position:fixed)
+    const rect     = $btn[0].getBoundingClientRect();
+    const popW     = 230;
+    const left     = Math.min(rect.left, window.innerWidth - popW - 8);
+    $pop.css({ position: 'fixed', left: Math.max(8, left), top: rect.top - 8, zIndex: 100002 });
+
+    // After render, push popover above the button
+    requestAnimationFrame(() => {
+        const popH = $pop.outerHeight(true) || 0;
+        $pop.css({ top: Math.max(8, rect.top - popH - 6) });
+    });
+
+    $pop.find('.cs-rp-close').on('click', () => $pop.remove());
+
+    // Dismiss on outside click (deferred so this click doesn't immediately count)
+    setTimeout(() => {
+        $(document).one('click.csrollpop', e => {
+            if (!$(e.target).closest('.cs-roll-popover').length) $pop.remove();
+        });
+    }, 50);
 }
 
 /**
@@ -1696,8 +1775,9 @@ function _playerCard(skill, isEGO) {
     <div class="cs-card-name">${_esc(skill.name || 'Unnamed')}</div>
     <div class="cs-card-dice">${_diceChips(skill.dice)}</div>
     <div class="cs-card-actions">
-        <button class="cs-btn cs-btn-sm cs-btn-detail"  data-skill-id="${_esc(skill.id)}">Detail</button>
-        <button class="cs-btn cs-btn-sm cs-btn-unequip" data-skill-id="${_esc(skill.id)}">Unequip</button>
+        <button class="cs-btn cs-btn-sm cs-btn-roll-skill" data-skill-id="${_esc(skill.id)}" title="Roll this skill's dice">🎲</button>
+        <button class="cs-btn cs-btn-sm cs-btn-detail"     data-skill-id="${_esc(skill.id)}">Detail</button>
+        <button class="cs-btn cs-btn-sm cs-btn-unequip"    data-skill-id="${_esc(skill.id)}">Unequip</button>
     </div>
 </div>`;
 }
@@ -1719,8 +1799,9 @@ function _availRow(skill) {
     </div>
     <div class="cs-avail-dice">${_diceChips(skill.dice)}</div>
     <div class="cs-avail-actions">
-        <button class="cs-btn cs-btn-sm cs-btn-detail" data-skill-id="${_esc(skill.id)}">Detail</button>
-        <button class="cs-btn cs-btn-sm cs-btn-equip"  data-skill-id="${_esc(skill.id)}">Equip</button>
+        <button class="cs-btn cs-btn-sm cs-btn-roll-skill" data-skill-id="${_esc(skill.id)}" title="Roll this skill's dice">🎲</button>
+        <button class="cs-btn cs-btn-sm cs-btn-detail"     data-skill-id="${_esc(skill.id)}">Detail</button>
+        <button class="cs-btn cs-btn-sm cs-btn-equip"      data-skill-id="${_esc(skill.id)}">Equip</button>
     </div>
 </div>`;
 }
@@ -1932,6 +2013,7 @@ function _masterCard(skill) {
         <div class="cs-mc-actions">
             <button class="cs-btn cs-btn-sm ${skill.equipped ? 'cs-btn-unequip' : 'cs-btn-equip'}"
                 data-skill-id="${_esc(skill.id)}">${skill.equipped ? 'Unequip' : 'Equip'}</button>
+            <button class="cs-btn cs-btn-sm cs-btn-roll-skill" data-skill-id="${_esc(skill.id)}" title="Roll this skill's dice">🎲</button>
             <button class="cs-btn cs-btn-sm cs-btn-duplicate" data-skill-id="${_esc(skill.id)}" title="Duplicate">⧉</button>
             <button class="cs-btn cs-btn-sm cs-btn-delete"    data-skill-id="${_esc(skill.id)}" title="Delete">🗑</button>
             <button class="cs-btn cs-btn-sm cs-btn-collapse"  data-skill-id="${_esc(skill.id)}">${_collapsedCards.has(skill.id) ? '▸' : '▾'}</button>
@@ -2555,6 +2637,12 @@ function _attachPlayerListeners(container) {
     container.on('click.cs', '.cs-btn-detail', function() {
         _showDetail($(this).data('skill-id'));
     });
+
+    container.on('click.cs', '.cs-btn-roll-skill', function(e) {
+        e.stopPropagation();
+        const skill = _skill($(this).data('skill-id'));
+        if (skill) _showSkillRollPopover($(this), skill);
+    });
 }
 
 // ============================================================================
@@ -2562,6 +2650,13 @@ function _attachPlayerListeners(container) {
 // ============================================================================
 
 function _attachMasterListeners(container) {
+
+   // ── Roll popover ──────────────────────────────────────────────────────────
+    container.on('click.cs', '.cs-btn-roll-skill', function(e) {
+        e.stopPropagation();
+        const skill = _skill($(this).data('skill-id'));
+        if (skill) _showSkillRollPopover($(this), skill);
+    });
 
     // ── Add skill / EGO ──────────────────────────────────────────────────────
     container.on('click.cs', '.cs-add-skill-btn', () => {

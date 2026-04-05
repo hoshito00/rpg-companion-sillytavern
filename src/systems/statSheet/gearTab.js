@@ -375,7 +375,7 @@ function _buildPopupContent(item) {
             <div>
                 <label class="aug-edit-label">Name</label>
                 <input type="text" class="rpg-input gear-edit-name" data-gear-id="${escHtml(item.id)}"
-                       value="${escHtml(item.name)}" placeholder="Item name…" style="width:100%;">
+                       value="${escHtml(item.name)}" placeholder="Item name…" style="width:100%; min-height:28px; padding:6px 8px;">
             </div>
 
             <!-- Rarity -->
@@ -607,8 +607,18 @@ function _attachListeners() {
     // ── Close popup ───────────────────────────────────────────────────────────
     $(document).off('click', '#gear-popup-close')
         .on('click', '#gear-popup-close', _closePopup);
+
+    // Prevent modal from closing when clicking inside it
     $(document).off('click', '.aug-popup-modal')
         .on('click', '.aug-popup-modal', function(e) { e.stopPropagation(); });
+
+    // Prevent modal from closing when interacting with form elements
+    $(document).off('mousedown', '.aug-popup-body input, .aug-popup-body textarea, .aug-popup-body select')
+        .on('mousedown', '.aug-popup-body input, .aug-popup-body textarea, .aug-popup-body select', function(e) {
+            e.stopPropagation();
+        });
+
+    // Close popup only when clicking the overlay background itself
     $(document).off('click', '#gear-detail-popup')
         .on('click', '#gear-detail-popup', function(e) {
             if (e.target.id === 'gear-detail-popup') _closePopup();

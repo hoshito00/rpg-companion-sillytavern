@@ -862,6 +862,11 @@
                             <option value="100">d100</option>
                         </select>
                     </div>
+                    <div class="rpg-dice-input-group">
+                        <label for="rpg-dice-label">Label:</label>
+                        <input type="text" id="rpg-dice-label" name="dice-label" value="Roll"
+                            placeholder="e.g. Attack Roll" class="rpg-input" />
+                    </div>
                 </div>
                 <button id="rpg-dice-roll-btn" class="rpg-btn-primary" type="button">
                     <i class="fa-solid fa-dice" aria-hidden="true"></i>
@@ -886,6 +891,38 @@
                     <span>Save Roll</span>
                 </button>
             </div>
+        </div>
+
+        <!-- Roll History -->
+        <div class="rpg-dice-history">
+            <div class="rpg-dice-history-header">
+                <span><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Roll History</span>
+                <button id="rpg-dice-clear-log" class="rpg-btn-icon" type="button" title="Clear roll history">
+                    <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div id="rpg-dice-history-list" class="rpg-dice-history-list" aria-live="polite">
+                <div class="dice-log-empty">No recent rolls</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Skill Deck Modal -->
+<div id="rpg-skill-deck-popup" class="rpg-skill-deck-popup" role="dialog" aria-modal="true"
+     aria-labelledby="rpg-skill-deck-title" style="display:none;">
+    <div class="sdc-content">
+        <header class="sdc-header">
+            <h3 id="rpg-skill-deck-title">
+                <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
+                <span>Combat Skill Deck</span>
+            </h3>
+            <button id="rpg-skill-deck-close" class="rpg-btn-icon" type="button" aria-label="Close">
+                <i class="fa-solid fa-times" aria-hidden="true"></i>
+            </button>
+        </header>
+        <div id="rpg-skill-deck-body" class="sdc-body">
+            <!-- Cards rendered dynamically by SkillDeckModal._renderDeck() -->
         </div>
     </div>
 </div>

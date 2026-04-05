@@ -32,15 +32,16 @@
  *
  * ─── PairRecord ──────────────────────────────────────────────────────────────
  * {
- *   playerDie    : DieSpec | null,
- *   enemyDie     : DieSpec | null,
- *   playerRoll   : number | null,
- *   enemyRoll    : number | null,
- *   outcome      : 'player' | 'enemy' | 'tie' | 'unopposed-player' | 'unopposed-enemy',
- *   hpDelta      : number,      // magnitude of HP damage dealt  (always >= 0)
- *   staggerDelta : number,      // magnitude of SR damage dealt  (always >= 0)
- *   sanityDelta  : number,      // player's sanity change for this pair
- *   note         : string,      // human-readable log fragment
+ *   playerDie         : DieSpec | null,
+ *   enemyDie          : DieSpec | null,
+ *   playerRoll        : number | null,
+ *   enemyRoll         : number | null,
+ *   outcome           : 'player' | 'enemy' | 'tie' | 'unopposed-player' | 'unopposed-enemy',
+ *   hpDelta           : number,      // magnitude of HP damage dealt  (always >= 0)
+ *   staggerDelta      : number,      // magnitude of SR damage dealt  (always >= 0)
+ *   moraleDeltaPlayer : number,      // player's morale change for this pair
+ *   moraleDeltaEnemy  : number,      // enemy's morale change for this pair
+ *   note              : string,      // human-readable log fragment
  * }
  * hpDelta / staggerDelta are MAGNITUDES; resolveClash routes them to the correct
  * combatant based on outcome.
@@ -54,15 +55,71 @@
  *   staggerDeltaEnemy  : number,      // negative = SR damage to enemy
  *   newSavedDicePlayer : SavedDie[],  // defensive dice saved THIS round (player)
  *   newSavedDiceEnemy  : SavedDie[],  // defensive dice saved THIS round (enemy)
- *   sanityDelta        : number,      // net sanity change for the player
+ *   moraleDeltaPlayer  : number,      // net morale change for the player
+ *   moraleDeltaEnemy   : number,      // net morale change for this enemy
  *   logLines           : string[],    // ordered human-readable summary
  * }
  */
 
-// ── Sanity constants (mirrors sanitySystem.js — avoids circular import) ───────
+// ── Morale constants ──────────────────────────────────────────────────────────
 
-const SANITY_CLASH_WIN  =  3;
-const SANITY_CLASH_LOSE = -3;
+const MORALE_CLASH_WIN  =  3;
+const MORALE_CLASH_LOSE = -3;
+
+// ── Morale tier lookup ────────────────────────────────────────────────────────
+
+/**
+ * Convert a raw morale value to its tier modifier (-3 to +5).
+ * Applied as a flat bonus to each individual combat die roll.
+ *
+ * Tiers:
+ *   >= +75 → +5   >= +60 → +4   >= +45 → +3
+ *   >= +30 → +2   >= +15 → +1   > -15  →  0
+ *   > -30  → -1   > -45  → -2   else   → -3
+ *
+ * @param {number} morale
+ * @returns {number} tier modifier
+ */
+export function getMoraleTier(morale) {
+    if (morale >= 75) return  5;
+    if (morale >= 60) return  4;
+    if (morale >= 45) return  3;
+    if (morale >= 30) return  2;
+    if (morale >= 15) return  1;
+    if (morale >  -15) return  0;
+    if (morale >  -30) return -1;
+    if (morale >  -45) return -2;
+    return -3;
+}
+
+/**
+ * Clamp a morale value to its legal range [-45, +75].
+ * @param {number} morale
+ * @returns {number}
+ */
+export function clampMorale(morale) {
+    return Math.max(-45, Math.min(75, morale));
+}
+
+/**
+ * Compute the morale gain when the player eliminates an enemy.
+ * Scales with the enemy's morale tier: +10 (tier 0) to +15 (tier 5).
+ * @param {number} enemyMorale
+ * @returns {number}
+ */
+export function moraleGainOnKill(enemyMorale) {
+    return 10 + Math.max(0, getMoraleTier(enemyMorale));
+}
+
+/**
+ * Compute the morale penalty when an ally is eliminated.
+ * Scales with the killing enemy's morale tier: -10 (tier 0) to -25 (tier 5).
+ * @param {number} killerMorale
+ * @returns {number}
+ */
+export function moraleLossOnAllyDeath(killerMorale) {
+    return -10 - (3 * Math.max(0, getMoraleTier(killerMorale)));
+}
 
 // ── Die classification ────────────────────────────────────────────────────────
 
@@ -217,7 +274,7 @@ export function computeDamage(die, roll, targetSnap) {
  * Resolve one player die vs one enemy die.
  * Does NOT mutate either snap or either die spec.
  *
- * Tie rule: rolls match → both dice cancel, no damage, sanityDelta = 0.
+ * Tie rule: rolls match → both dice cancel, no damage, morale unchanged.
  * When the winner is Defensive and the loser is Offensive: damage is 0
  *   (the defensive win deflects the attack; no counter-damage).
  *
@@ -237,7 +294,8 @@ function _resolvePair(pDie, eDie, pSnap, eSnap) {
             playerDie: pDie, enemyDie: eDie,
             playerRoll: pRoll, enemyRoll: eRoll,
             outcome: 'tie',
-            hpDelta: 0, staggerDelta: 0, sanityDelta: 0,
+            hpDelta: 0, staggerDelta: 0,
+            moraleDeltaPlayer: 0, moraleDeltaEnemy: 0,
             note: `${pDie.diceType} ${pRoll} vs ${eDie.diceType} ${eRoll} — TIE (both cancel)`,
         };
     }
@@ -260,7 +318,10 @@ function _resolvePair(pDie, eDie, pSnap, eSnap) {
             playerDie: pDie, enemyDie: eDie,
             playerRoll: pRoll, enemyRoll: eRoll,
             outcome: 'player',
-            hpDelta, staggerDelta, sanityDelta: SANITY_CLASH_WIN, note,
+            hpDelta, staggerDelta,
+            moraleDeltaPlayer: MORALE_CLASH_WIN,
+            moraleDeltaEnemy:  MORALE_CLASH_LOSE,
+            note,
         };
     }
 
@@ -281,7 +342,10 @@ function _resolvePair(pDie, eDie, pSnap, eSnap) {
         playerDie: pDie, enemyDie: eDie,
         playerRoll: pRoll, enemyRoll: eRoll,
         outcome: 'enemy',
-        hpDelta, staggerDelta, sanityDelta: SANITY_CLASH_LOSE, note,
+        hpDelta, staggerDelta,
+        moraleDeltaPlayer: MORALE_CLASH_LOSE,
+        moraleDeltaEnemy:  MORALE_CLASH_WIN,
+        note,
     };
 }
 
@@ -304,19 +368,25 @@ function _resolveUnopposed(die, side, targetSnap, roundNumber) {
     const outcome = side === 'player' ? 'unopposed-player' : 'unopposed-enemy';
     const target  = side === 'player' ? 'enemy' : 'player';
 
-    let hpDelta = 0, staggerDelta = 0, sanityDelta = 0;
+    let hpDelta = 0, staggerDelta = 0;
+    let moraleDeltaPlayer = 0, moraleDeltaEnemy = 0;
     let savedDie = null, note = '';
 
     if (isOffensive(die.diceType)) {
         const dmg    = computeDamage(die, roll, targetSnap);
         hpDelta      = dmg.hp;
         staggerDelta = dmg.stagger;
-        sanityDelta  = side === 'player' ? SANITY_CLASH_WIN : SANITY_CLASH_LOSE;
+        if (side === 'player') {
+            moraleDeltaPlayer = MORALE_CLASH_WIN;
+            moraleDeltaEnemy  = MORALE_CLASH_LOSE;
+        } else {
+            moraleDeltaPlayer = MORALE_CLASH_LOSE;
+            moraleDeltaEnemy  = MORALE_CLASH_WIN;
+        }
         note = `Unopposed ${die.diceType} ${roll} → ${dmg.hp} HP / ${dmg.stagger} SR to ${target}`;
 
     } else if (isDefensive(die.diceType)) {
         if (!die._recycled) {
-            // Save for deployment later this round
             savedDie = {
                 die: { diceType: die.diceType, sides: die.sides, modifier: die.modifier ?? 0 },
                 storedRoll: roll,
@@ -324,7 +394,6 @@ function _resolveUnopposed(die, side, targetSnap, roundNumber) {
             };
             note = `Unopposed ${die.diceType} ${roll} → saved for deployment`;
         } else {
-            // Already-recycled Evade/Block with no target is simply discarded
             note = `Unopposed recycled ${die.diceType} ${roll} → discarded`;
         }
     }
@@ -334,7 +403,9 @@ function _resolveUnopposed(die, side, targetSnap, roundNumber) {
         enemyDie:   side === 'enemy'  ? die  : null,
         playerRoll: side === 'player' ? roll : null,
         enemyRoll:  side === 'enemy'  ? roll : null,
-        outcome, hpDelta, staggerDelta, sanityDelta, note,
+        outcome, hpDelta, staggerDelta,
+        moraleDeltaPlayer, moraleDeltaEnemy,
+        note,
     };
 
     return { pair, savedDie };
@@ -362,7 +433,6 @@ function _resolveUnopposed(die, side, targetSnap, roundNumber) {
  * @returns {ClashReport}
  */
 export function resolveClash(playerDice, enemyDice, playerSnap, enemySnap, roundNumber = 0) {
-    // Shallow-copy into mutable queues; die spec objects themselves are not mutated.
     const pQueue = playerDice.map(d => ({ ...d }));
     const eQueue = enemyDice.map(d => ({ ...d }));
 
@@ -373,16 +443,14 @@ export function resolveClash(playerDice, enemyDice, playerSnap, enemySnap, round
     let staggerDeltaEnemy    = 0;
     const newSavedDicePlayer = [];
     const newSavedDiceEnemy  = [];
-    let sanityDelta          = 0;
+    let moraleDeltaPlayer    = 0;
+    let moraleDeltaEnemy     = 0;
 
     // ── Phase 1: Paired clash ─────────────────────────────────────────────────
     while (pQueue.length > 0 && eQueue.length > 0) {
         let pDie = pQueue.shift();
         let eDie = eQueue.shift();
 
-        // Counter dice: resolve as their base type when clashed into.
-        // The original diceType is preserved in the queue entry for log display;
-        // we substitute a resolved copy for the actual math.
         const pDieResolved = isCounter(pDie.diceType)
             ? { ...pDie, diceType: counterBaseType(pDie.diceType) }
             : pDie;
@@ -392,47 +460,44 @@ export function resolveClash(playerDice, enemyDice, playerSnap, enemySnap, round
 
         const pair = _resolvePair(pDieResolved, eDieResolved, playerSnap, enemySnap);
 
-        // Label Counter dice in the log note so players can tell what fired.
         if (isCounter(pDie.diceType)) pair.note = `[Counter] ${pair.note}`;
         if (isCounter(eDie.diceType)) pair.note = `[Counter] ${pair.note}`;
         pairs.push(pair);
 
         if (pair.outcome === 'player') {
-            // Player die won — damage goes to enemy
             hpDeltaEnemy      -= pair.hpDelta;
             staggerDeltaEnemy -= pair.staggerDelta;
-            sanityDelta       += pair.sanityDelta;
+            moraleDeltaPlayer += pair.moraleDeltaPlayer;
+            moraleDeltaEnemy  += pair.moraleDeltaEnemy;
 
-            // Evade recycle: winning, non-recycled Evade (or Counter-Evade) inserts a copy
             if (pDieResolved.diceType === 'Evade' && !pDie._recycled) {
                 pQueue.unshift({ ...pDieResolved, _recycled: true });
             }
 
         } else if (pair.outcome === 'enemy') {
-            // Enemy die won — damage goes to player
             hpDeltaPlayer      -= pair.hpDelta;
             staggerDeltaPlayer -= pair.staggerDelta;
-            sanityDelta        += pair.sanityDelta;
+            moraleDeltaPlayer  += pair.moraleDeltaPlayer;
+            moraleDeltaEnemy   += pair.moraleDeltaEnemy;
 
-            // Evade recycle: same rule for enemy
             if (eDieResolved.diceType === 'Evade' && !eDie._recycled) {
                 eQueue.unshift({ ...eDieResolved, _recycled: true });
             }
         }
-        // TIE: no damage, no recycle, sanityDelta += 0
+        // TIE: no damage, no recycle, morale unchanged
     }
 
     // ── Phase 2: Unopposed player dice ────────────────────────────────────────
     while (pQueue.length > 0) {
         const pDie = pQueue.shift();
 
-        // Counter dice are discarded when unopposed — they never fire without opposition.
         if (isCounter(pDie.diceType)) {
             pairs.push({
                 playerDie: pDie, enemyDie: null,
                 playerRoll: null, enemyRoll: null,
                 outcome: 'unopposed-player',
-                hpDelta: 0, staggerDelta: 0, sanityDelta: 0,
+                hpDelta: 0, staggerDelta: 0,
+                moraleDeltaPlayer: 0, moraleDeltaEnemy: 0,
                 note: `Unopposed ${pDie.diceType} → skipped (Counter requires opposition)`,
             });
             continue;
@@ -443,11 +508,12 @@ export function resolveClash(playerDice, enemyDice, playerSnap, enemySnap, round
 
         hpDeltaEnemy      -= pair.hpDelta;
         staggerDeltaEnemy -= pair.staggerDelta;
-        sanityDelta       += pair.sanityDelta;
+        moraleDeltaPlayer += pair.moraleDeltaPlayer;
+        moraleDeltaEnemy  += pair.moraleDeltaEnemy;
         if (savedDie) newSavedDicePlayer.push(savedDie);
     }
 
-    // ── Phase 2: Unopposed enemy dice ─────────────────────────────────────────
+    // ── Phase 3: Unopposed enemy dice ─────────────────────────────────────────
     while (eQueue.length > 0) {
         const eDie = eQueue.shift();
         const { pair, savedDie } = _resolveUnopposed(eDie, 'enemy', playerSnap, roundNumber);
@@ -455,7 +521,8 @@ export function resolveClash(playerDice, enemyDice, playerSnap, enemySnap, round
 
         hpDeltaPlayer      -= pair.hpDelta;
         staggerDeltaPlayer -= pair.staggerDelta;
-        sanityDelta        += pair.sanityDelta;
+        moraleDeltaPlayer  += pair.moraleDeltaPlayer;
+        moraleDeltaEnemy   += pair.moraleDeltaEnemy;
         if (savedDie) newSavedDiceEnemy.push(savedDie);
     }
 
@@ -469,7 +536,8 @@ export function resolveClash(playerDice, enemyDice, playerSnap, enemySnap, round
         staggerDeltaEnemy,
         newSavedDicePlayer,
         newSavedDiceEnemy,
-        sanityDelta,
+        moraleDeltaPlayer,
+        moraleDeltaEnemy,
         logLines,
     };
 }
@@ -488,7 +556,7 @@ export function resolveClash(playerDice, enemyDice, playerSnap, enemySnap, round
  * @param {object}   attackerSnap — CombatantSnap of the attacker (enemy)
  * @returns {{
  *   pair: PairRecord,
- *   recycledEvade: DieSpec | null,  // non-null if player Evade won → recycle it
+ *   recycledEvade: DieSpec | null,
  * }}
  */
 export function deploySavedDie(savedDie, incomingDie, ownerSnap, attackerSnap) {
@@ -526,9 +594,6 @@ export function rollSpeedDice(speedSpec) {
  * Returns skill groups sorted by speed roll descending (highest speed acts first).
  * Ties are broken by insertion order (stable sort).
  *
- * Expected input shape per group:
- *   { skillName: string, dice: DieSpec[], speedSpec: { count, sides, modifier } | null }
- *
  * @param {{ skillName: string, dice: object[], speedSpec: object|null }[]} skillGroups
  * @returns {{ skillName: string, dice: object[], speedSpec: object|null, speedRoll: number }[]}
  */
@@ -541,12 +606,8 @@ export function buildInitiativeQueue(skillGroups) {
         .sort((a, b) => b.speedRoll - a.speedRoll);
 }
 
-
-
 /**
  * True when the combatant's current stagger resist has hit zero.
- * Call after applying staggerDelta to the live value.
- *
  * @param {number} currentStaggerResist
  * @returns {boolean}
  */
@@ -602,9 +663,9 @@ export function applyClashReport(report, playerState, enemyState, roundNumber = 
     playerState.staggerResist = Math.max(0, playerState.staggerResist + report.staggerDeltaPlayer);
 
     if (!playerState.isStaggered && isNowStaggered(playerState.staggerResist)) {
-        playerState.isStaggered    = true;
+        playerState.isStaggered      = true;
         playerState.staggeredAtRound = roundNumber;
-        changes.playerStaggered    = true;
+        changes.playerStaggered      = true;
     }
     if (playerState.hp <= 0) changes.playerKilled = true;
 
@@ -613,9 +674,9 @@ export function applyClashReport(report, playerState, enemyState, roundNumber = 
     enemyState.staggerResist = Math.max(0, enemyState.staggerResist + report.staggerDeltaEnemy);
 
     if (!enemyState.isStaggered && isNowStaggered(enemyState.staggerResist)) {
-        enemyState.isStaggered    = true;
+        enemyState.isStaggered      = true;
         enemyState.staggeredAtRound = roundNumber;
-        changes.enemyStaggered    = true;
+        changes.enemyStaggered      = true;
     }
     if (enemyState.hp <= 0) changes.enemyKilled = true;
 

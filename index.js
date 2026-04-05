@@ -91,8 +91,10 @@ import {
 } from './src/systems/ui/theme.js';
 import {
     DiceModal,
+    SkillDeckModal,
     SettingsModal,
     setupDiceRoller,
+    setupSkillDeckModal,
     setupSettingsPopup,
     updateDiceDisplay,
     addDiceQuickReply,
@@ -227,6 +229,7 @@ async function addExtensionSettings() {
             $('#rpg-mobile-toggle').remove();
             $('#rpg-collapse-toggle').remove();
             $('#rpg-plot-buttons').remove(); // Remove plot buttons
+            $('#rpg-skill-deck-btn').remove(); // Remove skill deck button
         } else if (extensionSettings.enabled && !wasEnabled) {
             // Enabling extension - initialize UI
             await initUI();
@@ -1224,6 +1227,7 @@ async function initUI() {
     initPromptsEditor();
     addDiceQuickReply();
     setupPlotButtons(sendPlotProgression, openEncounterModal);
+    setupSkillDeckModal();
     setupMobileKeyboardHandling();
     setupContentEditableScrolling();
     initInventoryEventListeners();

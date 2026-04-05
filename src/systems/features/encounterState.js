@@ -59,6 +59,9 @@ function _defaultEncounter() {
         scene: 1,
         selectedSkill: null,   // id of the combat skill chosen this round
 
+        // ── Morale (replaces per-die sanity from clash wins/losses) ───────────
+        morale: 0,
+
         // ── SotC engine state (Rev 3) ─────────────────────────────────────────
         engineState: _defaultEngineState(),
     };
@@ -203,6 +206,7 @@ export function upsertCombatant(name, data) {
             staggeredAtRound : null,
             affinities       : data.affinities        ?? {},
             savedDice        : [],
+            morale           : 0,
         };
     } else {
         Object.assign(es.combatants[name], data);

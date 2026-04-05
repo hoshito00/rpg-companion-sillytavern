@@ -22,6 +22,7 @@ import { buildInventorySummary } from '../generation/promptBuilder.js';
 import { isItemLocked, setItemLock } from '../generation/lockManager.js';
 import { updateFabWidgets } from '../ui/mobile.js';
 import { getStatBarColors } from '../ui/theme.js';
+import { resolveBarMax } from '../statSheet/statSheetBridge.js';
 
 /**
  * Extracts the base name (before parentheses) and converts to snake_case for use as JSON key.
@@ -301,17 +302,8 @@ export function renderUserStats() {
     for (const stat of enabledStats) {
         const value = stats[stat.id] !== undefined ? stats[stat.id] : 100;
         
-        // Determine max value: use stat sheet scaling if configured, otherwise use static maxValue
-        let maxValue = stat.maxValue || 100;
-        if (stat.scaleWithAttribute && extensionSettings.statSheet?.enabled) {
-            const attr = extensionSettings.statSheet.attributes?.find(a => a.id === stat.scaleWithAttribute && a.enabled);
-            if (attr) {
-                const attrValue = extensionSettings.statSheet.mode === 'numeric' ? attr.value : attr.rankValue;
-                const multiplier = parseFloat(stat.scaleMultiplier) || 1;
-                const bonus = parseFloat(stat.scaleBonus) || 0;
-                maxValue = Math.max(1, Math.floor(attrValue * multiplier) + bonus);
-            }
-        }
+        // Determine max value: delegate to resolveBarMax (supports attribute / skill / subskill / savingThrow scaling)
+        let maxValue = resolveBarMax(stat);
         
         // Use per-stat display mode only
         const statDisplayMode = stat.displayMode || 'percentage';

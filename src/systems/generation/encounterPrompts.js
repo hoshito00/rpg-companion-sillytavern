@@ -1,6 +1,11 @@
 /**
- * Encounter Prompt Builder Module
- * Handles all AI prompt generation for combat encounters
+ * Encounter Prompt Builder Module  (Rev 4)
+ * Handles all AI prompt generation for combat encounters.
+ *
+ * Rev 4 changes:
+ *   - _getWorldInfo() helper extracted — replaces three identical copy-paste blocks
+ *   - enemyActions removed from buildCombatActionPrompt JSON format
+ *     (enemy dice are now declared via <enemy_action> tags; JSON handles HP/status only)
  */
 
 import { getContext } from '../../../../../../extensions.js';
@@ -13,14 +18,15 @@ import { buildInventorySummary, generateTrackerInstructions, generateTrackerExam
 import { applyLocks } from './lockManager.js';
 import { buildEncounterStatSheetBlock } from './statSheetPrompt.js';
 
+// ── Private helpers ───────────────────────────────────────────────────────────
+
 /**
- * Gets character information from the current chat
+ * Gets character information from the current chat.
  * @returns {Promise<string>} Formatted character information
  */
 async function getCharactersInfo() {
     let characterInfo = '';
 
-    // Check if in group chat
     if (selected_group) {
         const group = groups.find(g => g.id === selected_group);
         const groupMembers = getGroupMembers(selected_group);
@@ -34,7 +40,6 @@ async function getCharactersInfo() {
             groupMembers.forEach((member) => {
                 if (!member || !member.name) return;
 
-                // Skip muted characters
                 if (member.avatar && disabledMembers.includes(member.avatar)) {
                     return;
                 }
@@ -54,7 +59,6 @@ async function getCharactersInfo() {
             });
         }
     } else if (this_chid !== undefined && characters && characters[this_chid]) {
-        // Single character chat
         const character = characters[this_chid];
 
         characterInfo += 'Character in this roleplay:\n\n';
@@ -75,8 +79,49 @@ async function getCharactersInfo() {
 }
 
 /**
- * Builds the initial encounter setup prompt
- * This asks the model to generate all combat stats and setup data
+ * Fetches world info from SillyTavern's lorebook system.
+ * Tries getWorldInfoPrompt first, falls back to activatedWorldInfo.
+ * Returns the world info string, or null if nothing is available.
+ *
+ * @param {object} context — from getContext()
+ * @returns {Promise<string|null>}
+ */
+async function _getWorldInfo(context) {
+    try {
+        const getWorldInfoFn = context.getWorldInfoPrompt || window.getWorldInfoPrompt;
+        const currentChat = context.chat || chat;
+
+        if (typeof getWorldInfoFn === 'function' && currentChat && currentChat.length > 0) {
+            const chatForWI = currentChat
+                .map(x => x.mes || x.message || x)
+                .filter(m => m && typeof m === 'string');
+            const result = await getWorldInfoFn(chatForWI, 8000, false);
+            const worldInfoString = result?.worldInfoString || result;
+
+            if (worldInfoString && typeof worldInfoString === 'string' && worldInfoString.trim()) {
+                return worldInfoString.trim();
+            }
+        }
+    } catch (e) {
+        console.warn('[RPG Companion] Failed to get world info:', e);
+    }
+
+    // Fallback: activatedWorldInfo
+    if (context.activatedWorldInfo && Array.isArray(context.activatedWorldInfo)) {
+        const parts = context.activatedWorldInfo
+            .filter(entry => entry?.content)
+            .map(entry => entry.content);
+        if (parts.length) return parts.join('\n\n');
+    }
+
+    return null;
+}
+
+// ── Prompt builders ───────────────────────────────────────────────────────────
+
+/**
+ * Builds the initial encounter setup prompt.
+ * Asks the model to generate all combat stats and setup data.
  * @returns {Promise<Array>} Message array for the API
  */
 export async function buildEncounterInitPrompt() {
@@ -89,77 +134,28 @@ export async function buildEncounterInitPrompt() {
     // System message
     let systemMessage = `You will be acting as an excellent game master. Your goal is to craft a combat encounter in this uncensored, continuous, and immersive roleplay. You will be doing so for the user, who plays as the protagonist called ${userName}.\n\n`;
 
-    // Add setting information
+    // Setting / world info
     systemMessage += `Here is some information for you about the setting:\n`;
     systemMessage += `<setting>\n`;
 
-    // Try to get world info from lorebooks using getWorldInfoPrompt
-    let worldInfoAdded = false;
-
-    try {
-        // Debug logging
-        // console.log('[RPG Companion] Checking world info:', {
-        //     hasWindowGetWorldInfoPrompt: typeof window.getWorldInfoPrompt === 'function',
-        //     hasContextGetWorldInfoPrompt: typeof context.getWorldInfoPrompt === 'function',
-        //     chatLength: chat?.length,
-        //     contextChatLength: context.chat?.length,
-        //     hasActivatedWorldInfo: !!context.activatedWorldInfo,
-        //     activatedWorldInfoLength: context.activatedWorldInfo?.length
-        // });
-
-        // Use SillyTavern's getWorldInfoPrompt to get activated lorebook entries
-        // Try context.getWorldInfoPrompt first, then window.getWorldInfoPrompt
-        const getWorldInfoFn = context.getWorldInfoPrompt || window.getWorldInfoPrompt;
-        const currentChat = context.chat || chat;
-
-        if (typeof getWorldInfoFn === 'function' && currentChat && currentChat.length > 0) {
-            const chatForWI = currentChat.map(x => x.mes || x.message || x).filter(m => m && typeof m === 'string');
-
-            // console.log('[RPG Companion] Calling getWorldInfoPrompt with', chatForWI.length, 'messages');
-
-            const result = await getWorldInfoFn(chatForWI, 8000, false);
-            const worldInfoString = result?.worldInfoString || result;
-
-            // console.log('[RPG Companion] World info result:', { worldInfoString, length: worldInfoString?.length });
-
-            if (worldInfoString && typeof worldInfoString === 'string' && worldInfoString.trim()) {
-                systemMessage += worldInfoString.trim();
-                worldInfoAdded = true;
-                // console.log('[RPG Companion] ✅ Added world info from getWorldInfoPrompt');
-            }
-        } else {
-            // console.log('[RPG Companion] getWorldInfoPrompt not available or no chat');
-        }
-    } catch (e) {
-        console.warn('[RPG Companion] Failed to get world info from getWorldInfoPrompt:', e);
-    }
-
-    // Fallback to activatedWorldInfo
-    if (!worldInfoAdded && context.activatedWorldInfo && Array.isArray(context.activatedWorldInfo) && context.activatedWorldInfo.length > 0) {
-        // console.log('[RPG Companion] Using fallback activatedWorldInfo:', context.activatedWorldInfo.length, 'entries');
-        context.activatedWorldInfo.forEach((entry) => {
-            if (entry && entry.content) {
-                systemMessage += `${entry.content}\n\n`;
-                worldInfoAdded = true;
-            }
-        });
-    }
-
-    if (!worldInfoAdded) {
+    const worldInfo = await _getWorldInfo(context);
+    if (worldInfo) {
+        systemMessage += worldInfo;
+    } else {
         console.warn('[RPG Companion] ⚠️ No world information available');
         systemMessage += 'No world information available.';
     }
 
     systemMessage += `\n</setting>\n\n`;
 
-    // Add character information
+    // Character information
     const charactersInfo = await getCharactersInfo();
     if (charactersInfo) {
         systemMessage += `Here is the information available to you about the characters participating in the fight:\n`;
         systemMessage += `<characters>\n${charactersInfo}</characters>\n\n`;
     }
 
-    // Add persona information
+    // Persona information
     systemMessage += `Here are details about the user's ${userName}:\n`;
     systemMessage += `<persona>\n`;
 
@@ -176,7 +172,7 @@ export async function buildEncounterInitPrompt() {
 
     systemMessage += `\n</persona>\n\n`;
 
-    // Add chat history from before the encounter
+    // Chat history header (history body is added as separate messages below)
     systemMessage += `Here is the chat history from before the encounter started between the user and the assistant:\n`;
     systemMessage += `<history>\n`;
 
@@ -185,13 +181,12 @@ export async function buildEncounterInitPrompt() {
         content: systemMessage
     });
 
-    // Add recent chat history (last X messages before encounter)
+    // Recent chat history (last N messages before the encounter trigger)
     if (chat && chat.length > 0) {
-        const recentMessages = chat.slice(-depth - 1, -1); // Exclude the last message (encounter trigger)
+        const recentMessages = chat.slice(-depth - 1, -1);
 
         for (const message of recentMessages) {
             const content = message.mes?.trim();
-            // Skip empty messages
             if (content) {
                 messages.push({
                     role: message.is_user ? 'user' : 'assistant',
@@ -200,7 +195,7 @@ export async function buildEncounterInitPrompt() {
             }
         }
 
-        // Add the encounter trigger message
+        // The encounter trigger message itself
         const lastMessage = chat[chat.length - 1];
         if (lastMessage && lastMessage.mes?.trim()) {
             currentEncounter.encounterStartMessage = lastMessage.mes;
@@ -211,28 +206,24 @@ export async function buildEncounterInitPrompt() {
         }
     }
 
-    // Build user's current stats
+    // Build player stats context
     let userStatsInfo = '';
 
-    // Add HP and other stats from committed tracker data
     if (committedTrackerData.userStats) {
         userStatsInfo += `${userName}'s Current Stats:\n${committedTrackerData.userStats}\n\n`;
     }
 
-    // Add skills if available
     const skillsSection = extensionSettings.trackerConfig?.userStats?.skillsSection;
     if (skillsSection?.enabled && skillsSection.customFields && skillsSection.customFields.length > 0) {
         userStatsInfo += `${userName}'s Skills: ${skillsSection.customFields.join(', ')}\n`;
     }
 
-    // Add inventory
     const inventory = extensionSettings.userStats?.inventory;
     if (inventory) {
         const inventorySummary = buildInventorySummary(inventory);
         userStatsInfo += `${userName}'s Inventory:\n${inventorySummary}\n\n`;
     }
 
-    // Add stat sheet (when enabled) or fall back to classic attributes
     if (extensionSettings.statSheet?.enabled) {
         const statSheetBlock = buildEncounterStatSheetBlock(userName);
         if (statSheetBlock) userStatsInfo += statSheetBlock + '\n\n';
@@ -244,16 +235,14 @@ export async function buildEncounterInitPrompt() {
         userStatsInfo += `STR ${stats.str}, DEX ${stats.dex}, CON ${stats.con}, INT ${stats.int}, WIS ${stats.wis}, CHA ${stats.cha}${levelStr}\n\n`;
     }
 
-    // Add present characters info for party members
     let partyInfo = '';
     if (committedTrackerData.characterThoughts) {
         partyInfo += `Present Characters (potential party members):\n${committedTrackerData.characterThoughts}\n\n`;
     }
 
-    // Close history and add combat initialization instruction
+    // Close history and add the init instruction
     let initInstruction = `</history>\n\n`;
 
-    // Wrap RPG Companion panel data in context tags
     initInstruction += `Here is some additional tracked context for the scene:\n`;
     initInstruction += `<context>\n`;
     initInstruction += userStatsInfo;
@@ -317,7 +306,6 @@ export async function buildEncounterInitPrompt() {
     initInstruction += `Use the user's current stats, inventory, and skills to populate the party data. For ${userName}'s attacks array, include their available skills. For items, include usable items from their inventory WITH QUANTITIES (e.g., "Health Potion x3"). Set HP based on their current Health stat if available.\n\n`;
     initInstruction += `Ensure all party members and enemies have realistic HP values based on the setting and their descriptions. Return ONLY the JSON object, no other text.`;
 
-    // Only add the instruction if it has meaningful content
     if (initInstruction.trim()) {
         messages.push({
             role: 'user',
@@ -325,7 +313,6 @@ export async function buildEncounterInitPrompt() {
         });
     }
 
-    // Validate that we have at least one message with content
     if (messages.length === 0 || messages.every(m => !m.content || !m.content.trim())) {
         throw new Error('Unable to build encounter prompt - no valid content available');
     }
@@ -334,81 +321,54 @@ export async function buildEncounterInitPrompt() {
 }
 
 /**
- * Builds a combat action prompt
- * This is sent when the user takes an action in combat
- * @param {string} action - The action taken by the user
- * @param {object} combatStats - Current combat statistics
- * @returns {Array} Message array for the API
+ * Builds a combat action prompt.
+ * Sent when the user takes an action in combat.
+ *
+ * @param {string} action      — The action taken by the user
+ * @param {object} combatStats — Current combat statistics
+ * @returns {Promise<Array>} Message array for the API
  */
 export async function buildCombatActionPrompt(action, combatStats) {
     const context = getContext();
     const userName = context.name1;
     const depth = extensionSettings.encounterSettings?.historyDepth || 8;
 
-    // Get narrative style from settings
     const narrativeStyle = extensionSettings.encounterSettings?.combatNarrative || {};
-    const tense = narrativeStyle.tense || 'present';
-    const person = narrativeStyle.person || 'third';
+    const tense    = narrativeStyle.tense    || 'present';
+    const person   = narrativeStyle.person   || 'third';
     const narration = narrativeStyle.narration || 'omniscient';
-    const pov = narrativeStyle.pov || 'narrator';
+    const pov      = narrativeStyle.pov      || 'narrator';
 
     const messages = [];
 
-    // Build system message with setting info
+    // System message
     let systemMessage = `You are the game master managing this combat encounter. You must not play as ${userName} - only describe what happens as a result of their actions/dialogues and control NPCs/enemies.\n\n`;
 
-    // Add setting information
+    // Setting / world info
     systemMessage += `Here is some information for you about the setting:\n`;
     systemMessage += `<setting>\n`;
 
-    // Get world info
-    let worldInfoAdded = false;
-    try {
-        const getWorldInfoFn = context.getWorldInfoPrompt || window.getWorldInfoPrompt;
-        const currentChat = context.chat || chat;
-
-        if (typeof getWorldInfoFn === 'function' && currentChat && currentChat.length > 0) {
-            const chatForWI = currentChat.map(x => x.mes || x.message || x).filter(m => m && typeof m === 'string');
-            const result = await getWorldInfoFn(chatForWI, 8000, false);
-            const worldInfoString = result?.worldInfoString || result;
-
-            if (worldInfoString && typeof worldInfoString === 'string' && worldInfoString.trim()) {
-                systemMessage += worldInfoString.trim();
-                worldInfoAdded = true;
-            }
-        }
-    } catch (e) {
-        console.warn('[RPG Companion] Failed to get world info for combat action:', e);
-    }
-
-    if (!worldInfoAdded && context.activatedWorldInfo && Array.isArray(context.activatedWorldInfo) && context.activatedWorldInfo.length > 0) {
-        context.activatedWorldInfo.forEach((entry) => {
-            if (entry && entry.content) {
-                systemMessage += `${entry.content}\n\n`;
-                worldInfoAdded = true;
-            }
-        });
-    }
-
-    if (!worldInfoAdded) {
+    const worldInfo = await _getWorldInfo(context);
+    if (worldInfo) {
+        systemMessage += worldInfo;
+    } else {
         systemMessage += 'No world information available.';
     }
 
     systemMessage += `\n</setting>\n\n`;
 
-    // Add character information
+    // Character information
     const charactersInfo = await getCharactersInfo();
     if (charactersInfo) {
         systemMessage += `Here is the information available to you about the characters:\n`;
         systemMessage += `<characters>\n${charactersInfo}</characters>\n\n`;
     }
 
-    // Add persona info
+    // Persona information
     if (context.name1) {
         systemMessage += `The protagonist is:\n`;
         systemMessage += `<persona>\n`;
 
-        // Use substituteParams to get {{persona}} like in initial encounter
         try {
             const personaText = substituteParams('{{persona}}');
             if (personaText && personaText !== '{{persona}}') {
@@ -426,7 +386,6 @@ export async function buildCombatActionPrompt(action, combatStats) {
             }
         }
 
-        // Add stat sheet (when enabled) or fall back to classic attributes
         if (extensionSettings.statSheet?.enabled) {
             const statSheetBlock = buildEncounterStatSheetBlock(userName);
             if (statSheetBlock) {
@@ -452,7 +411,7 @@ export async function buildCombatActionPrompt(action, combatStats) {
         systemMessage += `</persona>\n\n`;
     }
 
-    // ── SotC combat tag instructions (Rev 3) ──────────────────────────────────
+    // ── SotC combat tag instructions (Rev 4) ──────────────────────────────────
     systemMessage += buildCombatTagBlock(combatStats, userName);
 
     messages.push({
@@ -460,14 +419,13 @@ export async function buildCombatActionPrompt(action, combatStats) {
         content: systemMessage
     });
 
-    // Add recent chat history for context - append as user/assistant messages like initial encounter
+    // Recent chat history
     const currentChat = context.chat || chat;
     if (currentChat && currentChat.length > 0) {
         const recentMessages = currentChat.slice(-depth);
 
         for (const message of recentMessages) {
             const content = message.mes?.trim();
-            // Skip empty messages
             if (content) {
                 messages.push({
                     role: message.is_user ? 'user' : 'assistant',
@@ -477,7 +435,7 @@ export async function buildCombatActionPrompt(action, combatStats) {
         }
     }
 
-    // Add combat log as plain text (previous actions)
+    // Previous combat actions log
     if (currentEncounter.encounterLog && currentEncounter.encounterLog.length > 0) {
         let combatHistory = 'Previous Combat Actions:\n';
         currentEncounter.encounterLog.forEach(entry => {
@@ -493,7 +451,7 @@ export async function buildCombatActionPrompt(action, combatStats) {
         });
     }
 
-    // Add current combat state with FULL information (but tell AI not to regenerate static parts)
+    // Current combat state
     let stateMessage = `Current Combat State:\n`;
     stateMessage += `Environment: ${combatStats.environment || 'Unknown location'}\n\n`;
 
@@ -501,7 +459,6 @@ export async function buildCombatActionPrompt(action, combatStats) {
     combatStats.party.forEach(member => {
         stateMessage += `- ${member.name}${member.isPlayer ? ' (Player)' : ''}: ${member.hp}/${member.maxHp} HP\n`;
 
-        // For the player, use playerActions if available, otherwise fall back to member data
         if (member.isPlayer && currentEncounter.playerActions) {
             if (currentEncounter.playerActions.attacks && currentEncounter.playerActions.attacks.length > 0) {
                 stateMessage += `  Attacks: ${currentEncounter.playerActions.attacks.map(a => typeof a === 'string' ? a : a.name).join(', ')}\n`;
@@ -510,7 +467,6 @@ export async function buildCombatActionPrompt(action, combatStats) {
                 stateMessage += `  Items: ${currentEncounter.playerActions.items.join(', ')}\n`;
             }
         } else {
-            // For non-player party members, use their own data
             if (member.attacks && member.attacks.length > 0) {
                 stateMessage += `  Attacks: ${member.attacks.map(a => typeof a === 'string' ? a : a.name).join(', ')}\n`;
             }
@@ -554,6 +510,7 @@ export async function buildCombatActionPrompt(action, combatStats) {
     stateMessage += `- If they pick up a weapon/item during combat, add it to their items or attacks array.\n`;
     stateMessage += `- If environmental changes enable new actions (near water → "Splash Attack"), add them. If they disable actions (fire goes out → remove "Ignite"), remove them.\n`;
     stateMessage += `- Status effects should persist and decrease duration each turn. Remove statuses when duration reaches 0.\n\n`;
+    stateMessage += `NOTE: Enemy dice and targeting are declared via <enemy_action> tags appended after the narrative — do NOT include enemy actions inside the JSON.\n\n`;
     stateMessage += `FORMAT:\n`;
     stateMessage += `{\n`;
     stateMessage += `  "combatStats": {\n`;
@@ -579,7 +536,6 @@ export async function buildCombatActionPrompt(action, combatStats) {
     stateMessage += `    "attacks": [{"name": "Attack", "type": "single-target|AoE|both"}],\n`;
     stateMessage += `    "items": ["Item Name x3", "Another Item x1"]\n`;
     stateMessage += `  },\n`;
-    stateMessage += `  "enemyActions": [{ "enemyName": "Name", "action": "what they do", "target": "target" }],\n`;
     stateMessage += `  "partyActions": [{ "memberName": "Name", "action": "what they do", "target": "target" }],\n`;
     stateMessage += `  "narrative": "The roleplay description of what happens"\n`;
     stateMessage += `}\n\n`;
@@ -587,7 +543,6 @@ export async function buildCombatActionPrompt(action, combatStats) {
     stateMessage += `Scale combat difficulty appropriately: Powerful entities (gods, dragons, legendary creatures) should be formidable challenges requiring multiple rounds and strategic play. Weaker foes (common animals, basic enemies, minions) should be resolved more quickly, typically 2-4 rounds. Match HP damage and combat pacing to the narrative weight of the encounter. A wolf should not take 20 rounds to defeat, nor should a deity fall in one hit.\n`;
     stateMessage += `For the narrative, write it with intent in ${tense} tense ${person}-person ${narration} from ${pov}'s point of view.\n`;
 
-    // Use custom combat narrative prompt if available
     const customCombatPrompt = extensionSettings.customCombatNarrativePrompt;
     if (customCombatPrompt) {
         stateMessage += customCombatPrompt.replace(/{userName}/g, userName) + '\n';
@@ -608,76 +563,49 @@ export async function buildCombatActionPrompt(action, combatStats) {
 }
 
 /**
- * Builds the final summary prompt
- * This is sent when combat ends to get a narrative summary
- * @param {Array} combatLog - Full combat log
- * @param {string} result - Combat result ('victory', 'defeat', or 'fled')
+ * Builds the final summary prompt.
+ * Sent when combat ends to get a narrative summary.
+ *
+ * @param {Array}  combatLog — Full combat log
+ * @param {string} result    — Combat result ('victory', 'defeat', or 'fled')
  * @returns {Promise<Array>} Message array for the API
  */
 export async function buildCombatSummaryPrompt(combatLog, result) {
     const context = getContext();
     const userName = context.name1;
 
+    const narrativeStyle = extensionSettings.encounterSettings?.summaryNarrative || {};
+    const tense    = narrativeStyle.tense    || 'past';
+    const person   = narrativeStyle.person   || 'third';
+    const narration = narrativeStyle.narration || 'omniscient';
+    const pov      = narrativeStyle.pov      || 'narrator';
+
     const messages = [];
 
-    // Get narrative style from settings (use summary narrative settings)
-    const narrativeStyle = extensionSettings.encounterSettings?.summaryNarrative || {};
-    const tense = narrativeStyle.tense || 'past';
-    const person = narrativeStyle.person || 'third';
-    const narration = narrativeStyle.narration || 'omniscient';
-    const pov = narrativeStyle.pov || 'narrator';
-
-    // Build system message with setting info
+    // System message
     let systemMessage = `You are summarizing a combat encounter that just concluded.\n\n`;
 
-    // Add setting information
+    // Setting / world info
     systemMessage += `Here is some information for you about the setting:\n`;
     systemMessage += `<setting>\n`;
 
-    // Get world info using the same method as encounter init
-    let worldInfoAdded = false;
-    try {
-        const getWorldInfoFn = context.getWorldInfoPrompt || window.getWorldInfoPrompt;
-        const currentChat = context.chat || chat;
-
-        if (typeof getWorldInfoFn === 'function' && currentChat && currentChat.length > 0) {
-            const chatForWI = currentChat.map(x => x.mes || x.message || x).filter(m => m && typeof m === 'string');
-            const result = await getWorldInfoFn(chatForWI, 8000, false);
-            const worldInfoString = result?.worldInfoString || result;
-
-            if (worldInfoString && typeof worldInfoString === 'string' && worldInfoString.trim()) {
-                systemMessage += worldInfoString.trim();
-                worldInfoAdded = true;
-            }
-        }
-    } catch (e) {
-        console.warn('[RPG Companion] Failed to get world info for summary:', e);
-    }
-
-    // Fallback to activatedWorldInfo
-    if (!worldInfoAdded && context.activatedWorldInfo && Array.isArray(context.activatedWorldInfo) && context.activatedWorldInfo.length > 0) {
-        context.activatedWorldInfo.forEach((entry) => {
-            if (entry && entry.content) {
-                systemMessage += `${entry.content}\n\n`;
-                worldInfoAdded = true;
-            }
-        });
-    }
-
-    if (!worldInfoAdded) {
+    const worldInfo = await _getWorldInfo(context);
+    if (worldInfo) {
+        systemMessage += worldInfo;
+    } else {
         systemMessage += 'No world information available.';
     }
 
     systemMessage += `\n</setting>\n\n`;
 
-    // Add character information
+    // Character information
     const charactersInfo = await getCharactersInfo();
     if (charactersInfo) {
         systemMessage += `Here is the information available to you about the characters:\n`;
         systemMessage += `<characters>\n${charactersInfo}</characters>\n\n`;
     }
 
-    // Add persona information
+    // Persona information
     systemMessage += `Here are details about ${userName}:\n`;
     systemMessage += `<persona>\n`;
 
@@ -694,7 +622,7 @@ export async function buildCombatSummaryPrompt(combatLog, result) {
 
     systemMessage += `\n</persona>\n\n`;
 
-    // Add the message that triggered the encounter
+    // Encounter trigger message
     if (currentEncounter.encounterStartMessage) {
         systemMessage += `Here is the last message before combat started:\n`;
         systemMessage += `<trigger>\n${currentEncounter.encounterStartMessage}\n</trigger>\n\n`;
@@ -705,6 +633,7 @@ export async function buildCombatSummaryPrompt(combatLog, result) {
         content: systemMessage
     });
 
+    // Summary body
     let summaryMessage = `Combat has ended with result: ${result}\n\n`;
     summaryMessage += `Full Combat Log:\n`;
 
@@ -721,13 +650,12 @@ export async function buildCombatSummaryPrompt(combatLog, result) {
     summaryMessage += `- Include ALL dialogue lines spoken by enemies and NPC party members during the encounter in direct quotes.\n`;
     summaryMessage += `- Never quote ${userName} directly. Express their actions and dialogue using ONLY indirect speech (e.g., "${userName} swung their sword" or "${userName} asked for help").\n\n`;
 
-    // If in Together mode and trackers are enabled, add tracker update instructions
+    // Together mode tracker update
     if (extensionSettings.generationMode === 'together' && (extensionSettings.showUserStats || extensionSettings.showInfoBox || extensionSettings.showCharacterThoughts)) {
         summaryMessage += `\n--- TRACKER UPDATE ---\n\n`;
         summaryMessage += `After the [FIGHT CONCLUDED] summary, update the RPG trackers to reflect ${userName}'s state AFTER the combat encounter. `;
         summaryMessage += `Account for any injuries sustained, resources used, emotional state changes, or other consequences of the battle.\n\n`;
 
-        // Include pre-combat tracker state if available
         if (committedTrackerData.userStats || committedTrackerData.infoBox || committedTrackerData.characterThoughts) {
             summaryMessage += `Pre-combat tracker state:\n`;
             summaryMessage += `<previous>\n`;
@@ -756,7 +684,6 @@ export async function buildCombatSummaryPrompt(combatLog, result) {
             summaryMessage += `</previous>\n\n`;
         }
 
-        // Add tracker instructions and example
         const trackerInstructions = generateTrackerInstructions(false, false, true);
         summaryMessage += trackerInstructions;
 
@@ -775,30 +702,24 @@ export async function buildCombatSummaryPrompt(combatLog, result) {
 }
 
 /**
- * Parses JSON response from the AI, handling code blocks
- * @param {string} response - The AI response
+ * Parses JSON response from the AI, handling code blocks.
+ * @param {string} response — The AI response
  * @returns {object|null} Parsed JSON object or null if parsing fails
  */
 export function parseEncounterJSON(response) {
     try {
-        // Ensure response is a string
         if (!response || typeof response !== 'string') {
             console.error('[RPG Companion] parseEncounterJSON received non-string input:', typeof response);
             return null;
         }
 
-        // Remove code blocks if present
         let cleaned = response.trim();
 
-        // Remove ```json, ```markdown, and ``` markers (more comprehensive)
         cleaned = cleaned.replace(/```(?:json|markdown)?\s*/gi, '');
-
-        // Remove any remaining backticks
         cleaned = cleaned.replace(/`/g, '');
 
-        // Find the first { and last }
         const firstBrace = cleaned.indexOf('{');
-        const lastBrace = cleaned.lastIndexOf('}');
+        const lastBrace  = cleaned.lastIndexOf('}');
 
         if (firstBrace !== -1 && lastBrace !== -1) {
             cleaned = cleaned.substring(firstBrace, lastBrace + 1);
@@ -807,20 +728,16 @@ export function parseEncounterJSON(response) {
             return null;
         }
 
-        // Try to parse directly first
         try {
             return JSON.parse(cleaned);
         } catch (initialError) {
-            // If direct parsing fails, try JSON repair
             console.warn('[RPG Companion] Initial parse failed, attempting JSON repair...');
             const repaired = repairJSON(cleaned);
 
             if (repaired) {
-                // console.log('[RPG Companion] ✓ Successfully repaired encounter JSON');
                 return repaired;
             }
 
-            // If repair also failed, throw the original error
             throw initialError;
         }
     } catch (error) {

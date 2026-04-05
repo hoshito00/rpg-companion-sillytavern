@@ -44,6 +44,7 @@ import {
     calculateSanityLevel,
     getSanityLevelInfo,
 } from '../statSheet/sanitySystem.js';
+
 import {
     canAffordLight,
     spendLight,
@@ -62,16 +63,23 @@ import {
     initToUpsertArgs,
     groupEnemyActions,
 } from '../generation/parseCombatTags.js';
+
 import {
     resolveClash,
     applyClashReport,
     buildInitiativeQueue,
+    getMoraleTier,
+    clampMorale,
+    moraleGainOnKill,
+    moraleLossOnAllyDeath,
 } from '../features/clashEngine.js';
+
 import {
     buildPlayerSnap,
     resolvePlayerDiceForSkillId,
     writePlayerDeltas,
 } from '../statSheet/statSheetBridge.js';
+
 import {
     resetEngineRoundState,
     expireSavedDice,
@@ -79,6 +87,8 @@ import {
     getCombatantState,
     logClash,
 } from '../features/encounterState.js';
+
+import { logDiceRoll } from '../interaction/diceLog.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -431,13 +441,19 @@ export class EncounterModal {
      */
     renderHUDHTML() {
         const light    = currentEncounter.light;
+        const morale   = currentEncounter.morale ?? 0;
+        const moraleTier = getMoraleTier(morale);
         const sanity   = currentEncounter.sanity.current;
         const lvl      = currentEncounter.sanityLevel;
         const info     = getSanityLevelInfo(lvl);
         const corrosion = currentEncounter.corrosion.active;
         const pips     = lightPipsText(light);
         const actLabel = getActSceneLabel(currentEncounter);
-        const sanitySign = sanity >= 0 ? '+' : '';
+        const moraleSign = morale >= 0 ? '+' : '';
+        const tierSign   = moraleTier >= 0 ? '+' : '';
+
+        // Morale colour: positive = warm green, negative = red, neutral = grey
+        const moraleColor = moraleTier > 0 ? '#4caf50' : moraleTier < 0 ? '#e94560' : '#9da5b0';
 
         return `
             <div class="rpg-hud-segment rpg-hud-light">
@@ -447,16 +463,22 @@ export class EncounterModal {
                 <span class="rpg-hud-value">${light.current}/${light.max}</span>
             </div>
             <div class="rpg-hud-divider">│</div>
+            <div class="rpg-hud-segment rpg-hud-morale">
+                <span class="rpg-hud-icon">⚔</span>
+                <span class="rpg-hud-label">Morale</span>
+                <span class="rpg-hud-value" style="color:${moraleColor}">${moraleSign}${morale}</span>
+                <span class="rpg-hud-sublabel" style="color:${moraleColor}">Tier ${tierSign}${moraleTier}</span>
+            </div>
+            <div class="rpg-hud-divider">│</div>
             <div class="rpg-hud-segment rpg-hud-sanity ${corrosion ? 'rpg-hud-corrosion-active' : ''}">
                 <span class="rpg-hud-icon">🧠</span>
                 <span class="rpg-hud-label">Sanity</span>
-                <span class="rpg-hud-value" style="color:${info?.color || '#9da5b0'}">${sanitySign}${sanity}</span>
-                <span class="rpg-hud-sublabel" style="color:${info?.color || '#9da5b0'}">${info?.name || 'Neutral'} Lv${lvl >= 0 ? '+' : ''}${lvl}</span>
+                <span class="rpg-hud-value" style="color:${info?.color || '#9da5b0'}">${sanity >= 0 ? '+' : ''}${sanity}</span>
                 ${corrosion ? '<span class="rpg-corrosion-tag">⚠ EGO CORROSION</span>' : ''}
             </div>
             <div class="rpg-hud-divider">│</div>
             <div class="rpg-hud-segment rpg-hud-scene">
-                <span class="rpg-hud-icon">⚔</span>
+                <span class="rpg-hud-icon">🎭</span>
                 <span class="rpg-hud-value">${actLabel}</span>
             </div>
         `;
@@ -985,13 +1007,14 @@ export class EncounterModal {
             result.partyActions?.forEach(pa => { fullActionLog += `\n${pa.memberName}: ${pa.action}`; });
             addEncounterLogEntry(fullActionLog, result.narrative || 'Action resolved');
 
-            // ── Phase 4: Run local clash engine ──────────────────────────────
-            const clashResult = this._runClashResolution(
+            // ── Phase 4: Run local clash engine ──────────────────────────
+            const clashResult    = this._runClashResolution(
                 response,
                 currentEncounter.selectedSkill ?? null
             );
-            const clashLogLines  = clashResult?.logLines  ?? [];
-            const clashSanityDelta = clashResult?.sanityDelta ?? 0;
+            const clashLogLines  = clashResult?.logLines     ?? [];
+            const clashMoraleDelta = clashResult?.moraleDelta ?? 0;
+            const killedEnemies  = clashResult?.killedEnemies ?? [];
             if (clashLogLines?.length) {
                 this.addToLog('── Clash Resolution ──', 'system');
                 for (const line of clashLogLines) {
@@ -999,11 +1022,11 @@ export class EncounterModal {
                 }
             }
 
-            // ── Update visuals ────────────────────────────────────────────────
+            // ── Update visuals ────────────────────────────────────────────
             this.updateCombatUI(result.combatStats);
 
-            // ── Session 7: Sanity / Light / Scene post-round updates ──────────
-            this._applyPostRoundUpdates(result.combatStats, prevStats, clashSanityDelta);
+            // ── Morale / Light / Scene post-round updates ─────────────────
+            this._applyPostRoundUpdates(result.combatStats, prevStats, clashMoraleDelta, killedEnemies);
 
             // ── Check combat end ──────────────────────────────────────────────
             if (result.combatEnd) {
@@ -1156,11 +1179,26 @@ export class EncounterModal {
         // ── 8. Resolve each clash in initiative order ─────────────────────────
         let totalHpDeltaPlayer      = 0;
         let totalStaggerDeltaPlayer = 0;
-        let totalSanityDelta        = 0;
+        let totalMoraleDeltaPlayer  = 0;
+        const killedEnemies         = []; // { name, morale } at time of kill
+
+        // Player morale tier modifier — baked into each player die
+        const playerMoraleTier = getMoraleTier(currentEncounter.morale ?? 0);
+        const playerDiceWithMorale = playerDice.map(d => ({
+            ...d,
+            modifier: (d.modifier ?? 0) + playerMoraleTier,
+        }));
 
         for (const group of initQueue) {
             const enemyState = getCombatantState(group.ownerName);
             if (!enemyState) continue;
+
+            // Enemy morale tier modifier — baked into each enemy die
+            const enemyMoraleTier = getMoraleTier(enemyState.morale ?? 0);
+            const enemyDiceWithMorale = group.enemyDiceSpecs.map(d => ({
+                ...d,
+                modifier: (d.modifier ?? 0) + enemyMoraleTier,
+            }));
 
             const enemySnap = {
                 hp               : enemyState.hp,
@@ -1175,8 +1213,8 @@ export class EncounterModal {
             logLines.push(`— ${group.ownerName} uses "${group.skillName}" (speed ${group.speedRoll})`);
 
             const report = resolveClash(
-                playerDice,
-                group.enemyDiceSpecs,
+                playerDiceWithMorale,
+                enemyDiceWithMorale,
                 playerSnap,
                 enemySnap,
                 es.roundNumber
@@ -1191,7 +1229,15 @@ export class EncounterModal {
             // Accumulate player deltas
             totalHpDeltaPlayer      += report.hpDeltaPlayer;
             totalStaggerDeltaPlayer += report.staggerDeltaPlayer;
-            totalSanityDelta        += report.sanityDelta;
+            totalMoraleDeltaPlayer  += report.moraleDeltaPlayer;
+
+            // Apply morale delta to this enemy
+            enemyState.morale = clampMorale((enemyState.morale ?? 0) + report.moraleDeltaEnemy);
+
+            // Track kills for post-round morale bonus
+            if (changes.enemyKilled) {
+                killedEnemies.push({ name: group.ownerName, morale: enemyState.morale });
+            }
 
             // Log each clash line
             for (const line of report.logLines) {
@@ -1208,6 +1254,39 @@ export class EncounterModal {
             try { allSkills.push(...(getEquippedSkills() || [])); } catch { /* ok */ }
             const playerSkillName = allSkills.find(s => s.id === skillId)?.name ?? skillId ?? '(no skill)';
             logClash('_player', group.ownerName, playerSkillName, group.skillName, report);
+
+            // ── Log clash dice as two grouped entries (player skill / enemy skill) ──
+            {
+                const playerPairs = (report.pairs ?? []).filter(p => p.playerDie && p.playerRoll !== null);
+                if (playerPairs.length) {
+                    const formulas = playerPairs.map(p => {
+                        const mod = p.playerDie.modifier ?? 0;
+                        const ms  = mod > 0 ? `+${mod}` : mod < 0 ? `${mod}` : '';
+                        return `1d${p.playerDie.sides}${ms}`;
+                    });
+                    logDiceRoll(
+                        formulas.join(' / '),
+                        playerPairs.reduce((s, p) => s + p.playerRoll, 0),
+                        playerPairs.map(p => p.playerRoll - (p.playerDie.modifier ?? 0)),
+                        playerSkillName
+                    );
+                }
+
+                const enemyPairs = (report.pairs ?? []).filter(p => p.enemyDie && p.enemyRoll !== null);
+                if (enemyPairs.length) {
+                    const formulas = enemyPairs.map(p => {
+                        const mod = p.enemyDie.modifier ?? 0;
+                        const ms  = mod > 0 ? `+${mod}` : mod < 0 ? `${mod}` : '';
+                        return `1d${p.enemyDie.sides}${ms}`;
+                    });
+                    logDiceRoll(
+                        formulas.join(' / '),
+                        enemyPairs.reduce((s, p) => s + p.enemyRoll, 0),
+                        enemyPairs.map(p => p.enemyRoll - (p.enemyDie.modifier ?? 0)),
+                        `${group.ownerName} — ${group.skillName}`
+                    );
+                }
+            }
         }
 
         // ── 9. Write player deltas back to bars ───────────────────────────────
@@ -1215,64 +1294,89 @@ export class EncounterModal {
             writePlayerDeltas(totalHpDeltaPlayer, totalStaggerDeltaPlayer);
         }
 
-        return { logLines, sanityDelta: totalSanityDelta };
+        return { logLines, moraleDelta: totalMoraleDeltaPlayer, killedEnemies };
     }
 
-    // ── Post-round Sanity / Light / Scene (Session 7) ─────────────────────────
+    // ── Post-round Morale / Light / Scene ────────────────────────────────────
 
     /**
-     * Apply sanity changes derived from the round's outcome, regen Light,
+     * Apply morale changes from the round's outcome, regen Light,
      * advance the Scene counter, and refresh the HUD.
      *
-     * Heuristic:
-     *   - Any enemy that went from hp > 0 to hp ≤ 0  → +12 Sanity (kill)
-     *   - Player HP decreased                         → −3  Sanity (clash loss)
-     *   - Neither of the above and a skill was used   → +3  Sanity (clash win)
+     * Morale sources:
+     *   - Per-die clash wins/losses → clashMoraleDelta (from clashEngine)
+     *   - Enemy eliminated          → +10 to +15 (scales with enemy's morale tier)
+     *   - Ally eliminated           → -10 to -25 (scales with highest living enemy's morale tier)
      *
-     * @param {object} newStats       The combatStats object from the AI response.
-     * @param {object} prevStats      Snapshot of combatStats before the round.
-     * @param {number} clashSanityDelta  Net sanity change from per-die clash results (from clashEngine).
+     * @param {object}   newStats         combatStats from the AI response
+     * @param {object}   prevStats        snapshot of combatStats before the round
+     * @param {number}   clashMoraleDelta net player morale change from clash engine
+     * @param {Array}    killedEnemies    [{ name, morale }] enemies killed during clash
      */
-    _applyPostRoundUpdates(newStats, prevStats, clashSanityDelta = 0) {
-        let sanityDelta = clashSanityDelta;
+    _applyPostRoundUpdates(newStats, prevStats, clashMoraleDelta = 0, killedEnemies = []) {
+        let moraleDelta = clashMoraleDelta;
 
-        // ── Count kills — each kill grants a flat bonus on top of clash wins ──
-        let kills = 0;
+        // ── Log per-die morale result ─────────────────────────────────────────
+        if (clashMoraleDelta > 0) {
+            this.addToLog(`+${clashMoraleDelta} Morale (clash wins)`, 'sanity-gain');
+        } else if (clashMoraleDelta < 0) {
+            this.addToLog(`${clashMoraleDelta} Morale (clash losses)`, 'sanity-loss');
+        }
+
+        // ── Enemy elimination bonuses ─────────────────────────────────────────
+        // Engine-tracked kills (from clash resolution)
+        for (const killed of killedEnemies) {
+            const gain = moraleGainOnKill(killed.morale);
+            moraleDelta += gain;
+            this.addToLog(`${killed.name} defeated! +${gain} Morale`, 'sanity-gain');
+        }
+
+        // AI-reported kills not caught by the engine (HP went to 0 in JSON)
         if (newStats?.enemies && prevStats?.enemies) {
             newStats.enemies.forEach((enemy, i) => {
                 const prev = prevStats.enemies[i];
-                if (prev && prev.hp > 0 && enemy.hp <= 0) kills++;
+                const alreadyCounted = killedEnemies.some(k => k.name === enemy.name);
+                if (prev && prev.hp > 0 && enemy.hp <= 0 && !alreadyCounted) {
+                    const gain = moraleGainOnKill(0); // no engine state — use neutral morale
+                    moraleDelta += gain;
+                    this.addToLog(`${enemy.name} defeated! +${gain} Morale`, 'sanity-gain');
+                }
             });
         }
-        if (kills > 0) {
-            sanityDelta += kills * SANITY_KILL;
-            for (let i = 0; i < kills; i++) {
-                this.addToLog(`Kill! +${SANITY_KILL} Sanity`, 'sanity-gain');
-            }
+
+        // ── Ally elimination penalties ────────────────────────────────────────
+        if (newStats?.party && prevStats?.party) {
+            // Find the highest-morale living enemy as the "killer" proxy
+            const es = currentEncounter.engineState;
+            const highestEnemyMorale = Object.values(es?.combatants ?? {})
+                .filter(c => c.hp > 0 && c.name !== '_player')
+                .reduce((max, c) => Math.max(max, c.morale ?? 0), 0);
+
+            newStats.party.forEach((member, i) => {
+                const prev = prevStats.party[i];
+                if (prev && prev.hp > 0 && member.hp <= 0) {
+                    const loss = moraleLossOnAllyDeath(highestEnemyMorale);
+                    moraleDelta += loss;
+                    this.addToLog(`${member.name} defeated! ${loss} Morale`, 'sanity-loss');
+                }
+            });
         }
 
-        // ── Log per-die sanity result (only if clashEngine contributed) ───────
-        if (clashSanityDelta > 0) {
-            this.addToLog(`+${clashSanityDelta} Sanity (die wins)`, 'sanity-gain');
-        } else if (clashSanityDelta < 0) {
-            this.addToLog(`${clashSanityDelta} Sanity (die losses)`, 'sanity-loss');
+        // ── Apply morale to player ────────────────────────────────────────────
+        if (moraleDelta !== 0) {
+            currentEncounter.morale = clampMorale((currentEncounter.morale ?? 0) + moraleDelta);
         }
 
-        // ── Apply sanity ──────────────────────────────────────────────────────
-        if (sanityDelta !== 0) {
+        // ── Sanity: E.G.O corrosion check (sanity still driven by E.G.O costs) ──
+        {
             const wasInCorrosion = currentEncounter.corrosion.active;
-            const newSanity      = clampSanity(currentEncounter.sanity.current + sanityDelta);
+            const currentSanity  = currentEncounter.sanity.current;
 
-            currentEncounter.sanity.current = newSanity;
-            currentEncounter.sanityLevel    = calculateSanityLevel(newSanity);
-
-            // Corrosion trigger
-            if (newSanity <= SANITY_MIN && !wasInCorrosion) {
+            if (currentSanity <= SANITY_MIN && !wasInCorrosion) {
                 currentEncounter.corrosion.active = true;
                 this.addToLog('⚠ E.G.O CORROSION triggered! Only E.G.O skills available until Sanity ≥ 0.', 'corrosion-trigger');
             }
-            // Corrosion recovery
-            if (wasInCorrosion && newSanity >= 0) {
+            if (wasInCorrosion && currentSanity >= 0) {
                 currentEncounter.corrosion.active = false;
                 this.addToLog('✓ E.G.O Corrosion ended. Normal skills restored.', 'corrosion-end');
             }

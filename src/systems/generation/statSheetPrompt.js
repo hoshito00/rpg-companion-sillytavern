@@ -390,6 +390,18 @@ export function buildEncounterStatSheetBlock(userName) {
 
     const encParts = [];
     if (light) encParts.push(`Light ${lightPipsText(light)} (${light.current}/${light.max})`);
+
+    // Morale
+    const morale     = currentEncounter.morale ?? 0;
+    const moraleSign = morale >= 0 ? '+' : '';
+    // Derive tier label inline (mirrors getMoraleTier from clashEngine — no import needed here)
+    const moraleTier = morale >= 75 ? 5 : morale >= 60 ? 4 : morale >= 45 ? 3 :
+                       morale >= 30 ? 2 : morale >= 15 ? 1 : morale > -15 ? 0 :
+                       morale > -30 ? -1 : morale > -45 ? -2 : -3;
+    const tierSign   = moraleTier >= 0 ? '+' : '';
+    encParts.push(`Morale ${moraleSign}${morale} (Tier ${tierSign}${moraleTier})`);
+
+    // Sanity (E.G.O corrosion state)
     const sign    = sanity >= 0 ? '+' : '';
     const lvlSign = lvlNum >= 0 ? '+' : '';
     encParts.push(`Sanity ${sign}${sanity} ${lvlInfo?.name ?? ''} Lv${lvlSign}${lvlNum}`);

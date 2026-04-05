@@ -17,6 +17,8 @@ import {
     addSavingThrowAttributeTerm,
     addSavingThrowFlatTerm,
     addSavingThrowLevelTerm,
+    addSavingThrowSkillTerm,
+    addSavingThrowSubSkillTerm,
     removeSavingThrowTerm,
     updateSavingThrowTermMultiplier,
     updateSavingThrowFlatTermValue,
@@ -29,7 +31,11 @@ import {
     spendExpOnSkill,
     spendExpOnAlphaSkill,
     checkFeatPrerequisites,
-    RANKS
+    RANKS,
+    addSTCategory,
+    removeSTCategory,
+    renameSTCategory,
+    setSavingThrowCategory
 } from './statSheetState.js';
 import { saveStatSheetData } from '../../core/persistence.js';
 import { refreshCurrentTab, showNotification, buildPromptIncludeToggle } from './statSheetUI.js';
@@ -39,8 +45,9 @@ import { executeRollCommand } from '../features/dice.js';
 // MODULE STATE
 // ============================================================================
 
-let isMasterMode = false;
-let stLayout     = 'list';
+let isMasterMode   = false;
+let stLayout       = 'list';
+const _expandedSTIds = new Set(); // tracks which ST cards are open in master mode
 
 // ============================================================================
 // GRADE / MODIFIER HELPERS
@@ -58,8 +65,8 @@ function getGradeValue(rank) {
 /**
  * Computes the total attribute modifier used in all roll calculations.
  *
- *   Numeric mode:    attr.value  (raw number, used as-is)
- *   Alphabetic mode: gradeValue(attr.rank) + floor(attr.rankValue ÷ divisor)
+ * Numeric mode:    attr.value  (raw number, used as-is)
+ * Alphabetic mode: gradeValue(attr.rank) + floor(attr.rankValue ÷ divisor)
  *
  * This is the single source of truth — never compute attrModifier inline.
  */
@@ -188,11 +195,11 @@ function renderPlayerModeHTML() {
                     <span class="attribute-count">(${attributes.filter(a => a.enabled).length} active)</span>
                 </div>
                 <div class="attributes-list-view">
-                    ${attributes.filter(a => a.enabled).map(attr => renderPlayerAttribute(attr, mode)).join('')}
+                    ${attributes.filter(a => a.enabled).map(attr => renderPlayerAttribute(attr, mode, savingThrows)).join('')}
                 </div>
             </div>
 
-            ${renderPlayerSavingThrows(savingThrows)}
+            ${renderPlayerSavingThrows(savingThrows.filter(st => !st.parentAttrId || !attributes.find(a => a.id === st.parentAttrId && a.enabled)))}
 
             ${renderAffinitySection()}
 
@@ -237,7 +244,7 @@ function renderSpeedDicePlayerView() {
 // PLAYER MODE — ATTRIBUTE RENDERER
 // ============================================================================
 
-function renderPlayerAttribute(attr, mode) {
+function renderPlayerAttribute(attr, mode, savingThrows = []) {
     const isCollapsed  = attr.collapsed === true;
     const attrBonus    = computeAttrBonus(attr.id);
     // Include job/feat bonuses in the modifier used by the roll button
@@ -265,6 +272,40 @@ function renderPlayerAttribute(attr, mode) {
     }
 
     const enabledSkills = (attr.skills || []).filter(s => s.enabled);
+    const childSaves = savingThrows.filter(st => st.parentAttrId === attr.id && st.enabled);
+
+    let childSavesHTML = '';
+    if (childSaves.length > 0) {
+        childSavesHTML = `
+            <div class="attr-st-inline-view">
+                ${childSaves.map(st => {
+                    const total = calculateSavingThrowValue(st);
+                    return `
+                        <div class="skill-item view-skill-item st-inline-player-item" data-skill-id="${st.id}">
+                            <div class="view-skill-top-row">
+                                <span class="st-player-badge" title="Saving Throw">🛡</span>
+                                <span class="view-skill-name st-player-name">${escapeHtml(st.name)}</span>
+                                <div class="view-skill-controls">
+                                    <span class="view-value-badge">${total}</span>
+                                    <button class="btn-roll-skill btn-roll-save"
+                                            data-skill-id="${st.id}"
+                                            data-attr-name="${escapeHtml(st.name)}"
+                                            data-skill-name="${escapeHtml(st.name)} Save"
+                                            data-attr-val="${total}"
+                                            data-skill-val="0"
+                                            data-rank=""
+                                            title="Roll ${escapeHtml(st.name)} Save">
+                                        <span class="roll-btn-icon">🎲</span>
+                                        <span class="roll-btn-modifier">+${total}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
 
     return `
         <div class="attribute-item" data-attr-id="${attr.id}">
@@ -294,9 +335,10 @@ function renderPlayerAttribute(attr, mode) {
                 </div>
             </div>
             <div class="attr-skills-view ${isCollapsed ? 'collapsed' : ''}">
-                ${enabledSkills.length === 0
-                    ? `<div class="view-no-skills">No skills</div>`
+                ${enabledSkills.length === 0 && childSaves.length === 0
+                    ? `<div class="view-no-skills">No skills or saves</div>`
                     : enabledSkills.map(s => renderPlayerSkill(attr, s, mode)).join('')}
+                ${childSavesHTML}
             </div>
         </div>
     `;
@@ -1210,21 +1252,14 @@ function renderMasterModeHTML() {
                     <span class="attribute-count">(${attributes.filter(a => a.enabled).length} active)</span>
                 </div>
                 <div class="attributes-list">
-                    ${attributes.map(attr => renderMasterAttribute(attr, mode)).join('')}
+                    ${attributes.map(attr => renderMasterAttribute(attr, mode, savingThrows)).join('')}
                 </div>
             </div>
 
-            <div class="saving-throws-section">
-                <div class="section-header">
-                    <h4>Saving Throws</h4>
-                    <button id="add-saving-throw-btn" class="btn-add-small" title="Add saving throw">
-                        + Add
-                    </button>
-                </div>
-                <div class="saving-throws-list">
-                    ${savingThrows.map(st => renderMasterSavingThrow(st)).join('')}
-                </div>
-            </div>
+            ${renderSTCategoriesSection(
+                savingThrows.filter(st => !st.parentAttrId || !attributes.find(a => a.id === st.parentAttrId && a.enabled)),
+                extensionSettings.statSheet
+            )}
 
             ${renderAffinitySection()}
             ${renderSpeedDiceSection()}
@@ -1323,166 +1358,185 @@ function renderRankOptions(currentRank) {
     ).join('');
 }
 
-function renderMasterAttribute(attr, mode) {
+// ── 2. NEW COMPACT renderMasterAttribute ──────────────────────────────────────
+function renderMasterAttribute(attr, mode, savingThrows = []) {
     if (!attr.enabled) return '';
-
-    let valueDisplay;
-    if (mode === 'numeric') {
-        valueDisplay = `
-            <input type="number" class="attribute-value-input numeric-input"
-                   value="${attr.value}" data-attr-id="${attr.id}" min="0" max="999">
-        `;
-    } else {
-        const glowing = attr.threshold > 0 && attr.rankValue >= attr.threshold;
-        valueDisplay = `
-            <div class="alphabetic-display">
-                <select class="attribute-rank-select ${glowing ? 'rank-threshold-glow' : ''}"
-                        data-rank="${attr.rank}" data-attr-id="${attr.id}">
-                    ${renderRankOptions(attr.rank)}
-                </select>
-                <input type="number" class="attribute-value-input alphabetic-input"
-                       value="${attr.rankValue}" data-attr-id="${attr.id}" min="0">
-            </div>
-        `;
-    }
+ 
+    const isAlpha = mode === 'alphabetic';
+    const glowing = isAlpha && attr.threshold > 0 && attr.rankValue >= attr.threshold;
+ 
+    // Rank select — only rendered in alphabetic mode.
+    // Always occupies the same visual slot so no layout jump on mode switch.
+    const rankSlot = isAlpha ? `
+        <select class="attribute-rank-select ${glowing ? 'rank-threshold-glow' : ''}"
+                data-rank="${attr.rank}" data-attr-id="${attr.id}">
+            ${renderRankOptions(attr.rank)}
+        </select>
+    ` : '';
+ 
+    // Value input — numeric uses attr.value; alphabetic uses attr.rankValue
+    const valueInput = `
+        <input type="number"
+               class="attribute-value-input ${isAlpha ? 'alphabetic-input' : 'numeric-input'}"
+               value="${isAlpha ? (attr.rankValue ?? 0) : (attr.value ?? 0)}"
+               data-attr-id="${attr.id}" min="0">
+    `;
+ 
+    const childSaves = savingThrows.filter(st => st.parentAttrId === attr.id);
 
     return `
-        <div class="attribute-item" data-attr-id="${attr.id}">
-            <div class="attribute-header">
-                <div class="attribute-drag-handle" title="Drag to reorder">⠿</div>
-                <div class="attribute-name-controls">
-                    <input type="text" class="attribute-name-input"
-                           value="${attr.name}" data-attr-id="${attr.id}"
-                           placeholder="Attribute Name">
-                    <button class="btn-remove-attr" data-attr-id="${attr.id}"
-                            title="Remove attribute">🗑️</button>
+        <div class="attribute-item attr-compact-item" data-attr-id="${attr.id}">
+            <div class="attr-compact-row">
+                <span class="attribute-drag-handle" title="Drag to reorder">⠿</span>
+                <input type="text" class="attribute-name-input attr-name-compact"
+                       value="${escapeHtml(attr.name)}" data-attr-id="${attr.id}"
+                       placeholder="Attribute Name">
+                <div class="attr-value-cluster">
+                    ${rankSlot}
+                    <button class="btn-decrease-attr"
+                            data-attr-id="${attr.id}" title="Decrease">−</button>
+                    ${valueInput}
+                    <button class="btn-increase-attr"
+                            data-attr-id="${attr.id}" title="Increase">+</button>
                 </div>
-                <div class="attribute-value-controls">
-                    <button class="btn-decrease-attr" data-attr-id="${attr.id}" title="Decrease">−</button>
-                    ${valueDisplay}
-                    <button class="btn-increase-attr" data-attr-id="${attr.id}" title="Increase">+</button>
-                </div>
+                <button class="btn-remove-attr" data-attr-id="${attr.id}"
+                        title="Remove attribute">🗑️</button>
             </div>
-            <div class="skills-section">
-                <div class="skills-header">
-                    <span class="skills-label">Skills</span>
-                    <button class="btn-add-skill" data-attr-id="${attr.id}"
-                            title="Add skill">+ Add Skill</button>
-                </div>
+            <div class="skills-compact-section">
                 <div class="skills-list" data-attr-id="${attr.id}">
                     ${(attr.skills || []).map(skill => renderMasterSkill(attr.id, skill, mode)).join('')}
+                </div>
+                ${childSaves.length > 0 ? `
+                <div class="st-inline-list" data-attr-id="${attr.id}">
+                    ${childSaves.map(st => renderMasterSavingThrow(st)).join('')}
+                </div>` : ''}
+                <div style="display:flex; align-items:center; gap:16px; padding:5px 8px 3px 20px;">
+                    <button class="btn-add-skill btn-add-skill-footer"
+                            style="width:auto; flex:none;"
+                            data-attr-id="${attr.id}" title="Add skill">+ Add Skill</button>
+                    <button class="btn-add-st-footer"
+                            style="background:none; border:none; color:rgba(100,200,150,0.7); font-size:11px; cursor:pointer; padding:0; width:auto; flex:none;"
+                            data-attr-id="${attr.id}" data-cat-id=""
+                            title="Add saving throw">+ Add Save</button>
                 </div>
             </div>
         </div>
     `;
 }
 
+// ── 3. NEW COMPACT renderMasterSkill ──────────────────────────────────────────
 function renderMasterSkill(attrId, skill, mode) {
     if (!skill.enabled) return '';
-
+ 
     if (!skill.mode)              skill.mode    = 'numeric';
     if (skill.rank === undefined) { skill.rank = 'C'; skill.rankValue = skill.level || 1; }
     if (!skill.expCost)           skill.expCost = 'normal';
     if (!Array.isArray(skill.subSkills)) skill.subSkills = [];
-
+ 
     const hasSubs      = skill.mode === 'numeric' && skill.subSkills.filter(s => s.enabled).length > 0;
     const effectiveLvl = hasSubs
         ? skill.subSkills.filter(s => s.enabled).reduce((sum, s) => sum + (s.level || 0), 0)
         : skill.level;
-
+ 
+    const isExpensive = skill.expCost === 'expensive';
+ 
+    // Compact cost badge: just a dot (●) for normal, gold coin emoji for expensive
     const expCostBtn = `
-        <button class="btn-toggle-exp-cost ${skill.expCost === 'expensive' ? 'btn-exp-expensive' : ''}"
+        <button class="btn-toggle-exp-cost btn-exp-badge ${isExpensive ? 'btn-exp-expensive' : ''}"
                 data-attr-id="${attrId}" data-skill-id="${skill.id}"
-                title="${skill.expCost === 'expensive' ? 'Expensive — click for Normal' : 'Normal — click for Expensive'}">
-            ${skill.expCost === 'expensive' ? '💰 Expensive' : 'Normal'}
+                title="${isExpensive ? 'Expensive — click for Normal' : 'Normal — click for Expensive'}">
+            ${isExpensive ? '💰' : '●'}
         </button>
     `;
-
-    let valueDisplay;
+ 
+    // Value cluster (right side of row)
+    // Alphabetic mode: rank select + dec/inc (no separate rankValue input — matches current behaviour)
+    // Numeric mode:    dec / value input / inc
+    let valueCluster;
     if (skill.mode === 'numeric') {
-        if (hasSubs) {
-            valueDisplay = `
-                <div class="skill-value-controls">
-                    <button disabled title="Controlled by sub-skills">−</button>
-                    <input type="number" class="skill-value-input numeric-input"
-                           value="${effectiveLvl}" data-attr-id="${attrId}" data-skill-id="${skill.id}"
-                           min="0" disabled title="Sum of sub-skills">
-                    <button disabled title="Controlled by sub-skills">+</button>
-                </div>
-            `;
-        } else {
-            valueDisplay = `
-                <div class="skill-value-controls">
-                    <button class="btn-decrease-skill" data-attr-id="${attrId}"
-                            data-skill-id="${skill.id}" title="Decrease">−</button>
-                    <input type="number" class="skill-value-input numeric-input"
-                           value="${skill.level}" data-attr-id="${attrId}"
-                           data-skill-id="${skill.id}" min="0">
-                    <button class="btn-increase-skill" data-attr-id="${attrId}"
-                            data-skill-id="${skill.id}" title="Increase">+</button>
-                </div>
-            `;
-        }
+        valueCluster = `
+            <div class="skill-value-cluster ${hasSubs ? 'skill-value--locked' : ''}">
+                <button class="btn-decrease-skill"
+                        data-attr-id="${attrId}" data-skill-id="${skill.id}"
+                        title="Decrease" ${hasSubs ? 'disabled' : ''}>−</button>
+                <input type="number" class="skill-value-input numeric-input"
+                       value="${effectiveLvl}" data-attr-id="${attrId}"
+                       data-skill-id="${skill.id}" min="0"
+                       ${hasSubs ? 'disabled title="Sum of sub-skills"' : ''}>
+                <button class="btn-increase-skill"
+                        data-attr-id="${attrId}" data-skill-id="${skill.id}"
+                        title="Increase" ${hasSubs ? 'disabled' : ''}>+</button>
+            </div>
+        `;
     } else {
-        valueDisplay = `
-            <div class="skill-value-controls">
-                <button class="btn-decrease-skill" data-attr-id="${attrId}"
-                        data-skill-id="${skill.id}" title="Decrease rank">−</button>
-                <select class="skill-rank-select" data-rank="${skill.rank}"
+        // Alphabetic: rank select takes the numeric slot; +/− step through ranks
+        valueCluster = `
+            <div class="skill-value-cluster">
+                <button class="btn-decrease-skill"
+                        data-attr-id="${attrId}" data-skill-id="${skill.id}"
+                        title="Previous rank">−</button>
+                <select class="skill-rank-select"
+                        data-rank="${skill.rank}"
                         data-attr-id="${attrId}" data-skill-id="${skill.id}">
                     ${renderRankOptions(skill.rank)}
                 </select>
-                <button class="btn-increase-skill" data-attr-id="${attrId}"
-                        data-skill-id="${skill.id}" title="Increase rank">+</button>
+                <button class="btn-increase-skill"
+                        data-attr-id="${attrId}" data-skill-id="${skill.id}"
+                        title="Next rank">+</button>
             </div>
         `;
     }
-
-    const subSkillsSection = skill.mode === 'numeric' ? `
-        <div class="subskills-section">
-            <div class="subskills-header">
-                <span class="subskills-label">Sub-skills</span>
-                <button class="btn-add-subskill" data-attr-id="${attrId}"
-                        data-skill-id="${skill.id}" title="Add sub-skill">+ Add</button>
-            </div>
+ 
+    // Sub-skills panel — stacked below the skill row (numeric mode only)
+    const enabledSubs = skill.subSkills.filter(s => s.enabled);
+    const subSkillsPanel = skill.mode === 'numeric' ? `
+        <div class="subskills-compact">
             <div class="subskills-list" data-attr-id="${attrId}" data-skill-id="${skill.id}">
-                ${skill.subSkills.filter(s => s.enabled).map(sub =>
-                    renderMasterSubSkill(attrId, skill.id, sub)
-                ).join('')}
-                ${skill.subSkills.filter(s => s.enabled).length === 0
-                    ? `<div class="subskills-empty">No sub-skills. Add one to enable the sub-skill pool.</div>`
+                ${enabledSubs.map(sub => renderMasterSubSkill(attrId, skill.id, sub)).join('')}
+                ${enabledSubs.length === 0
+                    ? `<span class="subskills-empty">No sub-skills. Add one to enable the sub-skill pool.</span>`
                     : ''}
             </div>
+            <button class="btn-add-subskill btn-add-subskill-compact"
+                    data-attr-id="${attrId}"
+                    data-skill-id="${skill.id}">+ Sub-skill</button>
         </div>
     ` : '';
-
+ 
     return `
-        <div class="skill-item" data-skill-id="${skill.id}" data-attr-id="${attrId}">
-            <div class="skill-drag-handle" title="Drag to reorder">⠿</div>
-            <div class="skill-main">
-                <div class="skill-controls">
+        <div class="skill-item skill-compact-item"
+             data-skill-id="${skill.id}" data-attr-id="${attrId}">
+            <div class="skill-compact-row">
+                <span class="skill-drag-handle" title="Drag to reorder">⠿</span>
+                <div class="skill-left">
                     <input type="text" class="skill-name-input"
-                           value="${skill.name}" data-attr-id="${attrId}"
-                           data-skill-id="${skill.id}" placeholder="Skill Name">
+                           value="${escapeHtml(skill.name)}"
+                           data-attr-id="${attrId}" data-skill-id="${skill.id}"
+                           placeholder="Skill Name">
                     ${expCostBtn}
-                    <button class="btn-toggle-skill-mode" data-attr-id="${attrId}"
-                            data-skill-id="${skill.id}" title="Toggle Numeric / Alphabetic">
+                    <button class="btn-toggle-skill-mode btn-mode-badge"
+                            data-attr-id="${attrId}" data-skill-id="${skill.id}"
+                            title="Toggle Numeric / Alphabetic">
                         ${skill.mode === 'numeric' ? '123' : 'ABC'}
                     </button>
-                    <button class="btn-remove-skill" data-attr-id="${attrId}"
-                            data-skill-id="${skill.id}" title="Remove skill">🗑️</button>
+                    <button class="btn-remove-skill"
+                            data-attr-id="${attrId}" data-skill-id="${skill.id}"
+                            title="Remove skill">🗑️</button>
                 </div>
-                ${valueDisplay}
+                ${valueCluster}
             </div>
-            ${subSkillsSection}
+            ${subSkillsPanel}
         </div>
     `;
 }
 
+// ── 4. NEW COMPACT renderMasterSubSkill ───────────────────────────────────────
 function renderMasterSubSkill(attrId, skillId, sub) {
     return `
-        <div class="subskill-item" data-subskill-id="${sub.id}"
-             data-skill-id="${skillId}" data-attr-id="${attrId}">
+        <div class="subskill-item"
+             data-subskill-id="${sub.id}"
+             data-skill-id="${skillId}"
+             data-attr-id="${attrId}">
             <input type="text" class="subskill-name-input"
                    value="${escapeHtml(sub.name)}"
                    data-attr-id="${attrId}" data-skill-id="${skillId}"
@@ -1507,21 +1561,140 @@ function renderMasterSubSkill(attrId, skillId, sub) {
 }
 
 // ============================================================================
-// MASTER MODE — SAVING THROW RENDERER
+// MASTER MODE — SAVING THROW SECTION (Task 7: category groups)
 // ============================================================================
 
+/**
+ * Renders the full saving-throws section, grouped by stCategories.
+ * Only receives "orphan" saves (those not pinned under a parent attribute).
+ */
+function renderSTCategoriesSection(orphanSaves, ss) {
+    const cats    = ss.stCategories || [];
+    const enabled = orphanSaves.filter(st => st.enabled);
+
+    // Bucket saves by categoryId
+    const byCat        = {};
+    const uncategorized = [];
+    for (const st of enabled) {
+        const matched = cats.find(c => c.id === st.categoryId);
+        if (matched) {
+            if (!byCat[matched.id]) byCat[matched.id] = [];
+            byCat[matched.id].push(st);
+        } else {
+            uncategorized.push(st);
+        }
+    }
+
+    const catSectionsHTML = cats.map(cat => {
+        const saves = (byCat[cat.id] || []).map(st => renderMasterSavingThrow(st)).join('');
+        return `
+            <div class="st-category-block" data-cat-id="${cat.id}">
+                <div class="st-category-header">
+                    <input type="text" class="st-category-name-input"
+                           value="${escapeHtml(cat.name)}"
+                           data-cat-id="${cat.id}"
+                           placeholder="Category name">
+                    <button class="btn-remove-st-category" data-cat-id="${cat.id}"
+                            title="Remove category">🗑️</button>
+                </div>
+                <div class="st-category-saves">${saves}</div>
+                <button class="btn-add-st-footer"
+                        data-attr-id="" data-cat-id="${cat.id}"
+                        title="Add save to ${escapeHtml(cat.name)}">+ Add Save</button>
+            </div>
+        `;
+    }).join('');
+
+    const uncatHTML = uncategorized.length > 0 || cats.length === 0 ? `
+        <div class="st-category-block st-category--uncat">
+            ${cats.length > 0
+                ? `<div class="st-category-header st-uncat-header">
+                       <span class="st-uncat-label">Uncategorized</span>
+                   </div>`
+                : ''}
+            <div class="st-category-saves">
+                ${uncategorized.map(st => renderMasterSavingThrow(st)).join('')}
+            </div>
+            ${cats.length === 0
+                ? `<button class="btn-add-st-footer"
+                           data-attr-id="" data-cat-id=""
+                           title="Add saving throw">+ Add Save</button>`
+                : ''}
+        </div>
+    ` : '';
+
+    return `
+        <div class="saving-throws-section">
+            <div class="section-header">
+                <h4>Saving Throws</h4>
+                <button id="btn-add-st-category" class="btn-add-small"
+                        title="Add a category group">+ Category</button>
+                <button id="add-saving-throw-btn" class="btn-add-small"
+                        title="Add saving throw">+ Add</button>
+            </div>
+            <div class="saving-throws-list">
+                ${catSectionsHTML}
+                ${uncatHTML}
+            </div>
+        </div>
+    `;
+}
+
+// ============================================================================
+// MASTER MODE — SAVING THROW RENDERER (collapsed card)
+// ============================================================================
+
+/**
+ * Renders a single saving throw as a compact collapsed card.
+ * Clicking the expand toggle shows the full term editor inline.
+ */
 function renderMasterSavingThrow(st) {
     if (!st.enabled) return '';
     if (!st.terms) st.terms = [];
 
-    const attributes     = extensionSettings.statSheet.attributes.filter(a => a.enabled);
-    const total          = calculateSavingThrowValue(st);
-    const usedAttrIds    = st.terms.filter(t => t.type === 'attribute').map(t => t.attrId);
-    const availableAttrs = attributes.filter(a => !usedAttrIds.includes(a.id));
+    const isExpanded = _expandedSTIds.has(st.id);
+    const total      = calculateSavingThrowValue(st);
 
+    return `
+        <div class="saving-throw-item st-card ${st.parentAttrId ? 'st-inline-item' : ''} ${isExpanded ? 'st-card--expanded' : ''}"
+             data-st-id="${st.id}">
+            <div class="st-card-header" style="display:flex; align-items:center; gap:6px; padding:5px 8px;">
+                <button class="btn-st-expand" data-st-id="${st.id}"
+                        title="${isExpanded ? 'Collapse' : 'Expand'}">
+                    ${isExpanded ? '▼' : '▶'}
+                </button>
+                <input type="text" class="st-name-input"
+                       style="flex:1; text-align:left;"
+                       value="${escapeHtml(st.name)}" data-st-id="${st.id}"
+                       placeholder="Save Name">
+                <span class="st-card-total">${total}</span>
+                <button class="btn-remove-st" data-st-id="${st.id}"
+                        title="Remove saving throw">🗑️</button>
+            </div>
+            ${isExpanded ? _renderSTEditorBody(st) : ''}
+        </div>
+    `;
+}
+
+/**
+ * Renders the full term editor for a saving throw (only when expanded).
+ * Extracted from the old monolithic renderMasterSavingThrow.
+ */
+function _renderSTEditorBody(st) {
+    const ss             = extensionSettings.statSheet;
+    const allAttrs       = ss.attributes;
+    const enabledAttrs   = allAttrs.filter(a => a.enabled);
+    const cats           = ss.stCategories || [];
+
+    const usedAttrIds  = st.terms.filter(t => t.type === 'attribute').map(t => t.attrId);
+    const usedSkillIds = st.terms.filter(t => t.type === 'skill').map(t => t.skillId);
+    const usedSubIds   = st.terms.filter(t => t.type === 'subskill').map(t => t.subSkillId);
+    const availAttrs   = enabledAttrs.filter(a => !usedAttrIds.includes(a.id));
+
+    // ── Term rows ──────────────────────────────────────────────────────────────
     const termsHTML = st.terms.map(term => {
         if (term.type === 'attribute') {
-            const attr     = attributes.find(a => a.id === term.attrId);
+            const attr     = enabledAttrs.find(a => a.id === term.attrId);
             const attrName = attr ? attr.name : '(removed)';
             return `
                 <div class="st-term-row" data-term-id="${term.id}">
@@ -1563,22 +1736,88 @@ function renderMasterSavingThrow(st) {
                             title="Remove term">×</button>
                 </div>`;
         }
+        if (term.type === 'skill') {
+            const attr  = enabledAttrs.find(a => a.id === term.attrId);
+            const sk    = (attr?.skills || []).find(s => s.id === term.skillId);
+            const label = sk ? `${escapeHtml(attr.name)}: ${escapeHtml(sk.name)}` : '(removed)';
+            return `
+                <div class="st-term-row" data-term-id="${term.id}">
+                    <span class="st-term-attr-name st-term-skill">${label}</span>
+                    <span class="st-term-sep">×</span>
+                    <input type="number" class="st-term-multiplier"
+                           value="${term.multiplier ?? 1}" step="0.1" min="0"
+                           data-st-id="${st.id}" data-term-id="${term.id}">
+                    <button class="btn-remove-st-term"
+                            data-st-id="${st.id}" data-term-id="${term.id}"
+                            title="Remove term">×</button>
+                </div>`;
+        }
+        if (term.type === 'subskill') {
+            const attr  = enabledAttrs.find(a => a.id === term.attrId);
+            const sk    = (attr?.skills || []).find(s => s.id === term.skillId);
+            const sub   = (sk?.subSkills || []).find(s => s.id === term.subSkillId);
+            const label = sub ? `${escapeHtml(sk.name)}: ${escapeHtml(sub.name)}` : '(removed)';
+            return `
+                <div class="st-term-row" data-term-id="${term.id}">
+                    <span class="st-term-attr-name st-term-subskill">${label}</span>
+                    <span class="st-term-sep">×</span>
+                    <input type="number" class="st-term-multiplier"
+                           value="${term.multiplier ?? 1}" step="0.1" min="0"
+                           data-st-id="${st.id}" data-term-id="${term.id}">
+                    <button class="btn-remove-st-term"
+                            data-st-id="${st.id}" data-term-id="${term.id}"
+                            title="Remove term">×</button>
+                </div>`;
+        }
         return '';
     }).join('');
 
-    const attrOptions = availableAttrs.map(a =>
+    // ── Add-term selects ──────────────────────────────────────────────────────
+    const attrOptions = availAttrs.map(a =>
         `<option value="${a.id}">${escapeHtml(a.name)}</option>`
     ).join('');
 
+    const skillOptions = enabledAttrs.flatMap(attr =>
+        (attr.skills || [])
+            .filter(sk => sk.enabled && !usedSkillIds.includes(sk.id))
+            .map(sk => `<option value="${attr.id}:${sk.id}">${escapeHtml(attr.name)}: ${escapeHtml(sk.name)}</option>`)
+    ).join('');
+
+    const subSkillOptions = enabledAttrs.flatMap(attr =>
+        (attr.skills || [])
+            .filter(sk => sk.enabled)
+            .flatMap(sk =>
+                (sk.subSkills || [])
+                    .filter(sub => sub.enabled && !usedSubIds.includes(sub.id))
+                    .map(sub => `<option value="${attr.id}:${sk.id}:${sub.id}">${escapeHtml(sk.name)}: ${escapeHtml(sub.name)}</option>`)
+            )
+    ).join('');
+
+    // ── Meta selects (parent attr + category) ────────────────────────────────
+    const parentOptions = allAttrs.map(a =>
+        `<option value="${a.id}" ${st.parentAttrId === a.id ? 'selected' : ''}>${escapeHtml(a.name)}</option>`
+    ).join('');
+
+    const catOptions = cats.map(c =>
+        `<option value="${c.id}" ${st.categoryId === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`
+    ).join('');
+
     return `
-        <div class="saving-throw-item" data-st-id="${st.id}">
-            <div class="st-header">
-                <input type="text" class="st-name-input"
-                       value="${escapeHtml(st.name)}" data-st-id="${st.id}"
-                       placeholder="Save Name">
+        <div class="st-card-body">
+            <div class="st-meta-row">
+                <select class="st-parent-select" data-st-id="${st.id}" title="Parent Attribute">
+                    <option value="">(No Parent)</option>
+                    ${parentOptions}
+                </select>
+                ${cats.length > 0 ? `
+                <select class="st-category-select" data-st-id="${st.id}" title="Category">
+                    <option value="">(No Category)</option>
+                    ${catOptions}
+                </select>` : ''}
+            </div>
+            <div class="st-formula-row">
+                <span class="st-formula-label">Formula:</span>
                 <span class="st-formula-text">${buildSavingThrowFormula(st)}</span>
-                <button class="btn-remove-st" data-st-id="${st.id}"
-                        title="Remove saving throw">🗑️</button>
             </div>
             <div class="st-terms-list">${termsHTML}</div>
             <div class="st-add-controls">
@@ -1586,6 +1825,16 @@ function renderMasterSavingThrow(st) {
                     <option value="">+ Attribute…</option>
                     ${attrOptions}
                 </select>
+                ${skillOptions ? `
+                <select class="st-add-skill-select" data-st-id="${st.id}">
+                    <option value="">+ Skill…</option>
+                    ${skillOptions}
+                </select>` : ''}
+                ${subSkillOptions ? `
+                <select class="st-add-subskill-select" data-st-id="${st.id}">
+                    <option value="">+ Sub-Skill…</option>
+                    ${subSkillOptions}
+                </select>` : ''}
                 <button class="btn-add-flat-term" data-st-id="${st.id}"
                         title="Add flat bonus">+ Flat</button>
                 ${st.terms.some(t => t.type === 'level') ? '' :
@@ -1597,6 +1846,38 @@ function renderMasterSavingThrow(st) {
 }
 
 // ============================================================================
+// SHARED — CALCULATE EFFECTIVE CHARACTER LEVEL
+// ============================================================================
+
+/**
+ * Calculate the character's effective level based on calculation mode.
+ * If mode is 'manual', returns level.current.
+ * If mode is 'sum', returns sum of all enabled job levels.
+ * If mode is 'max', returns highest enabled job level.
+ */
+function getEffectiveCharacterLevel(ss) {
+    if (!ss?.level) return 1;
+
+    const mode = ss.level.calculationMode || 'manual';
+
+    if (mode === 'manual') {
+        return ss.level.current || 1;
+    } else if (mode === 'sum') {
+        const totalLevel = (ss.jobs || [])
+            .filter(j => j.enabled !== false)
+            .reduce((sum, job) => sum + (job.level || 0), 0);
+        return totalLevel || 1;
+    } else if (mode === 'max') {
+        const maxLevel = (ss.jobs || [])
+            .filter(j => j.enabled !== false)
+            .reduce((max, job) => Math.max(max, job.level || 0), 0);
+        return maxLevel || 1;
+    }
+
+    return ss.level.current || 1;
+}
+
+// ============================================================================
 // SHARED — LEVEL & EXP SECTION
 // ============================================================================
 
@@ -1605,21 +1886,22 @@ function renderLevelExpSection(level) {
     const showLevel = level.showLevel !== false;
     const showExp   = level.showExp   !== false;
     if (!showLevel && !showExp) return '';
-
+ 
     return `
-        <div class="level-exp-section">
+        <div class="level-strip">
             ${showLevel ? `
-                <div class="level-input-group">
-                    <label class="level-label" for="level-input">Level</label>
-                    <input type="number" id="level-input" class="level-input"
-                           value="${level.current || 1}" min="1" placeholder="1">
-                </div>` : ''}
+                <span class="level-strip-label">Level</span>
+                <input type="number" id="level-input"
+                       class="level-strip-input level-strip-input--level"
+                       value="${level.current || 1}" min="1" placeholder="1">
+            ` : ''}
+            ${showLevel && showExp ? `<span class="level-strip-sep">·</span>` : ''}
             ${showExp ? `
-                <div class="exp-input-group">
-                    <label class="exp-label" for="exp-input">EXP</label>
-                    <input type="number" id="exp-input" class="exp-input"
-                           value="${level.exp || 0}" min="0" placeholder="0">
-                </div>` : ''}
+                <span class="level-strip-label">EXP</span>
+                <input type="number" id="exp-input"
+                       class="level-strip-input level-strip-input--exp"
+                       value="${level.exp || 0}" min="0" placeholder="0">
+            ` : ''}
         </div>
     `;
 }
@@ -1908,9 +2190,9 @@ function attachMasterModeEventListeners() {
     // Saving throw: add
     $(document).off('click', '#add-saving-throw-btn')
         .on('click', '#add-saving-throw-btn', function() {
-            extensionSettings.statSheet.savingThrows.push({
-                id: generateUniqueId(), name: 'New Save', terms: [], enabled: true
-            });
+            const newST = { id: generateUniqueId(), name: 'New Save', parentAttrId: '', categoryId: '', terms: [], enabled: true };
+            extensionSettings.statSheet.savingThrows.push(newST);
+            _expandedSTIds.add(newST.id);
             saveStatSheetData();
             refreshCurrentTab();
             showNotification('Saving throw added', 'success');
@@ -1987,6 +2269,101 @@ function attachMasterModeEventListeners() {
         .on('click', '.btn-add-level-term', function() {
             addSavingThrowLevelTerm($(this).data('st-id'));
             refreshCurrentTab();
+        });
+
+    $(document).off('change', '.st-add-skill-select')
+        .on('change', '.st-add-skill-select', function() {
+            const val = $(this).val();
+            if (!val) return;
+            const [attrId, skillId] = val.split(':');
+            addSavingThrowSkillTerm($(this).data('st-id'), attrId, skillId);
+            $(this).val('');
+            refreshCurrentTab();
+        });
+
+    $(document).off('change', '.st-add-subskill-select')
+        .on('change', '.st-add-subskill-select', function() {
+            const val = $(this).val();
+            if (!val) return;
+            const [attrId, skillId, subSkillId] = val.split(':');
+            addSavingThrowSubSkillTerm($(this).data('st-id'), attrId, skillId, subSkillId);
+            $(this).val('');
+            refreshCurrentTab();
+        });
+
+    // Inline + Add Save button (used both by per-attribute footer and per-category footer)
+    $(document).off('click', '.btn-add-st-footer')
+        .on('click', '.btn-add-st-footer', function() {
+            const newST = {
+                id:          generateUniqueId(),
+                name:        'New Save',
+                parentAttrId: $(this).data('attr-id') || '',
+                categoryId:  $(this).data('cat-id')  || '',
+                terms:       [],
+                enabled:     true
+            };
+            extensionSettings.statSheet.savingThrows.push(newST);
+            _expandedSTIds.add(newST.id); // open it immediately for editing
+            saveStatSheetData();
+            refreshCurrentTab();
+            showNotification('Saving throw added', 'success');
+        });
+
+    // Expand / collapse a saving throw card
+    $(document).off('click', '.btn-st-expand')
+        .on('click', '.btn-st-expand', function() {
+            const stId = $(this).data('st-id');
+            if (_expandedSTIds.has(stId)) {
+                _expandedSTIds.delete(stId);
+            } else {
+                _expandedSTIds.add(stId);
+            }
+            refreshCurrentTab();
+        });
+
+    // Add a new ST category
+    $(document).off('click', '#btn-add-st-category')
+        .on('click', '#btn-add-st-category', function() {
+            addSTCategory('New Category');
+            refreshCurrentTab();
+        });
+
+    // Remove an ST category (unassigns all its saves)
+    $(document).off('click', '.btn-remove-st-category')
+        .on('click', '.btn-remove-st-category', function() {
+            if (confirm('Remove this category? Saves inside it will become uncategorized.')) {
+                removeSTCategory($(this).data('cat-id'));
+                refreshCurrentTab();
+            }
+        });
+
+    // Rename an ST category (debounced)
+    $(document).off('input', '.st-category-name-input')
+        .on('input', '.st-category-name-input', function() {
+            const $this = $(this);
+            const catId = $this.data('cat-id');
+            clearTimeout(_nameDebounceTimers['cat_' + catId]);
+            _nameDebounceTimers['cat_' + catId] = setTimeout(() => {
+                renameSTCategory(catId, $this.val());
+            }, 400);
+        });
+
+    // Reassign a saving throw to a different category
+    $(document).off('change', '.st-category-select')
+        .on('change', '.st-category-select', function() {
+            setSavingThrowCategory($(this).data('st-id'), $(this).val());
+            refreshCurrentTab();
+        });
+
+    // Parent Attribute reassignment dropdown
+    $(document).off('change', '.st-parent-select')
+        .on('change', '.st-parent-select', function() {
+            const st = extensionSettings.statSheet.savingThrows.find(s => s.id === $(this).data('st-id'));
+            if (st) {
+                st.parentAttrId = $(this).val();
+                saveStatSheetData();
+                refreshCurrentTab();
+            }
         });
 
     attachLevelExpListeners();

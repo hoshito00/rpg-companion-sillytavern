@@ -98,6 +98,8 @@ function _migrate() {
         dirty = true;
     } else {
         for (const st of ss.savingThrows) {
+            if (st.parentAttrId === undefined) { st.parentAttrId = ''; dirty = true; } // NEW: Task 9
+            if (st.categoryId   === undefined) { st.categoryId   = ''; dirty = true; } // NEW: Task 7
             if (Array.isArray(st.terms)) continue;
             st.terms = [];
             for (const src of (st.sources || [])) {
@@ -131,6 +133,9 @@ function _migrate() {
     for (const key of ['jobs', 'feats', 'augments']) {
         if (!ss[key]) { ss[key] = []; dirty = true; }
     }
+
+    // ── Task 7: ST categories ─────────────────────────────────────────────────
+    if (!Array.isArray(ss.stCategories)) { ss.stCategories = []; dirty = true; }
 
     // combatPages → combatSkills rename
     if (ss.combatPages && !ss.combatSkills) { ss.combatSkills = ss.combatPages; delete ss.combatPages; dirty = true; }
@@ -427,9 +432,9 @@ function _defaultLevel() {
 
 function _defaultSavingThrows() {
     return [
-        { id: 'fortitude', name: 'Fortitude', terms: [{ id: 'fort_con', type: 'attribute', attrId: 'con', multiplier: 1 }], enabled: true },
-        { id: 'reflex',    name: 'Reflex',    terms: [{ id: 'ref_dex',  type: 'attribute', attrId: 'dex', multiplier: 1 }], enabled: true },
-        { id: 'will',      name: 'Will',      terms: [{ id: 'will_wis', type: 'attribute', attrId: 'wis', multiplier: 1 }], enabled: true }
+        { id: 'fortitude', name: 'Fortitude', parentAttrId: 'con', categoryId: '', terms: [{ id: 'fort_con', type: 'attribute', attrId: 'con', multiplier: 1 }], enabled: true },
+        { id: 'reflex',    name: 'Reflex',    parentAttrId: 'dex', categoryId: '', terms: [{ id: 'ref_dex',  type: 'attribute', attrId: 'dex', multiplier: 1 }], enabled: true },
+        { id: 'will',      name: 'Will',      parentAttrId: 'wis', categoryId: '', terms: [{ id: 'will_wis', type: 'attribute', attrId: 'wis', multiplier: 1 }], enabled: true }
     ];
 }
 
@@ -472,6 +477,7 @@ function _createDefaultStatSheet() {
         ],
 
         savingThrows:     _defaultSavingThrows(),
+        stCategories:     [],
         level:            _defaultLevel(),
         jobs:             [],
         feats:            [],
@@ -547,7 +553,7 @@ export function updateAttributeValue(id, delta) {
     const mode = extensionSettings.statSheet.mode;
     if (mode === 'numeric') {
         const max  = extensionSettings.statSheet.editorSettings?.attributeMaxValue || 999;
-        attr.value     = Math.max(1, Math.min(max, attr.value + delta));
+        attr.value     = Math.max(0, Math.min(max, attr.value + delta));
         attr.rankValue = attr.value;
     } else {
         attr.rank = _stepRank(attr.rank || 'C', delta);
@@ -586,7 +592,7 @@ export function updateSkillLevel(attributeId, skillId, delta) {
         skill.rank = _stepRank(skill.rank || 'C', delta);
     } else {
         const max  = extensionSettings.statSheet.editorSettings?.skillMaxValue;
-        skill.level = Math.max(1, skill.level + delta);
+        skill.level = Math.max(0, skill.level + delta);
         if (max != null) skill.level = Math.min(max, skill.level);
     }
 
@@ -599,9 +605,9 @@ export function updateSkillLevel(attributeId, skillId, delta) {
 
 /**
  * Effective level of a skill for display and roll purposes.
- *   - Alphabetic:              gradeValue(rank)  [handled in attributesTab]
- *   - Numeric with sub-skills: sum of enabled sub-skill levels
- *   - Numeric without:         skill.level
+ * - Alphabetic:              gradeValue(rank)  [handled in attributesTab]
+ * - Numeric with sub-skills: sum of enabled sub-skill levels
+ * - Numeric without:         skill.level
  */
 export function getSkillEffectiveLevel(attributeId, skillId) {
     const skill = getSkillById(attributeId, skillId);
@@ -740,8 +746,8 @@ export function getSavingThrowById(id) {
 /**
  * Calculate the total value of a saving throw.
  * Uses the same attribute modifier logic as getAttrModifier() in attributesTab:
- *   numeric:    attr.value
- *   alphabetic: gradeValue(rank) + floor(rankValue ÷ divisor)
+ * numeric:    attr.value
+ * alphabetic: gradeValue(rank) + floor(rankValue ÷ divisor)
  */
 export function calculateSavingThrowValue(st) {
     if (!st.terms?.length) return 0;
@@ -766,6 +772,23 @@ export function calculateSavingThrowValue(st) {
         } else if (term.type === 'level') {
             const lvl = ss.level?.current || 1;
             total += lvl * (parseFloat(term.multiplier) || 1);
+        } else if (term.type === 'skill') {
+            const attr = ss.attributes.find(a => a.id === term.attrId && a.enabled);
+            if (!attr) continue;
+            const sk = (attr.skills || []).find(s => s.id === term.skillId && s.enabled);
+            if (!sk) continue;
+            const skillVal = sk.mode === 'alphabetic'
+                ? (gvm[sk.rank ?? 'C'] ?? 0) + Math.floor((sk.rankValue ?? 0) / divisor)
+                : getSkillEffectiveLevel(term.attrId, term.skillId);
+            total += skillVal * (parseFloat(term.multiplier) || 0);
+        } else if (term.type === 'subskill') {
+            const attr = ss.attributes.find(a => a.id === term.attrId && a.enabled);
+            if (!attr) continue;
+            const sk = (attr.skills || []).find(s => s.id === term.skillId && s.enabled);
+            if (!sk) continue;
+            const sub = (sk.subSkills || []).find(s => s.id === term.subSkillId && s.enabled);
+            if (!sub) continue;
+            total += (sub.level ?? 0) * (parseFloat(term.multiplier) || 0);
         }
     }
 
@@ -788,6 +811,21 @@ export function buildSavingThrowFormula(st) {
         if (term.type === 'level') {
             const mult = parseFloat(term.multiplier) || 1;
             return mult === 1 ? 'Level' : `Level × ${mult}`;
+        }
+        if (term.type === 'skill') {
+            const attr = attrs.find(a => a.id === term.attrId);
+            const sk   = (attr?.skills || []).find(s => s.id === term.skillId);
+            const name = sk ? `${attr.name}: ${sk.name}` : '(removed)';
+            const mult = parseFloat(term.multiplier) || 0;
+            return mult === 1 ? name : `${name} × ${mult}`;
+        }
+        if (term.type === 'subskill') {
+            const attr = attrs.find(a => a.id === term.attrId);
+            const sk   = (attr?.skills || []).find(s => s.id === term.skillId);
+            const sub  = (sk?.subSkills || []).find(s => s.id === term.subSkillId);
+            const name = sub ? `${sk.name}: ${sub.name}` : '(removed)';
+            const mult = parseFloat(term.multiplier) || 0;
+            return mult === 1 ? name : `${name} × ${mult}`;
         }
         return null;
     }).filter(Boolean);
@@ -815,6 +853,24 @@ export function addSavingThrowLevelTerm(stId) {
     if (!st) return;
     if (st.terms.some(t => t.type === 'level')) return; // only one level term allowed
     st.terms.push({ id: generateUniqueId(), type: 'level', multiplier: 1 });
+    saveStatSheetData();
+}
+
+export function addSavingThrowSkillTerm(stId, attrId, skillId) {
+    const st = getSavingThrowById(stId);
+    if (!st) return;
+    // Prevent duplicate skill terms for the same skill
+    if (st.terms.some(t => t.type === 'skill' && t.skillId === skillId)) return;
+    st.terms.push({ id: generateUniqueId(), type: 'skill', attrId, skillId, multiplier: 1 });
+    saveStatSheetData();
+}
+
+export function addSavingThrowSubSkillTerm(stId, attrId, skillId, subSkillId) {
+    const st = getSavingThrowById(stId);
+    if (!st) return;
+    // Prevent duplicate subskill terms for the same subskill
+    if (st.terms.some(t => t.type === 'subskill' && t.subSkillId === subSkillId)) return;
+    st.terms.push({ id: generateUniqueId(), type: 'subskill', attrId, skillId, subSkillId, multiplier: 1 });
     saveStatSheetData();
 }
 
@@ -1175,12 +1231,12 @@ export function duplicateCombatSkill(id) {
  * Calculate the full roll modifier for an attribute + optional skill.
  *
  * Attribute modifier:
- *   numeric:    attr.value
- *   alphabetic: gradeValue(attr.rank) + floor(attr.rankValue ÷ attrValueDivisor)
+ * numeric:    attr.value
+ * alphabetic: gradeValue(attr.rank) + floor(attr.rankValue ÷ attrValueDivisor)
  *
  * Skill modifier (added on top):
- *   numeric:    getSkillEffectiveLevel()   → skill.level or sub-skill sum
- *   alphabetic: gradeValue(skill.rank)     → grade base only
+ * numeric:    getSkillEffectiveLevel()   → skill.level or sub-skill sum
+ * alphabetic: gradeValue(skill.rank)     → grade base only
  *
  * @param {string} attributeId
  * @param {string} [skillId]
@@ -1222,10 +1278,10 @@ export function calculateRoll(attributeId, skillId) {
  * human-readable strings describing what's missing.
  *
  * Prerequisite types:
- *   characterLevel — ss.level.current >= value
- *   attribute      — attr.value (or gradeValue) >= value
- *   jobLevel       — job.level >= value
- *   feat           — target feat is enabled
+ * characterLevel — ss.level.current >= value
+ * attribute      — attr.value (or gradeValue) >= value
+ * jobLevel       — job.level >= value
+ * feat           — target feat is enabled
  */
 export function checkFeatPrerequisites(featId) {
     const ss   = extensionSettings.statSheet;
@@ -1271,4 +1327,88 @@ export function checkFeatPrerequisites(featId) {
     }
 
     return { met: unmet.length === 0, unmet };
+}
+
+// ============================================================================
+// LLM-DRIVEN STAT ADVANCEMENT  (Session 18)
+// ============================================================================
+
+/**
+ * Advance an attribute's alphabetic grade by one step.
+ *
+ * Only operates in alphabetic mode — no-ops silently in numeric mode.
+ * Caps at EX. Called by the <attr_advance> tag processor in sillytavern.js.
+ *
+ * @param {string} attrId
+ * @returns {{ success: boolean, reason?: string, newRank?: string }}
+ */
+export function advanceAttributeGrade(attrId) {
+    const ss = extensionSettings.statSheet;
+
+    if (!ss?.enabled) return { success: false, reason: 'Stat sheet disabled' };
+    if (ss.mode !== 'alphabetic') return { success: false, reason: 'Not in alphabetic mode' };
+
+    const attr = getAttributeById(attrId);
+    if (!attr) return { success: false, reason: `Attribute not found: ${attrId}` };
+
+    const idx = RANKS.indexOf(attr.rank || 'C');
+    if (idx < 0) return { success: false, reason: `Unknown rank: ${attr.rank}` };
+    if (idx >= RANKS.length - 1) return { success: false, reason: `Already at max rank (EX)` };
+
+    attr.rank = RANKS[idx + 1];
+    saveStatSheetData();
+
+    console.log(`[StatSheet] advanceAttributeGrade: ${attr.name} (${attrId}) → ${attr.rank}`);
+    return { success: true, newRank: attr.rank };
+}
+
+// ============================================================================
+// ST CATEGORY HELPERS  (Task 7 — Session 19)
+// ============================================================================
+
+/**
+ * Add a new saving throw category.
+ * @param {string} [name]
+ * @returns {string} The new category's id.
+ */
+export function addSTCategory(name = 'New Category') {
+    const ss = extensionSettings.statSheet;
+    if (!Array.isArray(ss.stCategories)) ss.stCategories = [];
+    const cat = { id: generateUniqueId(), name };
+    ss.stCategories.push(cat);
+    saveStatSheetData();
+    return cat.id;
+}
+
+/**
+ * Remove a category and unassign it from all saving throws that referenced it.
+ * @param {string} catId
+ */
+export function removeSTCategory(catId) {
+    const ss = extensionSettings.statSheet;
+    ss.stCategories = (ss.stCategories || []).filter(c => c.id !== catId);
+    for (const st of (ss.savingThrows || [])) {
+        if (st.categoryId === catId) st.categoryId = '';
+    }
+    saveStatSheetData();
+}
+
+/**
+ * Rename an existing category.
+ * @param {string} catId
+ * @param {string} name
+ */
+export function renameSTCategory(catId, name) {
+    const cat = (extensionSettings.statSheet.stCategories || []).find(c => c.id === catId);
+    if (cat) { cat.name = name; saveStatSheetData(); }
+}
+
+/**
+ * Assign a saving throw to a category (or clear with empty string).
+ * @param {string} stId
+ * @param {string} categoryId
+ */
+export function setSavingThrowCategory(stId, categoryId) {
+    const st = getSavingThrowById(stId);
+    if (st) { st.categoryId = categoryId; saveStatSheetData(); }
 }
