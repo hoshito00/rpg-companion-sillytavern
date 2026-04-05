@@ -30,6 +30,7 @@ import {
     calculateUpgradeCost,
     spendExpOnSkill,
     spendExpOnAlphaSkill,
+    spendExpOnSubSkill,
     checkFeatPrerequisites,
     RANKS,
     addSTCategory,
@@ -247,8 +248,11 @@ function renderSpeedDicePlayerView() {
 function renderPlayerAttribute(attr, mode, savingThrows = []) {
     const isCollapsed  = attr.collapsed === true;
     const attrBonus    = computeAttrBonus(attr.id);
-    // Include job/feat bonuses in the modifier used by the roll button
-    const attrModifier = getAttrModifier(attr, mode) + attrBonus;
+    const divisor      = mode === 'alphabetic'
+        ? (extensionSettings.statSheet?.editorSettings?.attrValueDivisor || 100)
+        : 1;
+    const attrBonusMod = mode === 'alphabetic' ? Math.floor(attrBonus / divisor) : attrBonus;
+    const attrModifier = getAttrModifier(attr, mode) + attrBonusMod;
 
     let valueDisplay;
     if (mode === 'numeric') {
@@ -259,9 +263,12 @@ function renderPlayerAttribute(attr, mode, savingThrows = []) {
         valueDisplay = `<span class="view-value-badge">${effective}</span>${bonusBadge}`;
     } else {
         const glowing = attr.threshold > 0 && attr.rankValue >= attr.threshold;
+        // effectiveRankVal adds the raw bonus in rankValue units (e.g. 300),
+        // so the displayed number reflects the true total rankValue (e.g. 600).
+        // attrBonusMod (the divided modifier, e.g. +3) is only used for the badge and rolls.
         const effectiveRankVal = (attr.rankValue || 0) + attrBonus;
-        const bonusBadge = attrBonus !== 0
-            ? `<span class="stat-bonus-indicator" title="Base: ${attr.rankValue}, Bonus: ${attrBonus > 0 ? '+' : ''}${attrBonus}">${attrBonus > 0 ? '+' : ''}${attrBonus}</span>`
+        const bonusBadge = attrBonusMod !== 0
+            ? `<span class="stat-bonus-indicator" title="Base: ${attr.rankValue}, Bonus: ${attrBonusMod > 0 ? '+' : ''}${attrBonusMod}">${attrBonusMod > 0 ? '+' : ''}${attrBonusMod}</span>`
             : '';
         valueDisplay = `
             <span class="view-rank-badge ${glowing ? 'rank-threshold-glow' : ''}" data-rank="${attr.rank}">
@@ -353,7 +360,13 @@ function renderPlayerSkill(attr, skill, mode) {
 
     // Include job/feat bonuses in the attribute modifier used by all roll buttons
     const attrBonusForRoll = computeAttrBonus(attr.id);
-    const attrModifier     = getAttrModifier(attr, mode) + attrBonusForRoll;
+
+    // ── NEW: in alphabetic mode, bonus is stored in rankValue units; divide by divisor ──
+    const divisor = mode === 'alphabetic'
+    ? (extensionSettings.statSheet?.editorSettings?.attrValueDivisor || 100)
+    : 1;
+    const attrBonusMod = mode === 'alphabetic' ? Math.floor(attrBonusForRoll / divisor) : attrBonusForRoll;
+    const attrModifier = getAttrModifier(attr, mode) + attrBonusMod;
     const effectiveLevel   = getSkillEffectiveLevel(attr.id, skill.id);
     const hasSubs        = skill.mode === 'numeric'
                         && (skill.subSkills || []).filter(s => s.enabled).length > 0;
@@ -418,61 +431,93 @@ function renderPlayerSkill(attr, skill, mode) {
         const ss          = extensionSettings.statSheet;
         const enabledSubs = (skill.subSkills || []).filter(s => s.enabled);
 
-        // Check if any job maps a tree type to this attribute — if so, group by tree type
-        const treeGroups = []; // [{ label, subs }]
-        const assignedJobs = (ss.jobs || []).filter(j => {
+        // Primary signal: is this skill itself a job tree?
+        // A skill is a job tree if any enabled job maps this skill's name as a
+        // tree type to this exact attribute.  When true, ALL its subs are
+        // job-managed (no EXP raise), regardless of whether sub.jobId is set.
+        // sub.jobId is kept as a secondary/fallback for subs under non-tree skills.
+        const isJobTreeSkill = (ss.jobs || []).some(j => {
             if (j.enabled === false) return false;
             const attrMap = j.treeTypeAttributeMap || {};
-            return Object.values(attrMap).includes(attr.id);
+            return Object.entries(attrMap).some(([treeName, mappedAttrId]) =>
+                mappedAttrId === attr.id &&
+                treeName.toLowerCase() === skill.name.toLowerCase()
+            );
         });
 
-        if (assignedJobs.length > 0) {
-            // Build tree-type → label map from all jobs that map to this attribute
+        const jobSubs    = isJobTreeSkill
+            ? enabledSubs                                   // all subs are job-owned
+            : enabledSubs.filter(s => s.jobId);            // fallback: explicit tag only
+        const manualSubs = isJobTreeSkill
+            ? []
+            : enabledSubs.filter(s => !s.jobId);
+
+        // Build the label (only shown when there are job subs)
+        let jobGroupLabel = null;
+        if (jobSubs.length > 0) {
             const treeLabels = [];
-            for (const job of assignedJobs) {
+            for (const job of (ss.jobs || []).filter(j => j.enabled !== false)) {
                 const attrMap = job.treeTypeAttributeMap || {};
                 for (const [treeName, mappedAttrId] of Object.entries(attrMap)) {
-                    if (mappedAttrId === attr.id) {
+                    if (
+                        mappedAttrId === attr.id &&
+                        treeName.toLowerCase() === skill.name.toLowerCase()
+                    ) {
                         treeLabels.push(`${job.name}: ${treeName}`);
                     }
                 }
             }
-            treeGroups.push({ label: treeLabels.join(' / '), subs: enabledSubs });
-        } else {
-            treeGroups.push({ label: null, subs: enabledSubs });
+            if (treeLabels.length > 0) jobGroupLabel = treeLabels.join(' / ');
         }
+
+        // Shared row renderer; showRaiseBtn=true only for manual subs
+        const renderSubRow = (sub, showRaiseBtn) => {
+            const subMod  = attrModifier + (sub.level || 0);
+            const cost    = calculateUpgradeCost(sub.level || 0, sub.expCost || 'normal');
+            const afford  = (ss.level?.exp || 0) >= cost;
+            const raiseBtnHtml = showRaiseBtn
+                ? `<button class="btn-raise-subskill ${afford ? '' : 'btn-raise-disabled'}"
+                           data-attr-id="${attr.id}"
+                           data-skill-id="${skill.id}"
+                           data-subskill-id="${sub.id}"
+                           title="${afford ? `Spend ${cost} EXP to raise` : `Need ${cost} EXP`}"
+                           ${afford ? '' : 'disabled'}>
+                       Raise <span class="raise-cost">${cost} EXP</span>
+                   </button>`
+                : '';
+            return `
+                <div class="subskill-item-view">
+                    <span class="subskill-name-view">${escapeHtml(sub.name)}</span>
+                    <div class="subskill-view-controls">
+                        <span class="subskill-level-view">${sub.level || 0}</span>
+                        <button class="btn-roll-skill btn-roll-subskill"
+                                data-attr-id="${attr.id}"
+                                data-skill-id="${skill.id}"
+                                data-subskill-id="${sub.id}"
+                                data-attr-name="${escapeHtml(attr.name)}"
+                                data-skill-name="${escapeHtml(skill.name)}"
+                                data-attr-val="${attrModifier}"
+                                data-skill-val="0"
+                                data-subskill-name="${escapeHtml(sub.name)}"
+                                data-subskill-val="${sub.level || 0}"
+                                data-rank="${mode === 'alphabetic' ? escapeHtml(attr.rank) : ''}"
+                                title="${escapeHtml(sub.name)}: ${attrModifier} + ${sub.level || 0} = +${subMod}">
+                            <span class="roll-btn-icon">🎲</span>
+                            <span class="roll-btn-modifier">+${subMod}</span>
+                        </button>
+                        ${raiseBtnHtml}
+                    </div>
+                </div>
+            `;
+        };
 
         subSkillsHTML = `
             <div class="subskills-list-view">
-                ${treeGroups.map(group => `
-                    ${group.label ? `<div class="subskill-tree-type-label">${escapeHtml(group.label)}</div>` : ''}
-                    ${group.subs.map(sub => {
-                        const subMod = attrModifier + (sub.level || 0);
-                        return `
-                            <div class="subskill-item-view">
-                                <span class="subskill-name-view">${escapeHtml(sub.name)}</span>
-                                <div class="subskill-view-controls">
-                                    <span class="subskill-level-view">${sub.level || 0}</span>
-                                    <button class="btn-roll-skill btn-roll-subskill"
-                                            data-attr-id="${attr.id}"
-                                            data-skill-id="${skill.id}"
-                                            data-subskill-id="${sub.id}"
-                                            data-attr-name="${escapeHtml(attr.name)}"
-                                            data-skill-name="${escapeHtml(skill.name)}"
-                                            data-attr-val="${attrModifier}"
-                                            data-skill-val="0"
-                                            data-subskill-name="${escapeHtml(sub.name)}"
-                                            data-subskill-val="${sub.level || 0}"
-                                            data-rank="${mode === 'alphabetic' ? escapeHtml(attr.rank) : ''}"
-                                            title="${escapeHtml(sub.name)}: ${attrModifier} + ${sub.level || 0} = +${subMod}">
-                                        <span class="roll-btn-icon">🎲</span>
-                                        <span class="roll-btn-modifier">+${subMod}</span>
-                                    </button>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                `).join('')}
+                ${jobSubs.length > 0 ? `
+                    ${jobGroupLabel ? `<div class="subskill-tree-type-label">${escapeHtml(jobGroupLabel)}</div>` : ''}
+                    ${jobSubs.map(sub => renderSubRow(sub, false)).join('')}
+                ` : ''}
+                ${manualSubs.map(sub => renderSubRow(sub, true)).join('')}
             </div>
         `;
     }
@@ -622,6 +667,22 @@ function attachPlayerModeEventListeners() {
                 } else {
                     showNotification('Not enough EXP.', 'error');
                 }
+            }
+        });
+
+    // Manual sub-skill EXP raise
+    $(document).off('click', '.btn-raise-subskill')
+        .on('click', '.btn-raise-subskill', function() {
+            const success = spendExpOnSubSkill(
+                $(this).data('attr-id'),
+                $(this).data('skill-id'),
+                $(this).data('subskill-id')
+            );
+            if (success) {
+                showNotification('Sub-skill raised!', 'success');
+                refreshCurrentTab();
+            } else {
+                showNotification('Not enough EXP.', 'error');
             }
         });
 

@@ -283,6 +283,30 @@ function _migrate() {
     }
     if (ss.spriteUrl == null) { ss.spriteUrl = ''; dirty = true; }
 
+    // ── Backfill jobId on job-tree subskills ──────────────────────────────────
+    // Sub-skills created via job points before this patch have no jobId.
+    // We infer ownership: if a skill's name matches a job's treeType key and
+    // the job maps that treeType to the skill's parent attribute, all enabled
+    // sub-skills on that skill that lack a jobId are stamped with it.
+    // The _subSkillJobIdBackfilled flag prevents this from running more than once.
+    if (!ss._subSkillJobIdBackfilled) {
+        for (const job of (ss.jobs || [])) {
+            const attrMap = job.treeTypeAttributeMap || {};
+            for (const [treeName, attrId] of Object.entries(attrMap)) {
+                const attr  = (ss.attributes || []).find(a => a.id === attrId);
+                const skill = (attr?.skills || []).find(
+                    s => s.name.toLowerCase() === treeName.toLowerCase()
+                );
+                if (!skill) continue;
+                for (const sub of (skill.subSkills || [])) {
+                    if (!sub.jobId) { sub.jobId = job.id; dirty = true; }
+                }
+            }
+        }
+        ss._subSkillJobIdBackfilled = true;
+        dirty = true;
+    }
+
     // ── Jobs: milestone type normalisation ────────────────────────────────────
     // Old milestones had no 'type' — default them to 'attribute'.
     for (const job of (ss.jobs || [])) {
@@ -708,6 +732,27 @@ export function spendExpOnSkill(attributeId, skillId) {
 }
 
 /**
+ * Spend EXP to raise a manually-added (non-job) numeric sub-skill by 1.
+ * Job-sourced sub-skills (sub.jobId is set) are raised via job points, not EXP.
+ * Returns true on success, false if insufficient EXP or ineligible.
+ */
+export function spendExpOnSubSkill(attributeId, skillId, subSkillId) {
+    const skill = getSkillById(attributeId, skillId);
+    if (!skill || skill.mode !== 'numeric') return false;
+
+    const sub = (skill.subSkills || []).find(s => s.id === subSkillId);
+    if (!sub || sub.jobId) return false; // job-sourced subs are not EXP-raised
+
+    const cost = calculateUpgradeCost(sub.level || 0, sub.expCost || 'normal');
+    if ((extensionSettings.statSheet.level.exp || 0) < cost) return false;
+
+    extensionSettings.statSheet.level.exp -= cost;
+    sub.level = (sub.level || 0) + 1;
+    saveStatSheetData();
+    return true;
+}
+
+/**
  * Spend EXP to advance an alphabetic skill's rank by one step.
  * Uses the rank's index in RANKS as "currentLevel" for cost lookup,
  * so the tier table (if active) applies the same way as numeric skills.
@@ -1012,7 +1057,8 @@ export function createSubSkillWithJobPoint(jobId, attributeId, skillId, name) {
         id:      generateUniqueId(),
         name:    (name || 'New Sub-skill').trim(),
         level:   1,
-        enabled: true
+        enabled: true,
+        jobId:   jobId   // marks this sub-skill as job-tree-sourced
     };
 
     if (!Array.isArray(skill.subSkills)) skill.subSkills = [];
