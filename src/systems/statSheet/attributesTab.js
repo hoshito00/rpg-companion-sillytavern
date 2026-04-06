@@ -40,7 +40,8 @@ import {
 } from './statSheetState.js';
 import { saveStatSheetData } from '../../core/persistence.js';
 import { refreshCurrentTab, showNotification, buildPromptIncludeToggle } from './statSheetUI.js';
-import { executeRollCommand } from '../features/dice.js';
+import { executeRollCommand, updateDiceDisplay } from '../features/dice.js';
+import { logDiceRoll } from '../interaction/diceLog.js';
 
 // ============================================================================
 // MODULE STATE
@@ -335,6 +336,7 @@ function renderPlayerAttribute(attr, mode, savingThrows = []) {
                             data-rank="${mode === 'alphabetic' ? escapeHtml(attr.rank) : ''}"
                             data-attr-grade-val="${mode === 'alphabetic' ? getGradeValue(attr.rank) : ''}"
                             data-attr-base-val="${mode === 'alphabetic' ? Math.floor((attr.rankValue || 0) / (extensionSettings.statSheet?.editorSettings?.attrValueDivisor || 100)) : ''}"
+                            data-attr-bonus-mod="${attrBonusMod}"
                             title="Roll ${escapeHtml(attr.name)} Check">
                         <span class="roll-btn-icon">🎲</span>
                         <span class="roll-btn-modifier">+${attrModifier}</span>
@@ -501,6 +503,7 @@ function renderPlayerSkill(attr, skill, mode) {
                                 data-subskill-name="${escapeHtml(sub.name)}"
                                 data-subskill-val="${sub.level || 0}"
                                 data-rank="${mode === 'alphabetic' ? escapeHtml(attr.rank) : ''}"
+                                data-attr-bonus-mod="${attrBonusMod}"
                                 title="${escapeHtml(sub.name)}: ${attrModifier} + ${sub.level || 0} = +${subMod}">
                             <span class="roll-btn-icon">🎲</span>
                             <span class="roll-btn-modifier">+${subMod}</span>
@@ -539,6 +542,7 @@ function renderPlayerSkill(attr, skill, mode) {
                             data-attr-grade-val="${mode === 'alphabetic' ? getGradeValue(attr.rank) : ''}"
                             data-attr-base-val="${mode === 'alphabetic' ? Math.floor((attr.rankValue || 0) / (extensionSettings.statSheet?.editorSettings?.attrValueDivisor || 100)) : ''}"
                             data-skill-rank="${skill.mode === 'alphabetic' ? escapeHtml(skill.rank) : ''}"
+                            data-attr-bonus-mod="${attrBonusMod}"
                             title="Roll ${escapeHtml(skill.name)}">
                         <span class="roll-btn-icon">🎲</span>
                         <span class="roll-btn-modifier">+${totalModifier}</span>
@@ -711,6 +715,7 @@ function openRollPopover(btnEl) {
     const attrBaseVal  = $btn.data('attr-base-val');
     const isAlphaAttr  = attrRank !== '';
     const isSubSkill   = !!subSkillName;
+    const attrBonusMod = parseInt($btn.data('attr-bonus-mod')) || 0;
 
     const modifier    = isSubSkill ? attrVal + subSkillVal : attrVal + skillVal;
     const headerLabel = isSubSkill ? subSkillName : skillName;
@@ -724,6 +729,10 @@ function openRollPopover(btnEl) {
     ).join('');
     const gradeHint = attrRank
         ? `<span class="rdc-grade-hint">${attrRank} → d${gradeSides}</span>`
+        : '';
+
+    const bonusLabel = (isAlphaAttr && attrBonusMod !== 0)
+        ? `<span class="rmod-sep">+</span><span class="rmod-bonus"><strong>${attrBonusMod > 0 ? '+' + attrBonusMod : attrBonusMod}</strong> <span class="rmod-bonus-tag">(items)</span></span>`
         : '';
 
     let breakdownHTML;
@@ -742,6 +751,7 @@ function openRollPopover(btnEl) {
                 <div class="roll-mod-breakdown">
                     ${attrGradeLabel}
                     ${attrBaseLabel}
+                    ${bonusLabel}
                     <span class="rmod-sep">+</span>
                     <span class="rmod-skill">${subLabel}</span>
                     <span class="rmod-eq">= <strong class="rmod-total">+${modifier}</strong></span>
@@ -751,6 +761,7 @@ function openRollPopover(btnEl) {
                 <div class="roll-mod-breakdown">
                     ${attrGradeLabel}
                     ${attrBaseLabel}
+                    ${bonusLabel}
                     <span class="rmod-eq">= <strong class="rmod-total">+${modifier}</strong></span>
                 </div>`;
         } else {
@@ -761,6 +772,7 @@ function openRollPopover(btnEl) {
                 <div class="roll-mod-breakdown">
                     ${attrGradeLabel}
                     ${attrBaseLabel}
+                    ${bonusLabel}
                     <span class="rmod-sep">+</span>
                     <span class="rmod-skill">${skLabel}</span>
                     <span class="rmod-eq">= <strong class="rmod-total">+${modifier}</strong></span>
@@ -834,7 +846,8 @@ function openRollPopover(btnEl) {
                             data-attr-rank="${escapeHtml(attrRank)}"
                             data-skill-rank="${escapeHtml(skillRank)}"
                             data-attr-grade-val="${isAlphaAttr ? attrGradeVal : ''}"
-                            data-attr-base-val="${isAlphaAttr ? attrBaseVal : ''}">
+                            data-attr-base-val="${isAlphaAttr ? attrBaseVal : ''}"
+                            data-attr-bonus-mod="${attrBonusMod}">
                         🎲 Roll
                     </button>
                 </div>
@@ -855,6 +868,14 @@ function openRollPopover(btnEl) {
                         <div class="rrb-line attr-line">
                             <span class="rrb-value attr-value"></span>
                             <span class="rrb-label attr-label"></span>
+                        </div>
+                        <div class="rrb-line attr-base-line" style="display:none">
+                            <span class="rrb-value attr-base-value"></span>
+                            <span class="rrb-label attr-base-label"></span>
+                        </div>
+                        <div class="rrb-line attr-bonus-line" style="display:none">
+                            <span class="rrb-value attr-bonus-value"></span>
+                            <span class="rrb-label attr-bonus-label"></span>
                         </div>
                         <div class="rrb-line skill-line">
                             <span class="rrb-value skill-value"></span>
@@ -894,6 +915,13 @@ function openRollPopover(btnEl) {
         const diceRoll = result.total;
         const total    = diceRoll + mod;
 
+        // BUG-01 FIX: log the roll and update the Last Roll display
+        const rollLabel   = hasSub ? subName : sName;
+        const modSign     = mod >= 0 ? '+' : '';
+        const rollFormula = `1d${sides}${modSign}${mod}`;
+        logDiceRoll(rollFormula, total, [diceRoll], rollLabel);
+        updateDiceDisplay();
+
         $(this).prop('disabled', false).text('🎲 Roll');
         $pop.find('.roll-config-phase').hide();
 
@@ -906,14 +934,20 @@ function openRollPopover(btnEl) {
         const aGradeVal = $(this).data('attr-grade-val');
         const aBaseVal  = $(this).data('attr-base-val');
         const sRank     = $(this).data('skill-rank')     || '';
+        const aBonusMod = parseInt($(this).data('attr-bonus-mod')) || 0;
 
         if (aRankRes) {
             $res.find('.attr-value').text(aGradeVal);
             $res.find('.attr-label').text(`${aName} ${aRankRes}`);
-            if (parseInt(aBaseVal) > 0 && !hasSub && sVal === 0) {
-                $res.find('.skill-line').show();
-                $res.find('.skill-value').text(`+ ${aBaseVal}`);
-                $res.find('.skill-label').text(`base`);
+            if (parseInt(aBaseVal) > 0) {
+                $res.find('.attr-base-line').show();
+                $res.find('.attr-base-value').text(`+ ${aBaseVal}`);
+                $res.find('.attr-base-label').text(`${aName} pts`);
+            }
+            if (aBonusMod !== 0) {
+                $res.find('.attr-bonus-line').show();
+                $res.find('.attr-bonus-value').text(`${aBonusMod > 0 ? '+ ' : ''}${aBonusMod}`);
+                $res.find('.attr-bonus-label').text(`items`);
             }
         } else {
             $res.find('.attr-value').text(`+ ${aVal}`);
@@ -1439,6 +1473,7 @@ function renderMasterAttribute(attr, mode, savingThrows = []) {
     const valueInput = `
         <input type="number"
                class="attribute-value-input ${isAlpha ? 'alphabetic-input' : 'numeric-input'}"
+               ${isAlpha ? 'style="min-width:55px"' : ''}
                value="${isAlpha ? (attr.rankValue ?? 0) : (attr.value ?? 0)}"
                data-attr-id="${attr.id}" min="0">
     `;
@@ -1452,7 +1487,7 @@ function renderMasterAttribute(attr, mode, savingThrows = []) {
                 <input type="text" class="attribute-name-input attr-name-compact"
                        value="${escapeHtml(attr.name)}" data-attr-id="${attr.id}"
                        placeholder="Attribute Name">
-                <div class="attr-value-cluster">
+                <div class="attr-value-cluster" style="flex-shrink:0">
                     ${rankSlot}
                     <button class="btn-decrease-attr"
                             data-attr-id="${attr.id}" title="Decrease">−</button>

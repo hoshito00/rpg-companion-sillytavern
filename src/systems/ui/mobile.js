@@ -484,7 +484,10 @@ export function setupMobileToggle() {
         //         top: $panel.css('top'),
         //         bottom: $panel.css('top'),
         //         transform: $panel.css('transform'),
-        //         visibility: $panel.css('visibility')\n        //     }\n        // });\n        setupMobileTabs();
+        //         visibility: $panel.css('visibility')
+        //     }
+        // });
+        setupMobileTabs();
         // Set initial icon for mobile
         updateCollapseToggleIcon();
         // Show mobile toggle on mobile viewport

@@ -517,7 +517,16 @@ function _createDefaultStatSheet() {
         speedDice:        _defaultSpeedDice(),
         spriteUrl:        '',
         gear:             [],
-        gearSlots:        []   // populated by ensureGearSlots() on first render
+        gearSlots:        [],  // populated by ensureGearSlots() on first render
+        cultivation:      _defaultCultivation(),
+    };
+}
+
+function _defaultCultivation() {
+    return {
+        spiritRoots: [],
+        meridians:   [],
+        techniques:  [],
     };
 }
 

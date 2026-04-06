@@ -290,7 +290,8 @@ const STAT_SHEET_CHAT_FIELDS = [
     'speedDice',    // Session 9 — optional speed dice config
     'spriteUrl',    // Session 9 — character sprite URL (stores 'idb:<key>' or plain URL)
     'gear',         // Session 14 — equipped gear items
-    'gearSlots'     // Session 14 — configurable gear slot definitions
+    'gearSlots',    // Session 14 — configurable gear slot definitions
+    'mode'          // BUG-07 — per-chat alphabetic/numeric mode (was leaking across chats)
 ];
 
 /**

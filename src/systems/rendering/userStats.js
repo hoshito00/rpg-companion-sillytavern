@@ -151,7 +151,7 @@ function updateUserStatsData() {
                         if (!itemString) return [];
                         const items = itemString.split(',').map(s => s.trim()).filter(s => s);
                         return items.map(item => {
-                            const qtyMatch = item.match(/^(\\d+)x\\s+(.+)$/);
+                            const qtyMatch = item.match(/^(\d+)x\s+(.+)$/);
                             if (qtyMatch) {
                                 return { name: qtyMatch[2].trim(), quantity: parseInt(qtyMatch[1]) };
                             }
@@ -195,7 +195,6 @@ function updateUserStatsData() {
 /**
  * Renders the user stats panel with health bars, mood, inventory, and classic stats.
  * Includes event listeners for editable fields.
-```
  */
 export function renderUserStats() {
     if (!extensionSettings.showUserStats || !$userStatsContainer) {
