@@ -71,8 +71,12 @@ export function closeMobilePanelWithAnimation() {
     $panel.removeClass('rpg-mobile-open').addClass('rpg-mobile-closing');
     $mobileToggle.removeClass('active');
 
-    // Wait for animation to complete before hiding
-    $panel.one('animationend', function() {
+    // CHANGED: Added 'webkitAnimationEnd' alongside 'animationend'.
+    // Safari (desktop and iOS) fires webkitAnimationEnd rather than the
+    // unprefixed event in some versions. Without this, rpg-mobile-closing is
+    // never removed and the overlay permanently blocks all input in Safari/Chrome
+    // on iOS. Firefox fires the unprefixed event reliably so it was never broken.
+    $panel.one('animationend webkitAnimationEnd', function() {
         $panel.removeClass('rpg-mobile-closing');
         $('.rpg-mobile-overlay').remove();
     });

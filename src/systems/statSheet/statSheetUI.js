@@ -1,6 +1,16 @@
 /**
  * Stat Sheet UI Module - COMPLETE FIX
  * Fixes: Auto-opening bug AND modal won't close bug
+ *
+ * Cross-browser patch (Session 23):
+ *   - Removed jQuery fadeOut/fadeIn wrapping from renderCurrentTab().
+ *     The async callback chain (fadeOut → render → fadeIn) caused queued
+ *     animation stutter in Chrome/Edge when called rapidly (e.g. on every
+ *     CHAT_CHANGED event). Firefox defers layout differently and masked this.
+ *     Tab content is now replaced synchronously; the modal-open fade is kept.
+ *   - Added _lastRenderedTab guard in switchTab() to skip re-rendering a tab
+ *     that is already displayed. refreshCurrentTab() bypasses the guard so
+ *     data-change refreshes still work correctly.
  */
 
 import { extensionSettings } from '../../core/state.js';
@@ -11,12 +21,18 @@ import { renderAugmentsTab }      from './augmentsTab.js';
 import { renderGearTab }          from './gearTab.js';
 import { renderCombatSkillsTab }  from './combatSkillsTab.js';
 import { renderSummaryTab }       from './summaryTab.js';
+import { renderCultivationTab }   from './cultivationTab.js';
 
 // Current active tab
 let currentTab = 'summary';
 
 // Modal state
 let isModalOpen = false;
+
+// CHANGED: Tracks which tab is currently rendered so switchTab() can skip
+// redundant work when the user clicks the already-active tab.
+// Set to null to force a re-render on next renderCurrentTab() call.
+let _lastRenderedTab = null;
 
 /**
  * Initialize stat sheet UI
@@ -64,6 +80,9 @@ function createModalHTML() {
                     </button>
                     <button class="stat-sheet-tab" data-tab="augments">
                         Augments
+                    </button>
+                    <button class="stat-sheet-tab" data-tab="cultivation" id="stat-sheet-tab-cultivation" style="display:none;">
+                        Cultivation
                     </button>
                     <button class="stat-sheet-tab" data-tab="combatSkills">
                         Combat Skills
@@ -138,6 +157,20 @@ function attachEventListeners() {
 /**
  * Open stat sheet modal
  */
+/**
+ * Show or hide the Cultivation tab button based on xianxiaMode setting.
+ * Called on modal open and whenever the setting changes in the tracker editor.
+ */
+export function syncCultivationTabVisibility() {
+    const xianxia = extensionSettings.statSheet?.xianxiaMode === true;
+    const $btn = $('#stat-sheet-tab-cultivation');
+    $btn.toggle(xianxia);
+    // If cultivation tab is active but mode just turned off, fall back to summary
+    if (!xianxia && currentTab === 'cultivation') {
+        switchTab('summary');
+    }
+}
+
 export function openModal() {
     console.log('[Stat Sheet] openModal called');
     console.log('[Stat Sheet] extensionSettings.statSheet:', extensionSettings.statSheet);
@@ -160,7 +193,8 @@ export function openModal() {
     modal.fadeIn(200);
     isModalOpen = true;
     
-    // Render current tab
+    // Sync cultivation tab visibility before rendering
+    syncCultivationTabVisibility();
     console.log('[Stat Sheet] Calling renderCurrentTab...');
     renderCurrentTab();
     
@@ -182,6 +216,10 @@ export function closeModal() {
     
     modal.fadeOut(200, function() {
         isModalOpen = false;
+        // CHANGED: Clear the render cache on close so the next open always
+        // gets a fresh render with current data, regardless of what tab was
+        // last shown.
+        _lastRenderedTab = null;
         console.log('[Stat Sheet] Modal closed successfully');
     });
 }
@@ -209,6 +247,16 @@ export function switchTab(tabName) {
     
     // Update current tab
     currentTab = tabName;
+
+    // CHANGED: Skip re-render if this tab is already rendered.
+    // Previously every click fired a full fadeOut→render→fadeIn cycle even
+    // when nothing changed. Chrome/Edge queue jQuery animations more eagerly
+    // than Firefox, causing visible stutter when the same tab was clicked
+    // twice or when CHAT_CHANGED fired mid-animation.
+    if (tabName === _lastRenderedTab) {
+        console.log('[Stat Sheet] Tab already rendered, skipping re-render:', tabName);
+        return;
+    }
     
     // Render tab content
     renderCurrentTab();
@@ -216,6 +264,28 @@ export function switchTab(tabName) {
 
 /**
  * Render current tab content
+ *
+ * CHANGED: Removed the jQuery fadeOut/fadeIn wrapping.
+ *
+ * The original pattern was:
+ *   contentContainer.fadeOut(100, () => { render(); contentContainer.fadeIn(100); })
+ *
+ * This caused two cross-browser problems:
+ *
+ *   1. STUTTER — If renderCurrentTab() was called while a previous fade was
+ *      still running (e.g. rapid tab clicks, or CHAT_CHANGED firing during a
+ *      render), jQuery silently queued a second animation. Chrome/Edge process
+ *      the animation queue eagerly, causing a double-flash. Firefox's layout
+ *      engine deferred repaints more aggressively and hid the problem.
+ *
+ *   2. STUCK CONTENT — If the render threw inside the fadeOut callback, the
+ *      container stayed hidden (opacity 0) until the next successful render.
+ *      The error handler called fadeIn() but by then the queue was in an
+ *      inconsistent state in some browsers.
+ *
+ * Tab content is now replaced synchronously. The modal-open fade (fadeIn(200)
+ * in openModal) is untouched — that one is fine since it runs exactly once
+ * per open and has no render work inside its callback.
  */
 function renderCurrentTab() {
     console.log('[Stat Sheet] renderCurrentTab - currentTab:', currentTab);
@@ -227,43 +297,49 @@ function renderCurrentTab() {
         console.error('[Stat Sheet] ERROR: Content container not found!');
         return;
     }
-    
-    // Add fade animation
-    contentContainer.fadeOut(100, () => {
-        try {
-            console.log('[Stat Sheet] Rendering tab:', currentTab);
-            
-            // Render based on tab
-            if (currentTab === 'attributes') {
-                console.log('[Stat Sheet] Calling renderAttributesTab...');
-                renderAttributesTab(contentContainer);
-                console.log('[Stat Sheet] renderAttributesTab completed');
-            } else if (currentTab === 'jobsFeats') {
-                renderJobsFeatsTab(contentContainer);
-            } else if (currentTab === 'gear') {
-                renderGearTab(contentContainer);
-            } else if (currentTab === 'combatSkills') {
-                renderCombatSkillsTab(contentContainer);
-            } else if (currentTab === 'augments') {
-                renderAugmentsTab(contentContainer);
-            } else if (currentTab === 'summary') {
-                renderSummaryTab(contentContainer);
-            } else {
-                renderPlaceholderTab(currentTab);
-            }
-            
-            contentContainer.fadeIn(100);
-        } catch (error) {
-            console.error('[Stat Sheet] ERROR rendering tab:', error);
-            contentContainer.html(`
-                <div class="error-message">
-                    <p>Error rendering tab: ${error.message}</p>
-                    <p>Check console for details</p>
-                </div>
-            `);
-            contentContainer.fadeIn(100);
+
+    try {
+        console.log('[Stat Sheet] Rendering tab:', currentTab);
+        
+        // Render based on tab
+        if (currentTab === 'attributes') {
+            console.log('[Stat Sheet] Calling renderAttributesTab...');
+            renderAttributesTab(contentContainer);
+            console.log('[Stat Sheet] renderAttributesTab completed');
+        } else if (currentTab === 'jobsFeats') {
+            renderJobsFeatsTab(contentContainer);
+        } else if (currentTab === 'gear') {
+            renderGearTab(contentContainer);
+        } else if (currentTab === 'combatSkills') {
+            renderCombatSkillsTab(contentContainer);
+        } else if (currentTab === 'augments') {
+            renderAugmentsTab(contentContainer);
+        } else if (currentTab === 'summary') {
+            renderSummaryTab(contentContainer);
+        } else if (currentTab === 'cultivation') {
+            renderCultivationTab(contentContainer);
+        } else {
+            renderPlaceholderTab(currentTab);
         }
-    });
+
+        // CHANGED: Record which tab is now displayed so switchTab() can
+        // skip redundant renders on repeated clicks of the same tab.
+        _lastRenderedTab = currentTab;
+
+    } catch (error) {
+        console.error('[Stat Sheet] ERROR rendering tab:', error);
+        // CHANGED: Write error directly — no fadeIn needed since the container
+        // is never hidden now. This also means the error message is always
+        // visible immediately instead of potentially staying hidden.
+        contentContainer.html(`
+            <div class="error-message">
+                <p>Error rendering tab: ${error.message}</p>
+                <p>Check console for details</p>
+            </div>
+        `);
+        // Don't cache the tab name on error — next call will retry the render.
+        _lastRenderedTab = null;
+    }
 }
 
 /**
@@ -288,13 +364,16 @@ function renderPlaceholderTab(tabName) {
     contentContainer.html(placeholderHTML);
 }
 
-
-
 /**
- * Refresh current tab (re-render)
+ * Refresh current tab (re-render).
+ * Bypasses the _lastRenderedTab guard so data changes (e.g. prompt-include
+ * toggles, CHAT_CHANGED) always produce a fresh render.
  */
 export function refreshCurrentTab() {
     console.log('[Stat Sheet] Refreshing current tab');
+    // CHANGED: Clear the cache before calling renderCurrentTab() so the
+    // guard in switchTab() does not suppress this intentional re-render.
+    _lastRenderedTab = null;
     renderCurrentTab();
 }
 

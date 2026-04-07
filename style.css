@@ -20095,3 +20095,1137 @@ body:has(.rpg-panel[data-theme="light"]) .rpg-strip-widget {
     font-size: 10px;
     opacity: 0.8;
 }
+
+/* ============================================================================
+   SESSION 23 — CULTIVATION TAB
+   ============================================================================ */
+
+/* ── Tab container ─────────────────────────────────────────────────────────── */
+.cult-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    color: var(--SmartThemeBodyColor, #ccc);
+    font-size: 13px;
+}
+
+.cult-tab-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #444);
+}
+
+.cult-tab-title {
+    margin: 0;
+    font-size: 15px;
+    flex: 1;
+}
+
+.cult-master-btn {
+    margin-left: auto;
+}
+
+/* ── Layer grid ────────────────────────────────────────────────────────────── */
+.cult-layer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+}
+
+.cult-layer-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 4px;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 6px;
+    background: var(--SmartThemeBlurTintColor, rgba(0,0,0,0.3));
+    color: var(--SmartThemeBodyColor, #ccc);
+    cursor: pointer;
+    font-size: 11px;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.cult-layer-btn:hover:not(:disabled) {
+    background: var(--SmartThemeBlurTintColor, rgba(255,255,255,0.06));
+    border-color: var(--SmartThemePrimaryColor, #8866ff);
+}
+
+.cult-layer-btn.cult-layer-active {
+    border-color: var(--SmartThemePrimaryColor, #8866ff);
+    background: rgba(136, 102, 255, 0.15);
+    color: var(--SmartThemePrimaryColor, #8866ff);
+}
+
+.cult-layer-btn.cult-layer-locked,
+.cult-layer-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.cult-layer-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.cult-layer-label {
+    font-size: 10px;
+    opacity: 0.8;
+}
+
+/* ── Layer content area ────────────────────────────────────────────────────── */
+.cult-layer-content {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.cult-section-title {
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #444);
+    color: var(--SmartThemePrimaryColor, #8866ff);
+}
+
+/* ── Shared field layout ───────────────────────────────────────────────────── */
+.cult-field-row {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-bottom: 8px;
+}
+
+.cult-field-row--split {
+    flex-direction: row;
+    gap: 8px;
+}
+
+.cult-field-half {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.cult-label {
+    font-size: 11px;
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.cult-input,
+.cult-textarea {
+    background: var(--SmartThemeBlurTintColor, rgba(0,0,0,0.3));
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 4px;
+    color: var(--SmartThemeBodyColor, #ccc);
+    padding: 4px 6px;
+    font-size: 13px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.cult-input:focus,
+.cult-textarea:focus {
+    outline: none;
+    border-color: var(--SmartThemePrimaryColor, #8866ff);
+}
+
+.cult-input[readonly],
+.cult-textarea[readonly] {
+    opacity: 0.75;
+    cursor: default;
+}
+
+.cult-input--narrow {
+    max-width: 90px;
+}
+
+.cult-textarea {
+    resize: vertical;
+    min-height: 56px;
+}
+
+.cult-footer-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 4px;
+}
+
+/* ── Progress bar ──────────────────────────────────────────────────────────── */
+.cult-progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.cult-progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--SmartThemeBorderColor, #444);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.cult-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #8866ff, #66aaff);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.cult-progress-pct {
+    font-size: 12px;
+    min-width: 32px;
+    text-align: right;
+    opacity: 0.8;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────────────── */
+.cult-btn-save {
+    padding: 5px 14px;
+    border-radius: 5px;
+    border: 1px solid var(--SmartThemePrimaryColor, #8866ff);
+    background: rgba(136, 102, 255, 0.18);
+    color: var(--SmartThemePrimaryColor, #8866ff);
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.cult-btn-save:hover {
+    background: rgba(136, 102, 255, 0.35);
+}
+
+.cult-btn-add {
+    margin-top: 6px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px dashed var(--SmartThemeBorderColor, #555);
+    background: transparent;
+    color: var(--SmartThemeBodyColor, #ccc);
+    cursor: pointer;
+    font-size: 12px;
+    width: 100%;
+}
+
+.cult-btn-add:hover {
+    border-color: var(--SmartThemePrimaryColor, #8866ff);
+    color: var(--SmartThemePrimaryColor, #8866ff);
+}
+
+.cult-btn-rm {
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    color: #cc5555;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0 4px;
+    opacity: 0.7;
+    flex-shrink: 0;
+}
+
+.cult-btn-rm:hover { opacity: 1; }
+
+/* ── Spirit Root panel ─────────────────────────────────────────────────────── */
+.cult-spirit-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cult-body-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 8px 0;
+}
+
+.cult-body-wrap svg.cult-body-svg {
+    max-width: 200px;
+    height: auto;
+}
+
+/* ── Hex ring SVG lines ────────────────────────────────────────────────────── */
+:root {
+    --cult-side-inactive: #2a3040;
+    --cult-element-default: #8899aa;
+}
+
+.cult-hex-side--inactive {
+    stroke-width: 2;
+    opacity: 0.35;
+}
+
+.cult-hex-side--active {
+    stroke-width: 3;
+    filter: drop-shadow(0 0 4px currentColor);
+}
+
+.cult-core-dot {
+    fill: var(--SmartThemeBorderColor, #555);
+    stroke: none;
+}
+
+.cult-core-dot--active {
+    fill: var(--SmartThemePrimaryColor, #8866ff);
+}
+
+.cult-core-dot-label {
+    fill: var(--SmartThemeBodyColor, #ccc);
+    font-family: inherit;
+    opacity: 0.65;
+}
+
+/* ── Hex legend ────────────────────────────────────────────────────────────── */
+.cult-hex-legend {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px 8px;
+    padding: 6px 8px;
+    background: var(--SmartThemeBlurTintColor, rgba(0,0,0,0.2));
+    border-radius: 6px;
+    font-size: 11px;
+}
+
+.cult-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.cult-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.cult-legend-text {
+    opacity: 0.85;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Core sections ─────────────────────────────────────────────────────────── */
+.cult-cores-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cult-core-section {
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.cult-core-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    background: var(--SmartThemeBlurTintColor, rgba(255,255,255,0.04));
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.cult-core-pip {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--SmartThemePrimaryColor, #8866ff);
+    flex-shrink: 0;
+}
+
+.cult-core-name {
+    flex: 1;
+}
+
+.cult-core-name-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #444);
+    color: var(--SmartThemeBodyColor, #ccc);
+    font-size: 12px;
+    font-weight: bold;
+    padding: 0 2px;
+}
+
+.cult-core-count {
+    font-size: 10px;
+    opacity: 0.5;
+    background: var(--SmartThemeBorderColor, #444);
+    border-radius: 10px;
+    padding: 1px 6px;
+}
+
+.cult-core-roots {
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.cult-empty-note {
+    font-size: 11px;
+    opacity: 0.4;
+    text-align: center;
+    padding: 4px 0;
+}
+
+/* ── Spirit root cards ─────────────────────────────────────────────────────── */
+.cult-root-card {
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 5px;
+    padding: 6px 8px;
+    background: var(--SmartThemeBlurTintColor, rgba(0,0,0,0.15));
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.cult-root-card--disabled {
+    opacity: 0.45;
+}
+
+.cult-root-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.cult-root-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.cult-root-name {
+    flex: 1;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.cult-root-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #444);
+    color: var(--SmartThemeBodyColor, #ccc);
+    font-size: 12px;
+    font-weight: bold;
+    padding: 0 2px;
+}
+
+.cult-root-input--sm {
+    max-width: 90px;
+    font-weight: normal;
+}
+
+.cult-root-input--num {
+    max-width: 52px;
+    font-weight: normal;
+    text-align: center;
+}
+
+.cult-root-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    font-size: 11px;
+    opacity: 0.8;
+}
+
+.cult-root-edit {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding-top: 4px;
+    border-top: 1px solid var(--SmartThemeBorderColor, #333);
+    font-size: 11px;
+}
+
+.cult-root-edit label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.cult-root-select {
+    background: var(--SmartThemeBlurTintColor, rgba(0,0,0,0.3));
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 3px;
+    color: var(--SmartThemeBodyColor, #ccc);
+    font-size: 11px;
+    padding: 2px 4px;
+}
+
+.cult-check-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+/* ── Energy panel ──────────────────────────────────────────────────────────── */
+.cult-energy-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* ============================================================================
+   SESSION 23 — CULTIVATION TAB
+   Cross-browser patch applied — see CHANGED comments for every edit.
+   ============================================================================ */
+
+/* ── Tab container ─────────────────────────────────────────────────────────── */
+.cult-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    color: var(--SmartThemeBodyColor, #ccc);
+    font-size: 13px;
+}
+
+.cult-tab-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #444);
+}
+
+.cult-tab-title {
+    margin: 0;
+    font-size: 15px;
+    flex: 1;
+}
+
+.cult-master-btn {
+    margin-left: auto;
+}
+
+/* ── Layer grid ────────────────────────────────────────────────────────────── */
+.cult-layer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+}
+
+.cult-layer-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 4px;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 6px;
+    background: var(--SmartThemeBlurTintColor, rgba(0,0,0,0.3));
+    color: var(--SmartThemeBodyColor, #ccc);
+    cursor: pointer;
+    font-size: 11px;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.cult-layer-btn:hover:not(:disabled) {
+    background: var(--SmartThemeBlurTintColor, rgba(255,255,255,0.06));
+    border-color: var(--SmartThemePrimaryColor, #8866ff);
+}
+
+.cult-layer-btn.cult-layer-active {
+    border-color: var(--SmartThemePrimaryColor, #8866ff);
+    background: rgba(136, 102, 255, 0.15);
+    color: var(--SmartThemePrimaryColor, #8866ff);
+}
+
+.cult-layer-btn.cult-layer-locked,
+.cult-layer-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.cult-layer-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.cult-layer-label {
+    font-size: 10px;
+    opacity: 0.8;
+}
+
+/* ── Layer content area ────────────────────────────────────────────────────── */
+.cult-layer-content {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.cult-section-title {
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #444);
+    color: var(--SmartThemePrimaryColor, #8866ff);
+}
+
+/* ── Shared field layout ───────────────────────────────────────────────────── */
+.cult-field-row {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-bottom: 8px;
+}
+
+.cult-field-row--split {
+    flex-direction: row;
+    gap: 8px;
+}
+
+.cult-field-half {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.cult-label {
+    font-size: 11px;
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.cult-input,
+.cult-textarea {
+    background: var(--SmartThemeBlurTintColor, rgba(0,0,0,0.3));
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 4px;
+    color: var(--SmartThemeBodyColor, #ccc);
+    padding: 4px 6px;
+    font-size: 13px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.cult-input:focus,
+.cult-textarea:focus {
+    outline: none;
+    border-color: var(--SmartThemePrimaryColor, #8866ff);
+}
+
+.cult-input[readonly],
+.cult-textarea[readonly] {
+    opacity: 0.75;
+    cursor: default;
+}
+
+.cult-input--narrow {
+    max-width: 90px;
+}
+
+.cult-textarea {
+    resize: vertical;
+    min-height: 56px;
+}
+
+.cult-footer-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 4px;
+}
+
+/* ── Progress bar ──────────────────────────────────────────────────────────── */
+.cult-progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.cult-progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--SmartThemeBorderColor, #444);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.cult-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #8866ff, #66aaff);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.cult-progress-pct {
+    font-size: 12px;
+    min-width: 32px;
+    text-align: right;
+    opacity: 0.8;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────────────── */
+.cult-btn-save {
+    padding: 5px 14px;
+    border-radius: 5px;
+    border: 1px solid var(--SmartThemePrimaryColor, #8866ff);
+    background: rgba(136, 102, 255, 0.18);
+    color: var(--SmartThemePrimaryColor, #8866ff);
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.cult-btn-save:hover {
+    background: rgba(136, 102, 255, 0.35);
+}
+
+.cult-btn-add {
+    margin-top: 6px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px dashed var(--SmartThemeBorderColor, #555);
+    background: transparent;
+    color: var(--SmartThemeBodyColor, #ccc);
+    cursor: pointer;
+    font-size: 12px;
+    width: 100%;
+}
+
+.cult-btn-add:hover {
+    border-color: var(--SmartThemePrimaryColor, #8866ff);
+    color: var(--SmartThemePrimaryColor, #8866ff);
+}
+
+.cult-btn-rm {
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    color: #cc5555;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0 4px;
+    opacity: 0.7;
+    flex-shrink: 0;
+}
+
+.cult-btn-rm:hover { opacity: 1; }
+
+/* ── Spirit Root panel ─────────────────────────────────────────────────────── */
+.cult-spirit-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cult-body-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 8px 0;
+}
+
+.cult-body-wrap svg.cult-body-svg {
+    max-width: 200px;
+    height: auto;
+}
+
+/* ── Hex ring SVG lines ────────────────────────────────────────────────────── */
+:root {
+    --cult-side-inactive: #2a3040;
+    --cult-element-default: #8899aa;
+    /*
+     * CHANGED: Added --cult-hex-glow variable.
+     * Safari cannot resolve `currentColor` inside filter: drop-shadow() on SVG
+     * elements. Instead, cultivationTab.js must set --cult-hex-glow as an inline
+     * style on each active <line> element when it assigns stroke colour.
+     * Example (in JS): el.style.setProperty('--cult-hex-glow', elementColor);
+     * The fallback (#8899aa) is used if JS hasn't set it yet.
+     */
+    --cult-hex-glow: #8899aa;
+}
+
+.cult-hex-side--inactive {
+    stroke-width: 2;
+    opacity: 0.35;
+}
+
+.cult-hex-side--active {
+    stroke-width: 3;
+    /* CHANGED: was `filter: drop-shadow(0 0 4px currentColor)`
+     * currentColor inside filter: drop-shadow() is not resolved by Safari on SVG.
+     * Use --cult-hex-glow (set per-element by JS) with a safe fallback instead. */
+    filter: drop-shadow(0 0 4px var(--cult-hex-glow, #8899aa));
+}
+
+.cult-core-dot {
+    fill: var(--SmartThemeBorderColor, #555);
+    stroke: none;
+}
+
+.cult-core-dot--active {
+    fill: var(--SmartThemePrimaryColor, #8866ff);
+}
+
+.cult-core-dot-label {
+    fill: var(--SmartThemeBodyColor, #ccc);
+    font-family: inherit;
+    opacity: 0.65;
+}
+
+/* ── Hex legend ────────────────────────────────────────────────────────────── */
+.cult-hex-legend {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px 8px;
+    padding: 6px 8px;
+    background: var(--SmartThemeBlurTintColor, rgba(0,0,0,0.2));
+    border-radius: 6px;
+    font-size: 11px;
+}
+
+.cult-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.cult-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.cult-legend-text {
+    opacity: 0.85;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Core sections ─────────────────────────────────────────────────────────── */
+.cult-cores-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cult-core-section {
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.cult-core-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    background: var(--SmartThemeBlurTintColor, rgba(255,255,255,0.04));
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.cult-core-pip {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--SmartThemePrimaryColor, #8866ff);
+    flex-shrink: 0;
+}
+
+.cult-core-name {
+    flex: 1;
+}
+
+.cult-core-name-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #444);
+    color: var(--SmartThemeBodyColor, #ccc);
+    font-size: 12px;
+    font-weight: bold;
+    padding: 0 2px;
+}
+
+.cult-core-count {
+    font-size: 10px;
+    opacity: 0.5;
+    background: var(--SmartThemeBorderColor, #444);
+    border-radius: 10px;
+    padding: 1px 6px;
+}
+
+.cult-core-roots {
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.cult-empty-note {
+    font-size: 11px;
+    opacity: 0.4;
+    text-align: center;
+    padding: 4px 0;
+}
+
+/* ── Spirit root cards ─────────────────────────────────────────────────────── */
+.cult-root-card {
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 5px;
+    padding: 6px 8px;
+    background: var(--SmartThemeBlurTintColor, rgba(0,0,0,0.15));
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.cult-root-card--disabled {
+    opacity: 0.45;
+}
+
+.cult-root-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.cult-root-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.cult-root-name {
+    flex: 1;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.cult-root-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #444);
+    color: var(--SmartThemeBodyColor, #ccc);
+    font-size: 12px;
+    font-weight: bold;
+    padding: 0 2px;
+}
+
+.cult-root-input--sm {
+    max-width: 90px;
+    font-weight: normal;
+}
+
+.cult-root-input--num {
+    max-width: 52px;
+    font-weight: normal;
+    text-align: center;
+}
+
+.cult-root-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    font-size: 11px;
+    opacity: 0.8;
+}
+
+.cult-root-edit {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding-top: 4px;
+    border-top: 1px solid var(--SmartThemeBorderColor, #333);
+    font-size: 11px;
+}
+
+.cult-root-edit label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.cult-root-select {
+    background: var(--SmartThemeBlurTintColor, rgba(0,0,0,0.3));
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 3px;
+    color: var(--SmartThemeBodyColor, #ccc);
+    font-size: 11px;
+    padding: 2px 4px;
+}
+
+.cult-check-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+/* ── Energy panel ──────────────────────────────────────────────────────────── */
+.cult-energy-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* ============================================================================
+   SESSION 23 REV 2 — Cultivation Tab layout additions
+   ============================================================================ */
+
+/* ── 3-column stage ────────────────────────────────────────────────────────── */
+.cult-stage {
+    display: grid;
+    grid-template-columns: 1fr 120px 1fr;
+    gap: 4px;
+    align-items: stretch;
+    min-height: 260px;
+    margin-bottom: 4px;
+}
+
+.cult-stage-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 4px;
+}
+
+.cult-stage-center {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+/* ── Corner layer-switcher ─────────────────────────────────────────────────── */
+.cult-corner-layers {
+    position: absolute;
+    top: 0;
+    right: -2px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    z-index: 10;
+}
+
+.cult-corner-btn {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 4px;
+    background: var(--SmartThemeBlurTintColor, rgba(0,0,0,0.45));
+    color: var(--SmartThemeBodyColor, #ccc);
+    cursor: pointer;
+    line-height: 1;
+    transition: background 0.1s, border-color 0.1s;
+}
+
+.cult-corner-btn:hover:not(:disabled) {
+    border-color: var(--SmartThemePrimaryColor, #8866ff);
+    background: rgba(136,102,255,0.18);
+}
+
+.cult-corner-active {
+    border-color: var(--SmartThemePrimaryColor, #8866ff) !important;
+    background: rgba(136,102,255,0.28) !important;
+    box-shadow: 0 0 5px rgba(136,102,255,0.45);
+}
+
+.cult-corner-locked {
+    opacity: 0.28;
+    cursor: not-allowed;
+}
+
+/* ── Zone panels ───────────────────────────────────────────────────────────── */
+.cult-zone-panel {
+    flex: 1;
+    border: 1px solid var(--SmartThemeBorderColor, #333);
+    border-radius: 5px;
+    padding: 4px 5px;
+    background: var(--SmartThemeBlurTintColor, rgba(0,0,0,0.18));
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 52px;
+    overflow: hidden;
+}
+
+.cult-zone-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    opacity: 0.45;
+    padding-bottom: 2px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #333);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cult-zone-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+}
+
+.cult-zone-hint  { opacity: 0.2; }
+.cult-zone-locked { opacity: 0.4; font-size: 9px; }
+
+/* ── Bottom section ────────────────────────────────────────────────────────── */
+.cult-bottom {
+    padding-top: 6px;
+    border-top: 1px solid var(--SmartThemeBorderColor, #333);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   SCROLLBAR COMPATIBILITY NOTE (no code change needed here):
+   .sdc-body uses scrollbar-width / scrollbar-color (Firefox + Chrome 121+).
+   Safari shows its native scrollbar — acceptable, no fix needed.
+   -webkit-overflow-scrolling: touch in .rpg-dice-history-list is a no-op in
+   all current browsers (removed in iOS 13). Safe to delete on next cleanup.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+   /* ── Header right group (layer switcher + prompt toggle) ──────────────────── */
+.cult-header-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+}
+
+/* Override: layer grid is now inline in header, not absolute in center column */
+.cult-corner-layers {
+    position: static;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+}

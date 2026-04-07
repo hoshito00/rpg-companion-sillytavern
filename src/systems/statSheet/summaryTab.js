@@ -10,7 +10,8 @@
 
 import { extensionSettings }              from '../../core/state.js';
 import { calculateSavingThrowValue,
-         buildSavingThrowFormula }         from './statSheetState.js';
+         buildSavingThrowFormula,
+         getSkillEffectiveLevel }          from './statSheetState.js';
 import { buildPromptIncludeToggle,
          showNotification }               from './statSheetUI.js';
 import { exportStatSheet, importStatSheet } from '../../core/persistence.js';
@@ -241,8 +242,14 @@ function renderAttributesBlock(ss) {
         const val = mode === 'numeric'
             ? a.value
             : `${a.rank || 'C'} <span style="opacity:0.55;font-size:10px;">(${a.rankValue || 0})</span>`;
-        const skillsText = (a.skills || []).filter(s => s.enabled && (s.level || 0) > 0)
-            .map(s => `<span class="summary-skill-chip">${escapeHtml(s.name)} ${s.level}</span>`)
+        const skillsText = (a.skills || []).filter(s => s.enabled)
+            .map(s => {
+                const eff = getSkillEffectiveLevel(a.id, s.id);
+                return eff > 0
+                    ? `<span class="summary-skill-chip">${escapeHtml(s.name)} ${eff}</span>`
+                    : null;
+            })
+            .filter(Boolean)
             .join('');
         return `<tr>
             <td class="summary-attr-name">${escapeHtml(a.name)}</td>

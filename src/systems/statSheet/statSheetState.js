@@ -270,6 +270,58 @@ function _migrate() {
     if (!Array.isArray(ss.gear))      { ss.gear      = []; dirty = true; }
     if (!Array.isArray(ss.gearSlots)) { ss.gearSlots = []; dirty = true; }
 
+    // ── Session 23: cultivation schema upgrade ────────────────────────────────
+    if (!ss.cultivation || typeof ss.cultivation !== 'object') {
+        ss.cultivation = _defaultCultivation();
+        dirty = true;
+    } else {
+        const c = ss.cultivation;
+        // Seed cores if missing
+        if (!c.cores || typeof c.cores !== 'object') {
+            c.cores = {
+                mindCore:  { name: 'Mind Core',   spiritRoots: [] },
+                bloodCore: { name: 'Blood Core',  spiritRoots: [] },
+                energyCore:{ name: 'Energy Core', spiritRoots: [] },
+            };
+            dirty = true;
+        }
+        for (const key of ['mindCore', 'bloodCore', 'energyCore']) {
+            if (!c.cores[key]) {
+                c.cores[key] = { name: key, spiritRoots: [] };
+                dirty = true;
+            }
+            if (!Array.isArray(c.cores[key].spiritRoots)) {
+                c.cores[key].spiritRoots = [];
+                dirty = true;
+            }
+        }
+        // Migrate old flat spiritRoots[] → energyCore
+        if (Array.isArray(c.spiritRoots) && c.spiritRoots.length > 0) {
+            c.cores.energyCore.spiritRoots.push(...c.spiritRoots);
+            delete c.spiritRoots;
+            dirty = true;
+        } else if (Array.isArray(c.spiritRoots)) {
+            delete c.spiritRoots;
+            dirty = true;
+        }
+        // Migrate old meridians[] → channels[]
+        if (Array.isArray(c.meridians) && !Array.isArray(c.channels)) {
+            c.channels = c.meridians.map(m => ({ ...m, type: 'meridian' }));
+            delete c.meridians;
+            dirty = true;
+        } else if (Array.isArray(c.meridians)) {
+            delete c.meridians;
+            dirty = true;
+        }
+        if (!Array.isArray(c.channels))   { c.channels   = []; dirty = true; }
+        if (!Array.isArray(c.techniques)) { c.techniques = []; dirty = true; }
+        const cDefaults = { primaryPath: '', realm: '', subStage: 0, currentPool: 0,
+                            threshold: 0, breakthroughChance: '', cultivationNotes: '' };
+        for (const [k, v] of Object.entries(cDefaults)) {
+            if (c[k] == null) { c[k] = v; dirty = true; }
+        }
+    }
+
     // ── Session 9: speedDice + spriteUrl ─────────────────────────────────────
     if (!ss.speedDice || typeof ss.speedDice !== 'object') {
         ss.speedDice = _defaultSpeedDice();
@@ -469,6 +521,7 @@ function _defaultPromptIncludes() {
         jobsFeats:    true,
         combatSkills: true,
         augments:     false,   // off by default — augments tab is still WIP
+        cultivation:  false,   // off by default — cultivation tab is still WIP
     };
 }
 
@@ -524,9 +577,20 @@ function _createDefaultStatSheet() {
 
 function _defaultCultivation() {
     return {
-        spiritRoots: [],
-        meridians:   [],
-        techniques:  [],
+        primaryPath:        '',
+        realm:              '',
+        subStage:           0,
+        currentPool:        0,
+        threshold:          0,
+        breakthroughChance: '',
+        cultivationNotes:   '',
+        cores: {
+            mindCore:  { name: 'Mind Core',   spiritRoots: [] },
+            bloodCore: { name: 'Blood Core',  spiritRoots: [] },
+            energyCore:{ name: 'Energy Core', spiritRoots: [] },
+        },
+        channels:   [],
+        techniques: [],
     };
 }
 

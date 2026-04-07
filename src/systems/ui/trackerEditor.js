@@ -1969,6 +1969,7 @@ function renderStatSheetTab() {
     `;
 
     // ── 2. Display Options ────────────────────────────────────────────────────
+    const xianxiaMode = ss.xianxiaMode === true;
     html += `
         <div class="rpg-editor-section">
             <h4><i class="fa-solid fa-eye"></i> Display Options</h4>
@@ -1979,6 +1980,10 @@ function renderStatSheetTab() {
             <div class="rpg-editor-toggle-row" style="margin-top:8px;">
                 <input type="checkbox" id="ss-show-exp" ${level.showExp !== false ? 'checked' : ''}>
                 <label for="ss-show-exp">Show EXP in stat sheet</label>
+            </div>
+            <div class="rpg-editor-toggle-row" style="margin-top:8px;">
+                <input type="checkbox" id="ss-xianxia-mode" ${xianxiaMode ? 'checked' : ''}>
+                <label for="ss-xianxia-mode"><strong>XianXia Mode</strong> — shows the Cultivation tab in the stat sheet</label>
             </div>
         </div>
     `;
@@ -2469,6 +2474,14 @@ function setupStatSheetTabListeners() {
         if (!ss.level) ss.level = {};
         ss.level.showExp = $(this).is(':checked');
         saveSettings();
+    });
+
+    // ── XianXia Mode ──────────────────────────────────────────────────────────
+    $(document).off('change', '#ss-xianxia-mode').on('change', '#ss-xianxia-mode', function() {
+        ss.xianxiaMode = $(this).is(':checked');
+        saveStatSheetData();
+        // Sync the tab button in the stat sheet modal immediately if it's open
+        import('../statSheet/statSheetUI.js').then(m => m.syncCultivationTabVisibility()).catch(() => {});
     });
 
     // ── Level calculation mode ────────────────────────────────────────────────
