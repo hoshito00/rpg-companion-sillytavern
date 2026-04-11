@@ -166,7 +166,7 @@ function _buildTabHTML() {
                     <span class="gear-slot-name">${escHtml(slot.name)}</span>
                     <span class="gear-slot-count ${full ? 'gear-slot-full' : ''}">${count}/${cap}</span>
                     ${isMasterMode ? `
-                        <button class="gear-add-btn btn-add-flat-term"
+                        <button type="button" class="gear-add-btn btn-add-flat-term"
                                 data-slot-id="${escHtml(slot.id)}"
                                 ${full ? 'disabled title="Slot at capacity"' : 'title="Add gear item"'}>
                             + Add
@@ -185,7 +185,7 @@ function _buildTabHTML() {
             <div class="aug-tab-header">
                 <h3>Gear &amp; Equipment</h3>
                 ${buildPromptIncludeToggle('gear', 'Gear')}
-                <button id="btn-gear-toggle-mode" class="btn-toggle-mode">
+                <button type="button" id="btn-gear-toggle-mode" class="btn-toggle-mode">
                     ${isMasterMode ? '▶ Player' : '⚙ Master'}
                 </button>
             </div>
@@ -193,10 +193,10 @@ function _buildTabHTML() {
             ${isMasterMode ? _buildSlotManager() : ''}
 
             <div class="gear-slot-filter">
-                <button class="gear-filter-btn ${!selectedSlotId ? 'active' : ''}"
+                <button type="button" class="gear-filter-btn ${!selectedSlotId ? 'active' : ''}"
                         data-filter-slot="">All Slots</button>
                 ${(ss.gearSlots || []).map(s => `
-                    <button class="gear-filter-btn ${selectedSlotId === s.id ? 'active' : ''}"
+                    <button type="button" class="gear-filter-btn ${selectedSlotId === s.id ? 'active' : ''}"
                             data-filter-slot="${escHtml(s.id)}">
                         ${escHtml(s.name)}
                     </button>
@@ -242,11 +242,11 @@ function _buildGearCard(item) {
                 <span class="gear-card-name" style="color:${tier.color};">${escHtml(item.name)}</span>
                 ${equippedBadge}
                 ${isMasterMode ? `
-                    <button class="gear-btn-edit" data-gear-id="${escHtml(item.id)}" title="Edit">✏️</button>
-                    <button class="gear-btn-remove" data-gear-id="${escHtml(item.id)}" title="Remove">×</button>
+                    <button type="button" class="gear-btn-edit" data-gear-id="${escHtml(item.id)}" title="Edit">✏️</button>
+                    <button type="button" class="gear-btn-remove" data-gear-id="${escHtml(item.id)}" title="Remove">×</button>
                 ` : ''}
                 ${!isMasterMode ? `
-                    <button class="gear-btn-toggle-equipped btn-add-flat-term"
+                    <button type="button" class="gear-btn-toggle-equipped btn-add-flat-term"
                             data-gear-id="${escHtml(item.id)}"
                             title="${equipped ? 'Unequip' : 'Equip'}">
                         ${equipped ? 'Unequip' : 'Equip'}
@@ -277,7 +277,7 @@ function _buildSlotManager() {
                    value="${slot.capacity || 2}"
                    min="1" max="20"
                    style="width:52px; text-align:center;">
-            <button class="gear-slot-delete-btn btn-add-flat-term"
+            <button type="button" class="gear-slot-delete-btn btn-add-flat-term"
                     data-slot-id="${escHtml(slot.id)}"
                     title="Delete slot (removes all gear in it)">🗑</button>
         </div>
@@ -293,7 +293,7 @@ function _buildSlotManager() {
             <div class="aug-slot-config-grid" style="margin-top:10px;">
                 ${rows}
             </div>
-            <button id="gear-add-slot-btn" class="btn-add-flat-term" style="margin-top:10px;">
+            <button type="button" id="gear-add-slot-btn" class="btn-add-flat-term" style="margin-top:10px;">
                 + Add Slot
             </button>
         </div>
@@ -308,7 +308,7 @@ function _buildDetailPopupShell() {
             <div class="aug-popup-modal">
                 <div class="aug-popup-header">
                     <span id="gear-popup-title" class="aug-popup-title-text">Edit Gear</span>
-                    <button id="gear-popup-close" class="aug-popup-close-btn" title="Close">✕</button>
+                    <button type="button" id="gear-popup-close" class="aug-popup-close-btn" title="Close">✕</button>
                 </div>
                 <div id="gear-popup-body" class="aug-popup-body"></div>
             </div>
@@ -335,7 +335,7 @@ function _buildPopupContent(item) {
 
     // Rarity buttons
     const rarityBtns = GEAR_RARITY_TIERS.map(t => `
-        <button class="aug-rarity-btn gear-rarity-btn ${item.rarityTier === t.id ? 'active' : ''}"
+        <button type="button" class="aug-rarity-btn gear-rarity-btn ${item.rarityTier === t.id ? 'active' : ''}"
                 data-gear-id="${escHtml(item.id)}"
                 data-tier-id="${t.id}"
                 style="border-color:${t.color};${item.rarityTier === t.id ? `background:${t.color}33;color:${t.color};` : ''}">
@@ -364,7 +364,7 @@ function _buildPopupContent(item) {
             <input type="text" class="rpg-input gear-link-note" data-gear-id="${escHtml(item.id)}" data-link-idx="${idx}"
                    value="${escHtml(lnk.note || '')}" placeholder="Passive note…"
                    style="flex:2; min-width:80px;">
-            <button class="gear-link-remove" data-gear-id="${escHtml(item.id)}" data-link-idx="${idx}" title="Remove">×</button>
+            <button type="button" class="gear-link-remove" data-gear-id="${escHtml(item.id)}" data-link-idx="${idx}" title="Remove">×</button>
         </div>
     `).join('');
 
@@ -435,7 +435,7 @@ function _buildPopupContent(item) {
                 <div class="gear-stat-bonuses-list" data-gear-id="${escHtml(item.id)}">
                     ${bonusRows || '<div class="gear-empty-hint">No bonuses yet.</div>'}
                 </div>
-                <button class="gear-add-stat-bonus btn-add-flat-term" data-gear-id="${escHtml(item.id)}"
+                <button type="button" class="gear-add-stat-bonus btn-add-flat-term" data-gear-id="${escHtml(item.id)}"
                         style="margin-top:6px;">+ Add Bonus</button>
             </div>
 
@@ -449,7 +449,7 @@ function _buildPopupContent(item) {
                 <div class="gear-skill-links-list" data-gear-id="${escHtml(item.id)}">
                     ${skillLinkRows || '<div class="gear-empty-hint">No links yet.</div>'}
                 </div>
-                <button class="gear-add-combat-link btn-add-flat-term" data-gear-id="${escHtml(item.id)}"
+                <button type="button" class="gear-add-combat-link btn-add-flat-term" data-gear-id="${escHtml(item.id)}"
                         style="margin-top:6px;">+ Add Skill Link</button>
             </div>
 
@@ -492,7 +492,7 @@ function _buildStatBonusRow(sb, gearId, attrs, skills, savs) {
             <input type="number" class="gear-sb-value" value="${sb.value || 0}"
                    data-gear-id="${escHtml(gearId)}" data-bonus-id="${escHtml(sb.id)}"
                    style="width:52px; text-align:center;">
-            <button class="gear-sb-remove" data-gear-id="${escHtml(gearId)}" data-bonus-id="${escHtml(sb.id)}"
+            <button type="button" class="gear-sb-remove" data-gear-id="${escHtml(gearId)}" data-bonus-id="${escHtml(sb.id)}"
                     title="Remove">×</button>
         </div>
     `;

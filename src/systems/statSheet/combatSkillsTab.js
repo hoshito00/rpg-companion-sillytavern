@@ -12,9 +12,10 @@ import {
     generateUniqueId,
     calculateSavingThrowValue,
 } from './statSheetState.js';
-import { saveStatSheetData } from '../../core/persistence.js';
+import { saveStatSheetData, saveSettings } from '../../core/persistence.js';
 import { refreshCurrentTab, showNotification, buildPromptIncludeToggle } from './statSheetUI.js';
 import { logDiceRoll } from '../interaction/diceLog.js';
+import { updateDiceDisplay } from '../features/dice.js';
 
 // ============================================================================
 // CONSTANTS
@@ -847,6 +848,19 @@ function _showSkillRollPopover($btn, skill) {
         const groupTotal   = results.reduce((sum, r) => sum + r.total, 0);
         const groupRolls   = results.map(r => r.rawRoll);
         logDiceRoll(groupFormula, groupTotal, groupRolls, skill.name);
+
+        // ── Update Last Roll sidebar display (Bug fix S25) ────────────────────
+        // Combat skill rolls went through logDiceRoll() but never updated
+        // extensionSettings.lastDiceRoll, so the sidebar display stayed stale.
+        extensionSettings.lastDiceRoll = {
+            formula: groupFormula,
+            total:   groupTotal,
+            rolls:   groupRolls,
+            label:   skill.name
+        };
+        saveSettings();        // persist so Last Roll survives page reload
+        updateDiceDisplay();
+        window.RPGCompanion?.refreshDiceLog?.(); // live-update dice modal log if open
     }
 
     const rows = results.map(r => {

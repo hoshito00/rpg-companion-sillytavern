@@ -899,7 +899,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     min-width: fit-content;
     max-width: 100%;
     width: 100%;
-    min-height: clamp(12px, 1.8vh, 16px);
+    position: relative;
+    min-height: clamp(16px, 2.5vh, 20px);
     transition: background-color 0.2s ease;
     overflow: visible;
     box-sizing: border-box;
@@ -917,9 +918,13 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-stat-label {
-    flex: 0 0 auto;
-    min-width: 3rem;
-    max-width: 30%;
+    position: absolute;
+    left: 0.5em;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    min-width: auto;
+    max-width: calc(100% - 3rem);
     font-size: clamp(0.625rem, 0.6vw, 0.75rem);
     font-weight: 600;
     text-align: left;
@@ -929,6 +934,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
 .rpg-stat-bar {
@@ -936,8 +942,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     min-width: 3.75rem;
     max-width: 100%;
     width: 100%;
-    height: clamp(9px, 1.3vh, 11px);
-    min-height: 9px;
+    height: 100%;
+    min-height: clamp(16px, 2.5vh, 20px);
     position: relative;
     border-radius: 0.375em;
     overflow: hidden;
@@ -956,10 +962,15 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-stat-value {
+    position: absolute;
+    right: 0.5em;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    min-width: auto;
     color: #fff;
     font-size: clamp(0.625rem, 0.6vw, 0.75rem);
     font-weight: bold;
-    min-width: 1.875rem;
     text-align: right;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
@@ -21229,3 +21240,22 @@ body:has(.rpg-panel[data-theme="light"]) .rpg-strip-widget {
     grid-template-columns: 1fr 1fr;
     gap: 2px;
 }
+
+/* ── Combat skill card: truncate long die formula chips ── */
+.cs-equipped-card .cs-card-dice,
+.cs-avail-row .cs-avail-dice {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+.cs-equipped-card .cs-die-chip,
+.cs-avail-row .cs-die-chip {
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    vertical-align: middle;
+}
+

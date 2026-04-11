@@ -647,10 +647,30 @@ export function parseUserStats(statsText) {
                         return String(quest);
                     };
 
+                    // ── Preserve expReward set by the user (Bug fix S25) ──────────
+                    // convertQuest() returns a plain title string, which would
+                    // overwrite any existing { title, expReward } object and silently
+                    // discard the EXP value the GM/user set in the quest panel.
+                    // Solution: after converting, re-attach the existing expReward
+                    // unless the AI explicitly provided a new one.
+                    const existingQuests = extensionSettings.quests || {};
+
+                    const mergeQuest = (newData, existing) => {
+                        const title = convertQuest(newData);
+                        if (!title) return title;
+                        const existingExp = (existing && typeof existing === 'object')
+                            ? (existing.expReward || 0) : 0;
+                        const aiExp = (newData && typeof newData === 'object' && newData.expReward > 0)
+                            ? newData.expReward : 0;
+                        const expReward = aiExp > 0 ? aiExp : existingExp;
+                        return expReward > 0 ? { title, expReward } : title;
+                    };
+
                     extensionSettings.quests = {
-                        main: convertQuest(statsData.quests.main),
+                        main: mergeQuest(statsData.quests.main, existingQuests.main),
                         optional: Array.isArray(statsData.quests.optional)
-                            ? statsData.quests.optional.map(convertQuest)
+                            ? statsData.quests.optional.map((q, i) =>
+                                mergeQuest(q, (existingQuests.optional || [])[i]))
                             : []
                     };
                     // console.log('[RPG Parser] ✓ Converted v3 quests:', extensionSettings.quests);

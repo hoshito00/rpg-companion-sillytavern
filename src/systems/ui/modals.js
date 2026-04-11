@@ -169,6 +169,7 @@ export class DiceModal {
     close() {
         if (!this.modal) return;
         this.modal.classList.remove('is-open');
+        _clearDiceRoll();   // reset sidebar "Last Roll" display on dismiss
         setTimeout(() => {
             if (this.modal) this.modal.style.display = 'none';
         }, 200);
@@ -370,7 +371,17 @@ export function setupDiceRoller() {
     const diceModal = new DiceModal();
 
     // #rpg-dice-display is the "Last Roll" bar — clicking it opens the popup
-    $(document).on('click', '#rpg-dice-display', () => diceModal.open());
+    $(document).on('click', '#rpg-dice-display', (e) => {
+        // Clicks on buttons inside the bar (e.g. the X clear button) should
+        // not open the modal — stop here and let the button's own handler run.
+        if ($(e.target).closest('button').length) return;
+        diceModal.open();
+    });
+
+    // Expose a live-refresh hook so external callers (e.g. combatSkillsTab)
+    // can update the log panel without importing modals.js directly.
+    if (!window.RPGCompanion) window.RPGCompanion = {};
+    window.RPGCompanion.refreshDiceLog = () => diceModal._renderLog();
 
     return diceModal;
 }

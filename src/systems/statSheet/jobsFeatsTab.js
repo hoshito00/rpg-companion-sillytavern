@@ -36,6 +36,7 @@ import { refreshCurrentTab, showNotification, buildPromptIncludeToggle } from '.
 // ============================================================================
 
 let isMasterMode = false;
+const _msStaging = {}; // keyed by jobId — holds staging row state between re-renders
 
 // ============================================================================
 // MAIN RENDER ENTRY POINT
@@ -103,7 +104,7 @@ function findTreeSkill(treeType, mappedAttr) {
 function computeEffectiveUnspent(job) {
     const ss       = extensionSettings.statSheet;
     const attrMap  = job.treeTypeAttributeMap || {};
-    const granted  = (job.level || 0) * (job.pointGrantsPerLevel || 1);
+    const granted  = (job.level || 0) * (job.pointGrantsPerLevel ?? 1);
     let spent = 0;
     for (const [treeName, attrId] of Object.entries(attrMap)) {
         const attr  = (ss.attributes || []).find(a => a.id === attrId && a.enabled);
@@ -174,7 +175,7 @@ function renderUnspentPointsBanner(jobs) {
     const ss = extensionSettings.statSheet;
     const jobsWithPoints = jobs.filter(job => {
         const attrMap      = job.treeTypeAttributeMap || {};
-        const totalGranted = (job.level || 0) * (job.pointGrantsPerLevel || 1);
+        const totalGranted = (job.level || 0) * (job.pointGrantsPerLevel ?? 1);
         let totalSpent = 0;
         for (const [treeName, attrId] of Object.entries(attrMap)) {
             const attr  = (ss.attributes || []).find(a => a.id === attrId && a.enabled);
@@ -194,7 +195,7 @@ function renderUnspentPointsBanner(jobs) {
 
     const totalPoints = jobsWithPoints.reduce((sum, job) => {
         const attrMap      = job.treeTypeAttributeMap || {};
-        const totalGranted = (job.level || 0) * (job.pointGrantsPerLevel || 1);
+        const totalGranted = (job.level || 0) * (job.pointGrantsPerLevel ?? 1);
         let totalSpent = 0;
         for (const [treeName, attrId] of Object.entries(attrMap)) {
             const attr  = (ss.attributes || []).find(a => a.id === attrId && a.enabled);
@@ -231,7 +232,7 @@ function renderPlayerJob(job) {
     // Compute effective unspent points from actual data (level × ppl - totalSpent)
     const ss           = extensionSettings.statSheet;
     const attrMap      = job.treeTypeAttributeMap || {};
-    const totalGranted = (job.level || 0) * (job.pointGrantsPerLevel || 1);
+    const totalGranted = (job.level || 0) * (job.pointGrantsPerLevel ?? 1);
     let totalSpent = 0;
     for (const [treeName, attrId] of Object.entries(attrMap)) {
         const attr  = (ss.attributes || []).find(a => a.id === attrId && a.enabled);
@@ -286,7 +287,7 @@ function renderLinkedFeatsView(feats) {
                     <div class="job-linked-feat-item">
                         <span class="job-linked-feat-name">${escapeHtml(f.name)}</span>
                         ${(f.tags || []).map(t => `<span class="feat-tag">${escapeHtml(t)}</span>`).join('')}
-                        ${f.description ? `<p class="job-linked-feat-desc">${escapeHtml(f.description)}</p>` : ''}
+                        ${f.description ? `<p class="job-linked-feat-desc">${escapeHtml(f.description).replace(/\n/g, '<br>')}</p>` : ''}
                     </div>
                 `).join('')}
             </div>
@@ -318,7 +319,7 @@ function renderJobSubSkillTree(job) {
     }
 
     // ── Compute effective unspent points from real data ───────────────────────
-    const totalGranted = (job.level || 0) * (job.pointGrantsPerLevel || 1);
+    const totalGranted = (job.level || 0) * (job.pointGrantsPerLevel ?? 1);
     let totalSpent = 0;
     for (const [treeName, attrId] of Object.entries(attrMap)) {
         const attr  = (ss.attributes || []).find(a => a.id === attrId && a.enabled);
@@ -464,7 +465,7 @@ function renderPlayerFeat(feat) {
                 ${lockBadge}
             </div>
             ${feat.description
-                ? `<p class="feat-view-desc">${escapeHtml(feat.description)}</p>`
+                ? `<p class="feat-view-desc">${escapeHtml(feat.description).replace(/\n/g, '<br>')}</p>`
                 : ''}
             ${unmetList}
             <div class="feat-view-tags">
@@ -629,7 +630,7 @@ function renderMasterJob(job) {
             <div class="job-details-row">
                 <label class="job-field-label">Points / Level</label>
                 <input type="number" class="job-points-per-level-input"
-                       value="${job.pointGrantsPerLevel || 1}" min="1" max="10"
+                       value="${job.pointGrantsPerLevel ?? 1}" min="0" max="10"
                        data-job-id="${job.id}">
                 <span class="job-unspent-note">Unspent now: ${computeEffectiveUnspent(job)}</span>
             </div>
@@ -813,13 +814,159 @@ function renderMasterJobSubSkills(job) {
 // MASTER MODE — MILESTONES (Attribute / Feat / Sub-skill)
 // ============================================================================
 
+// ── Milestone staging row ─────────────────────────────────────────────────────
+
+function _stagingState(jobId) {
+    if (!_msStaging[jobId]) {
+        _msStaging[jobId] = {
+            type: 'attribute', level: 1,
+            attrId: '', featId: '', skillId: '', subSkillId: '',
+            stId: '', amount: 1, moduleRank: 1, moduleIsInnate: true,
+        };
+    }
+    return _msStaging[jobId];
+}
+
+function renderStagingRow(job, ss) {
+    const stage    = _stagingState(job.id);
+    const attrs    = (ss.attributes    || []).filter(a => a.enabled);
+    const allFeats = (ss.feats         || []);
+    const type     = stage.type;
+
+    const typeSelect = `
+        <select class="ms-stage-type" data-job-id="${job.id}" style="min-width:110px;font-size:12px;">
+            <option value="feat"         ${type === 'feat'         ? 'selected' : ''}>Grant Feat</option>
+            <option value="saving_throw" ${type === 'saving_throw' ? 'selected' : ''}>Save +</option>
+            <option value="attribute"    ${type === 'attribute'    ? 'selected' : ''}>Attribute +</option>
+            <option value="skill"        ${type === 'skill'        ? 'selected' : ''}>Skill +</option>
+            <option value="subskill"     ${type === 'subskill'     ? 'selected' : ''}>Sub-skill +</option>
+            <option value="module"       ${type === 'module'       ? 'selected' : ''}>Grant Module</option>
+        </select>`;
+
+    const levelInput = `
+        <span class="rpg-threshold-label" style="white-space:nowrap;">at Lv.</span>
+        <input type="number" class="rpg-threshold-input ms-stage-level" data-job-id="${job.id}"
+               value="${stage.level}" min="1" max="10" style="width:52px;text-align:center;">`;
+
+    let rightSide = '';
+
+    if (type === 'attribute') {
+        const opts = attrs.map(a =>
+            `<option value="${a.id}" ${stage.attrId === a.id ? 'selected' : ''}>${escapeHtml(a.name)}</option>`
+        ).join('');
+        rightSide = `
+            <span class="rpg-threshold-label">→</span>
+            <select class="ms-stage-attr-select" data-job-id="${job.id}" style="flex:1;min-width:80px;">
+                ${opts || '<option value="">— no attributes —</option>'}
+            </select>
+            <span class="rpg-threshold-label">+</span>
+            <input type="number" class="rpg-threshold-input ms-stage-amount" data-job-id="${job.id}"
+                   value="${stage.amount || 1}" min="1" style="width:52px;text-align:center;">`;
+
+    } else if (type === 'feat') {
+        const opts = allFeats.map(f =>
+            `<option value="${f.id}" ${stage.featId === f.id ? 'selected' : ''}>${escapeHtml(f.name)}</option>`
+        ).join('');
+        rightSide = `
+            <span class="rpg-threshold-label">→</span>
+            <select class="ms-stage-feat-select" data-job-id="${job.id}" style="flex:1;min-width:100px;">
+                ${opts || '<option value="">— add feats first —</option>'}
+            </select>`;
+
+    } else if (type === 'skill') {
+        const opts = [];
+        for (const attr of attrs)
+            for (const skill of (attr.skills || []).filter(s => s.enabled))
+                opts.push(`<option value="${skill.id}" ${stage.skillId === skill.id ? 'selected' : ''}>${escapeHtml(attr.name)} / ${escapeHtml(skill.name)}</option>`);
+        rightSide = `
+            <span class="rpg-threshold-label">→</span>
+            <select class="ms-stage-skill-select" data-job-id="${job.id}" style="flex:1;min-width:120px;">
+                ${opts.length ? opts.join('') : '<option value="">— no skills —</option>'}
+            </select>
+            <span class="rpg-threshold-label">+</span>
+            <input type="number" class="rpg-threshold-input ms-stage-amount" data-job-id="${job.id}"
+                   value="${stage.amount || 1}" min="1" style="width:52px;text-align:center;">`;
+
+    } else if (type === 'subskill') {
+        const opts = [];
+        for (const attr of attrs)
+            for (const skill of (attr.skills || []).filter(s => s.enabled))
+                for (const sub of (skill.subSkills || []).filter(s => s.enabled))
+                    opts.push(`<option value="${sub.id}" ${stage.subSkillId === sub.id ? 'selected' : ''}>${escapeHtml(attr.name)} / ${escapeHtml(skill.name)} / ${escapeHtml(sub.name)}</option>`);
+        rightSide = `
+            <span class="rpg-threshold-label">→</span>
+            <select class="ms-stage-subskill-select" data-job-id="${job.id}" style="flex:1;min-width:120px;">
+                ${opts.length ? opts.join('') : '<option value="">— no sub-skills —</option>'}
+            </select>
+            <span class="rpg-threshold-label">+</span>
+            <input type="number" class="rpg-threshold-input ms-stage-amount" data-job-id="${job.id}"
+                   value="${stage.amount || 1}" min="1" style="width:52px;text-align:center;">`;
+
+    } else if (type === 'module') {
+        const opts = (ss.combatSkills || []).map(s =>
+            `<option value="${s.id}" ${stage.skillId === s.id ? 'selected' : ''}>${escapeHtml(s.name || 'Unnamed')}</option>`
+        ).join('');
+        const rank = stage.moduleRank || 1;
+        rightSide = `
+            <span class="rpg-threshold-label">→</span>
+            <select class="ms-stage-module-skill-select" data-job-id="${job.id}" style="flex:1;min-width:100px;">
+                ${opts || '<option value="">— no combat skills —</option>'}
+            </select>
+            <select class="ms-stage-module-rank-select" data-job-id="${job.id}" style="min-width:62px;">
+                <option value="1" ${rank === 1 ? 'selected' : ''}>R1</option>
+                <option value="2" ${rank === 2 ? 'selected' : ''}>R2</option>
+                <option value="3" ${rank === 3 ? 'selected' : ''}>R3</option>
+            </select>
+            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;">
+                <input type="checkbox" class="ms-stage-module-innate-chk" data-job-id="${job.id}"
+                       ${stage.moduleIsInnate !== false ? 'checked' : ''}>Innate
+            </label>`;
+
+    } else if (type === 'saving_throw') {
+        const opts = (ss.savingThrows || []).filter(s => s.enabled !== false).map(s =>
+            `<option value="${s.id}" ${stage.stId === s.id ? 'selected' : ''}>${escapeHtml(s.name)}</option>`
+        ).join('');
+        rightSide = `
+            <span class="rpg-threshold-label">→</span>
+            <select class="ms-stage-st-select" data-job-id="${job.id}" style="flex:1;min-width:100px;">
+                ${opts || '<option value="">— no saving throws —</option>'}
+            </select>
+            <span class="rpg-threshold-label">+</span>
+            <input type="number" class="rpg-threshold-input ms-stage-amount" data-job-id="${job.id}"
+                   value="${stage.amount || 1}" min="1" style="width:52px;text-align:center;">`;
+    }
+
+    return `
+        <div class="rpg-threshold-row ms-staging-row" data-job-id="${job.id}"
+             style="border:1px dashed rgba(255,255,255,0.12);border-radius:6px;padding:6px 8px;">
+            <span style="font-size:11px;opacity:0.55;white-space:nowrap;">New:</span>
+            ${typeSelect}
+            ${levelInput}
+            ${rightSide}
+            <button class="ms-stage-add-btn" data-job-id="${job.id}"
+                    style="padding:3px 12px;font-size:12px;font-weight:600;border-radius:5px;border:1px solid rgba(100,200,120,0.45);background:rgba(100,200,120,0.1);color:#8ecf9a;cursor:pointer;white-space:nowrap;margin-left:auto;">+ Add</button>
+        </div>`;
+}
+
 function renderMilestoneSection(job) {
     const ss         = extensionSettings.statSheet;
     const attrs      = (ss.attributes || []).filter(a => a.enabled);
     const allFeats   = (ss.feats || []);
     const milestones = (job.attributeMilestones || []);
 
-    const rowsHTML = milestones.map((ms, i) => {
+    // Sort descending by trigger level for display, then by type order within
+    // the same level. Preserve original index so data-ms-idx always refers to
+    // the correct position in attributeMilestones[].
+    const _MS_TYPE_ORDER = { feat: 0, saving_throw: 1, attribute: 2, skill: 3, subskill: 4, module: 5 };
+    const sortedMilestones = milestones
+        .map((ms, i) => ({ ms, i }))
+        .sort((a, b) => {
+            const levelDiff = (a.ms.level || 1) - (b.ms.level || 1);
+            if (levelDiff !== 0) return levelDiff;
+            return (_MS_TYPE_ORDER[a.ms.type] ?? 99) - (_MS_TYPE_ORDER[b.ms.type] ?? 99);
+        });
+
+    const rowsHTML = sortedMilestones.map(({ ms, i }) => {
         const type = ms.type || 'attribute';
 
         // ── Type selector ─────────────────────────────────────────────────────
@@ -1039,8 +1186,8 @@ function renderMilestoneSection(job) {
                 ${milestones.length === 0 ? '<div class="subskills-empty">No milestones yet.</div>' : ''}
                 ${rowsHTML}
             </div>
+            ${renderStagingRow(job, ss)}
             <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
-                <button class="btn-add-flat-term ms-add-btn" data-job-id="${job.id}">+ Add Milestone</button>
                 <button class="btn-apply-current-milestones" data-job-id="${job.id}"
                         title="Manually apply all milestones set at the job's current level (Lv.${job.level || 0}). Use this if milestones were added after the level was already reached."
                         style="background:#2a4a2a;border:1px solid #4a8a4a;color:#8dff8d;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">
@@ -1471,7 +1618,7 @@ function attachMasterModeListeners() {
             const oldLevel = job.level || 0;
             const newLevel = Math.max(0, Math.min(10, oldLevel + delta));
             if (newLevel === oldLevel) return;
-            const ppl = job.pointGrantsPerLevel || 1;
+            const ppl = job.pointGrantsPerLevel ?? 1;
             job.level = newLevel;
             if (delta > 0) {
                 // Levelled up: grant Specialty Points
@@ -1541,9 +1688,9 @@ function attachMasterModeListeners() {
         .on('input', '.job-points-per-level-input', function() {
             const job = extensionSettings.statSheet.jobs.find(j => j.id === $(this).data('job-id'));
             if (job) {
-                const newPPL = Math.max(1, Math.min(10, parseInt($(this).val()) || 1));
+                const newPPL = Math.max(0, Math.min(10, parseInt($(this).val()) || 0));
                 // Capture OLD value BEFORE overwriting — this is the source of the previous bug.
-                const oldPPL     = job.pointGrantsPerLevel || 1;
+                const oldPPL     = job.pointGrantsPerLevel ?? 1;
                 job.pointGrantsPerLevel = newPPL;
                 // Recalculate unspentPoints: newGranted - spent, where spent = oldGranted - oldUnspent.
                 const oldGranted = (job.level || 0) * oldPPL;
@@ -1963,25 +2110,85 @@ function attachMasterModeListeners() {
         });
 
     // Add a new milestone (defaults: level 1, first available attribute, +1)
-    $(document).off('click', '.ms-add-btn')
-        .on('click', '.ms-add-btn', function() {
+    // ── Staging row: type change → re-render staging row only ─────────────────
+    $(document).off('change', '.ms-stage-type')
+        .on('change', '.ms-stage-type', function() {
+            const jobId = $(this).data('job-id');
+            _stagingState(jobId).type = $(this).val();
+            const job = extensionSettings.statSheet.jobs.find(j => j.id === jobId);
+            if (job) $(this).closest('.ms-staging-row').replaceWith(
+                $(renderStagingRow(job, extensionSettings.statSheet))
+            );
+        });
+
+    // ── Staging row: field updates ────────────────────────────────────────────
+    $(document).off('change input', '.ms-stage-level')
+        .on('change input', '.ms-stage-level', function() {
+            const st = _stagingState($(this).data('job-id'));
+            st.level = Math.max(1, parseInt($(this).val()) || 1);
+        });
+    $(document).off('change', '.ms-stage-attr-select')
+        .on('change', '.ms-stage-attr-select', function() {
+            _stagingState($(this).data('job-id')).attrId = $(this).val();
+        });
+    $(document).off('change', '.ms-stage-feat-select')
+        .on('change', '.ms-stage-feat-select', function() {
+            _stagingState($(this).data('job-id')).featId = $(this).val();
+        });
+    $(document).off('change', '.ms-stage-skill-select')
+        .on('change', '.ms-stage-skill-select', function() {
+            _stagingState($(this).data('job-id')).skillId = $(this).val();
+        });
+    $(document).off('change', '.ms-stage-subskill-select')
+        .on('change', '.ms-stage-subskill-select', function() {
+            _stagingState($(this).data('job-id')).subSkillId = $(this).val();
+        });
+    $(document).off('change', '.ms-stage-st-select')
+        .on('change', '.ms-stage-st-select', function() {
+            _stagingState($(this).data('job-id')).stId = $(this).val();
+        });
+    $(document).off('change input', '.ms-stage-amount')
+        .on('change input', '.ms-stage-amount', function() {
+            _stagingState($(this).data('job-id')).amount = Math.max(1, parseInt($(this).val()) || 1);
+        });
+    $(document).off('change', '.ms-stage-module-skill-select')
+        .on('change', '.ms-stage-module-skill-select', function() {
+            _stagingState($(this).data('job-id')).skillId = $(this).val();
+        });
+    $(document).off('change', '.ms-stage-module-rank-select')
+        .on('change', '.ms-stage-module-rank-select', function() {
+            _stagingState($(this).data('job-id')).moduleRank = parseInt($(this).val()) || 1;
+        });
+    $(document).off('change', '.ms-stage-module-innate-chk')
+        .on('change', '.ms-stage-module-innate-chk', function() {
+            _stagingState($(this).data('job-id')).moduleIsInnate = $(this).is(':checked');
+        });
+
+    // ── Staging row: commit ───────────────────────────────────────────────────
+    $(document).off('click', '.ms-stage-add-btn')
+        .on('click', '.ms-stage-add-btn', function() {
             const jobId = $(this).data('job-id');
             const job   = extensionSettings.statSheet.jobs.find(j => j.id === jobId);
             if (!job) return;
             if (!Array.isArray(job.attributeMilestones)) job.attributeMilestones = [];
+            const stage = _stagingState(jobId);
+            // Resolve first-available fallbacks for fields not yet touched
             const firstAttr  = (extensionSettings.statSheet.attributes || []).find(a => a.enabled);
             const firstSkill = (extensionSettings.statSheet.combatSkills || [])[0];
             job.attributeMilestones.push({
-                id:            generateUniqueId(),
-                type:          'attribute',
-                level:         1,
-                attrId:        firstAttr?.id || '',
-                amount:        1,
-                // module fields (unused until type switched)
-                skillId:       firstSkill?.id || '',
-                moduleRank:    1,
-                moduleIsInnate: true,
+                id:             generateUniqueId(),
+                type:           stage.type,
+                level:          stage.level,
+                attrId:         stage.attrId  || firstAttr?.id  || '',
+                featId:         stage.featId  || '',
+                skillId:        stage.skillId || firstSkill?.id || '',
+                subSkillId:     stage.subSkillId || '',
+                stId:           stage.stId    || '',
+                amount:         stage.amount  || 1,
+                moduleRank:     stage.moduleRank    || 1,
+                moduleIsInnate: stage.moduleIsInnate !== false,
             });
+            // Keep type and level so repeated adds are fast
             saveStatSheetData();
             refreshCurrentTab();
         });

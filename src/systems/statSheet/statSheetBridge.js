@@ -1192,10 +1192,19 @@ function _resolveModValue(mod, ss) {
             if (!attr.enabled) continue;
             const sk = (attr.skills || []).find(s => s.id === mod.targetId && s.enabled);
             if (!sk) continue;
-            const raw     = sk.mode === 'alphabetic'
+            // ── Bug fix S25 ───────────────────────────────────────────────────
+            // Was: multiplier * skillRaw   (attribute contribution silently dropped)
+            // Now: attrMod + multiplier * skillRaw  (mirrors _resolveModLive)
+            // This divergence caused live combat dice to be lower than what the
+            // stat sheet display showed, because the parent attribute value was
+            // ignored at resolution time even though it was included in the UI.
+            const attrMod  = ss.mode === 'numeric'
+                ? (attr.value ?? 0)
+                : (gvm[attr.rank] ?? 0) + Math.floor((attr.rankValue ?? 0) / divisor);
+            const skillRaw = sk.mode === 'alphabetic'
                 ? (gvm[sk.rank ?? 'C'] ?? 0) + Math.floor((sk.rankValue ?? 0) / divisor)
                 : (sk.level ?? 0);
-            const applied = (mod.multiplier ?? 1) * raw;
+            const applied  = attrMod + (mod.multiplier ?? 1) * skillRaw;
             return mod.roundDown ? Math.floor(applied) : applied;
         }
         return 0;
@@ -1327,6 +1336,42 @@ export function resolveBarMax(stat) {
     }
 
     return Math.max(1, Math.floor(scaleValue * multiplier) + bonus);
+}
+
+/**
+ * Resolve the player's speed dice modifier from the speedDice config.
+ *
+ * ss.speedDice.attrId was always stored but never read at runtime — the
+ * modifier stayed as whatever flat number was saved, ignoring the attribute
+ * link entirely.  This function performs the same gvm + rankValue / divisor
+ * derivation used everywhere else in the codebase (alphabetic mode) or reads
+ * attr.value directly (numeric mode), then adds any flat modifier bonus on top.
+ *
+ * Returns a plain number suitable as speedSpec.modifier.
+ *
+ * @returns {number}
+ */
+export function resolveSpeedDiceModifier() {
+    const ss = extensionSettings.statSheet;
+    const sd = ss?.speedDice;
+    if (!sd?.enabled) return sd?.modifier ?? 0;
+
+    // No attribute linked — use the stored flat value
+    if (!sd.attrId) return sd.modifier ?? 0;
+
+    const es      = ss.editorSettings;
+    const gvm     = es?.gradeValueMap    || {};
+    const divisor = es?.attrValueDivisor || 100;
+
+    const attr = (ss.attributes || []).find(a => a.id === sd.attrId && a.enabled);
+    if (!attr) return sd.modifier ?? 0;
+
+    const attrVal = ss.mode === 'numeric'
+        ? (attr.value ?? 0)
+        : (gvm[attr.rank] ?? 0) + Math.floor((attr.rankValue ?? 0) / divisor);
+
+    // attrVal is the derived stat total; sd.modifier is an optional flat bonus on top
+    return attrVal + (sd.modifier ?? 0);
 }
 
 /**

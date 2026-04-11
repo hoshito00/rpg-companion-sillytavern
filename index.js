@@ -1204,23 +1204,13 @@ async function initUI() {
     setupDiceRoller();
     setupClassicStatsButtons();
     
-    // Initialize Stat Sheet system (v4.0)
-    try {
-        console.log('[RPG Companion] 🎲 Initializing Stat Sheet...');
-        initializeStatSheet();
-        initializeStatSheetUI();
-        
-        // Add button to open stat sheet
-        $(document).on('click', '#open-stat-sheet-btn', () => {
-            console.log('[RPG Companion] Stat sheet button clicked');
-            openModal();
-        });
-        
-        console.log('[RPG Companion] Stat Sheet initialized successfully');
-    } catch (error) {
-        console.error('[RPG Companion] Stat Sheet initialization failed:', error);
-        // Non-critical - continue without it
-    }
+    // Register stat sheet button click handler immediately.
+    // initializeStatSheet / initializeStatSheetUI are deferred to the next
+    // macrotask (see main jQuery block) to avoid blocking ST's own startup.
+    $(document).on('click', '#open-stat-sheet-btn', () => {
+        console.log('[RPG Companion] Stat sheet button clicked');
+        openModal();
+    });
     
     setupSettingsPopup();
     initTrackerEditor();
@@ -1321,13 +1311,28 @@ jQuery(async () => {
         // Load chat-specific data for current chat
         try {
             loadChatData();
-            loadStatSheetData();
             // Initialize FAB widgets and strip widgets with any loaded data
             updateFabWidgets();
             updateStripWidgets();
         } catch (error) {
             console.error('[RPG Companion] Chat data load failed, using defaults:', error);
         }
+
+        // Defer stat sheet init to the next macrotask so it does not block ST's
+        // own startup sequence. loadStatSheetData is included here because it
+        // depends on initializeStatSheet having run first.
+        setTimeout(() => {
+            try {
+                console.log('[RPG Companion] 🎲 Initializing Stat Sheet...');
+                initializeStatSheet();
+                initializeStatSheetUI();
+                loadStatSheetData();
+                console.log('[RPG Companion] ✅ Stat Sheet initialized successfully');
+            } catch (error) {
+                console.error('[RPG Companion] Stat Sheet initialization failed:', error);
+                // Non-critical - extension continues without stat sheet
+            }
+        }, 0);
 
         // Session 10: Auto-regex removed. Run a one-time cleanup to remove any
         // previously-injected regex scripts so they don't linger in ST settings.

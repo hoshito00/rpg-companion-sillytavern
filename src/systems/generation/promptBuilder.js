@@ -274,9 +274,22 @@ export function generateTrackerExample() {
     if (extensionSettings.showUserStats && committedTrackerData.userStats) {
         // Try to parse as JSON first, otherwise treat as text
         try {
-            JSON.parse(committedTrackerData.userStats);
+            const parsed = JSON.parse(committedTrackerData.userStats);
+            // ── Strip disabled / deleted bars before sending to AI ────────────
+            // committedTrackerData may contain bars that have since been disabled
+            // or deleted. Build an allowed-ID set from the currently-enabled
+            // customStats config so the AI never sees stale entries.
+            if (parsed && Array.isArray(parsed.stats)) {
+                const enabledIds = new Set(
+                    (extensionSettings.trackerConfig?.userStats?.customStats || [])
+                        .filter(s => s && s.enabled && s.id)
+                        .map(s => s.id)
+                );
+                parsed.stats = parsed.stats.filter(s => enabledIds.has(s.id));
+            }
+            const sanitized = JSON.stringify(parsed);
             // It's valid JSON - apply locks
-            const lockedData = applyLocks(committedTrackerData.userStats, 'userStats');
+            const lockedData = applyLocks(sanitized, 'userStats');
             parts.push(`  "userStats": ${lockedData}`);
         } catch {
             // It's text format - no locks applied

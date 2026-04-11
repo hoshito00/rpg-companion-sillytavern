@@ -37,12 +37,23 @@ export async function rollDice(diceModal) {
 
     diceModal.finishRolling(total, `${count}d${sides}`);
 
-    setPendingDiceRoll({
+    const rollData = {
         formula: `${count}d${sides}`,
-        total: total,
-        rolls: rolls,
-        label: label
-    });
+        total:   total,
+        rolls:   rolls,
+        label:   label
+    };
+
+    setPendingDiceRoll(rollData);
+
+    // ── Immediately update the Last Roll display (Bug fix S25) ───────────────
+    // Previously lastDiceRoll was only written inside addDiceQuickReply(), which
+    // required the user to click "Add to chat" — so the sidebar display never
+    // updated from a plain roll or a combat-skill roll.  Now it updates the
+    // moment a roll resolves, regardless of what the user does next.
+    extensionSettings.lastDiceRoll = { ...rollData };
+    saveSettings();
+    updateDiceDisplay();
 }
 
 /**
@@ -91,7 +102,12 @@ export function updateDiceDisplay() {
 }
 
 /**
- * Adds the pending dice roll as a quick reply / appends to chat input.
+ * Commits the pending dice roll to the history log and clears the pending state.
+ * The "append roll text to chat textarea" behaviour has been removed (Session 25)
+ * because it fired on every roll and inserted unwanted text mid-message.
+ *
+ * lastDiceRoll and the sidebar display are already updated in rollDice(), so
+ * this function only needs to persist the log entry and clear the pending roll.
  */
 export function addDiceQuickReply() {
     if (!pendingDiceRoll || pendingDiceRoll.total === undefined) {
@@ -106,19 +122,6 @@ export function addDiceQuickReply() {
             pendingDiceRoll.rolls,
             pendingDiceRoll.label
         );
-    }
-
-    extensionSettings.lastDiceRoll = { ...pendingDiceRoll };
-    saveSettings();
-    updateDiceDisplay();
-
-    const rollText = `[${pendingDiceRoll.label} Roll: ${pendingDiceRoll.formula} = ${pendingDiceRoll.total}]`;
-    
-    const $sendTextarea = $('#send_textarea');
-    if ($sendTextarea.length) {
-        const currentVal = String($sendTextarea.val() || '');
-        const separator = currentVal.length > 0 && !currentVal.endsWith(' ') ? ' ' : '';
-        $sendTextarea.val(currentVal + separator + rollText).trigger('input');
     }
 
     setPendingDiceRoll(null);

@@ -11,7 +11,8 @@
 import { extensionSettings }              from '../../core/state.js';
 import { calculateSavingThrowValue,
          buildSavingThrowFormula,
-         getSkillEffectiveLevel }          from './statSheetState.js';
+         getSkillEffectiveLevel,
+         sortSavingThrows }               from './statSheetState.js';
 import { buildPromptIncludeToggle,
          showNotification }               from './statSheetUI.js';
 import { exportStatSheet, importStatSheet } from '../../core/persistence.js';
@@ -272,7 +273,8 @@ function renderAttributesBlock(ss) {
 function renderSavingThrowsBlock(ss) {
     const sts = (ss.savingThrows || []).filter(s => s.enabled !== false);
     if (!sts.length) return '';
-    const rows = sts.map(st => {
+    const sorted = sortSavingThrows(sts, ss.attributes || [], ss.stCategories || []);
+    const rows = sorted.map(st => {
         let total = 0;
         try { total = calculateSavingThrowValue(st); } catch {}
         const formula = buildSavingThrowFormula(st);

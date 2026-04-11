@@ -315,10 +315,10 @@ function buildTabHTML() {
             <div class="aug-tab-header">
                 <h3>Augments</h3>
                 ${buildPromptIncludeToggle('augments', 'Augments')}
-                <button id="btn-open-aug-pool" class="btn-toggle-mode" title="Browse built-in and saved augment templates">
+                <button type="button" id="btn-open-aug-pool" class="btn-toggle-mode" title="Browse built-in and saved augment templates">
                     📦 Pool
                 </button>
-                <button id="btn-toggle-aug-mode" class="btn-toggle-mode ${isMasterMode ? 'btn-exit-master' : ''}">
+                <button type="button" id="btn-toggle-aug-mode" class="btn-toggle-mode ${isMasterMode ? 'btn-exit-master' : ''}">
                     ${isMasterMode ? '▶ Player' : '⚙️ Master'}
                 </button>
             </div>
@@ -337,7 +337,7 @@ function buildTabHTML() {
                     ${renderBodySVG(slots)}
                     <div class="aug-body-hint">Click a body zone to filter</div>
                     ${selectedSlotId
-                        ? `<button class="aug-clear-filter">✕ Show All</button>`
+                        ? `<button type="button" class="aug-clear-filter">✕ Show All</button>`
                         : ''}
                 </div>
 
@@ -457,7 +457,7 @@ function renderSlotPanel(slot) {
     const augRows = augments.map(a => renderAugmentCard(a, slot)).join('');
 
     const addBtn = isMasterMode && !isFull
-        ? `<button class="aug-add-btn" data-slot-id="${slot.id}">+ Add</button>`
+        ? `<button type="button" class="aug-add-btn" data-slot-id="${slot.id}">+ Add</button>`
         : isMasterMode && isFull
         ? `<span class="aug-full-note">Slot full (${capacity})</span>`
         : '';
@@ -486,8 +486,8 @@ function renderAugmentCard(aug, slot) {
                 <div class="aug-card-row">
                     <span class="aug-card-name" style="${nameStyle}">${escHtml(aug.name)}</span>
                     <div class="aug-card-actions">
-                        <button class="aug-btn-detail" data-aug-id="${aug.id}" title="Edit details">✏️</button>
-                        <button class="aug-btn-remove" data-aug-id="${aug.id}" data-slot-id="${slot.id}" title="Remove">×</button>
+                        <button type="button" class="aug-btn-detail" data-aug-id="${aug.id}" title="Edit details">✏️</button>
+                        <button type="button" class="aug-btn-remove" data-aug-id="${aug.id}" data-slot-id="${slot.id}" title="Remove">×</button>
                     </div>
                 </div>
                 ${aug.shortDesc ? `<div class="aug-short-desc">${escHtml(aug.shortDesc)}</div>` : ''}
@@ -500,7 +500,7 @@ function renderAugmentCard(aug, slot) {
             <span class="aug-card-name" style="${nameStyle}">${escHtml(aug.name)}</span>
             ${aug.shortDesc ? `<div class="aug-short-desc">${escHtml(aug.shortDesc)}</div>` : ''}
             ${aug.longDesc
-                ? `<button class="aug-btn-view-detail" data-aug-id="${aug.id}" title="View details">▸ Details</button>`
+                ? `<button type="button" class="aug-btn-view-detail" data-aug-id="${aug.id}" title="View details">▸ Details</button>`
                 : ''}
         </div>
     `;
@@ -554,7 +554,7 @@ function renderDetailPopupShell() {
             <div class="aug-popup-modal">
                 <div class="aug-popup-header">
                     <span id="aug-popup-title" class="aug-popup-title-text"></span>
-                    <button id="aug-popup-close" class="aug-popup-close-btn">×</button>
+                    <button type="button" id="aug-popup-close" class="aug-popup-close-btn">×</button>
                 </div>
                 <div id="aug-popup-body" class="aug-popup-body"></div>
             </div>
@@ -614,7 +614,7 @@ function buildEditPopupContent(aug) {
             <label class="aug-edit-label">Rarity</label>
             <div class="aug-rarity-picker">
                 ${RARITY_TIERS.map(t => `
-                    <button class="aug-rarity-btn ${(aug.rarityTier||'common') === t.id ? 'aug-rarity-active' : ''}"
+                    <button type="button" class="aug-rarity-btn ${(aug.rarityTier||'common') === t.id ? 'aug-rarity-active' : ''}"
                             data-aug-id="${aug.id}" data-tier-id="${t.id}"
                             style="--tier-color:${t.color};"
                             title="${t.label}">
@@ -640,7 +640,7 @@ function buildEditPopupContent(aug) {
                 <div class="aug-stat-bonuses-list" data-aug-id="${aug.id}">
                     ${bonusesHTML || '<div class="subskills-empty">No bonuses yet.</div>'}
                 </div>
-                <button class="aug-add-stat-bonus btn-add-flat-term" data-aug-id="${aug.id}"
+                <button type="button" class="aug-add-stat-bonus btn-add-flat-term" data-aug-id="${aug.id}"
                         style="margin-top:8px;">+ Add Bonus</button>
             </div>
 
@@ -649,7 +649,7 @@ function buildEditPopupContent(aug) {
                 <div class="aug-combat-links-list" data-aug-id="${aug.id}">
                     ${linksHTML || '<div class="subskills-empty">No links yet.</div>'}
                 </div>
-                <button class="aug-add-combat-link btn-add-flat-term" data-aug-id="${aug.id}"
+                <button type="button" class="aug-add-combat-link btn-add-flat-term" data-aug-id="${aug.id}"
                         style="margin-top:8px;">+ Link Combat Skill</button>
             </div>
 
@@ -665,7 +665,7 @@ function buildEditPopupContent(aug) {
 
             <label class="aug-edit-label"></label>
             <div style="margin-top:4px;">
-                <button class="aug-btn-save-template btn-add-flat-term" data-aug-id="${aug.id}"
+                <button type="button" class="aug-btn-save-template btn-add-flat-term" data-aug-id="${aug.id}"
                         title="Save this augment to your personal pool for reuse on other characters"
                         style="display:flex;align-items:center;gap:6px;">
                     💾 Save as Template
@@ -707,7 +707,7 @@ function renderAugStatBonusRow(sb, augId, attrs, skills, savs) {
             <span class="st-term-op">+</span>
             <input type="number" class="aug-sb-value" value="${sb.value||0}"
                    data-aug-id="${augId}" data-bonus-id="${sb.id}" style="width:52px;text-align:center;">
-            <button class="aug-sb-remove" data-aug-id="${augId}" data-bonus-id="${sb.id}" title="Remove">×</button>
+            <button type="button" class="aug-sb-remove" data-aug-id="${augId}" data-bonus-id="${sb.id}" title="Remove">×</button>
         </div>
     `;
 }
@@ -728,7 +728,7 @@ function renderCombatLinkRow(lnk, augId, idx) {
             <input type="number" class="rpg-input aug-link-bonus" data-aug-id="${augId}" data-link-idx="${idx}"
                    value="${lnk.bonusValue || 0}" style="width:52px; text-align:center;"
                    title="Flat bonus to that skill (0 = just an unlock)">
-            <button class="aug-link-remove" data-aug-id="${augId}" data-link-idx="${idx}" title="Remove">×</button>
+            <button type="button" class="aug-link-remove" data-aug-id="${augId}" data-link-idx="${idx}" title="Remove">×</button>
         </div>
     `;
 }
@@ -843,7 +843,7 @@ function _buildPoolCardHTML(entry, slots, isTemplate) {
     const tier      = RARITY_TIERS.find(t => t.id === (entry.rarityTier || 'common')) || RARITY_TIERS[0];
     const slotOpts  = slots.map(s => `<option value="${s.id}">${escHtml(s.name)}</option>`).join('');
     const deleteBtn = isTemplate
-        ? `<button class="aug-pool-delete-btn" data-tmpl-id="${entry._templateId}" title="Delete template">🗑</button>`
+        ? `<button type="button" class="aug-pool-delete-btn" data-tmpl-id="${entry._templateId}" title="Delete template">🗑</button>`
         : '';
 
     return `
@@ -857,7 +857,7 @@ function _buildPoolCardHTML(entry, slots, isTemplate) {
                 <select class="aug-pool-slot-picker">
                     ${slotOpts || '<option value="">— no slots —</option>'}
                 </select>
-                <button class="aug-pool-install-btn"
+                <button type="button" class="aug-pool-install-btn"
                         data-name="${escHtml(entry.name)}"
                         data-rarity="${escHtml(entry.rarityTier || 'common')}"
                         data-short="${escHtml(entry.shortDesc || '')}"
@@ -903,10 +903,10 @@ function openPoolPanel() {
             <div id="aug-pool-panel">
                 <div class="pool-header">
                     <h3>📦 Augment Module Pool</h3>
-                    <button class="pool-close" id="aug-pool-close">✕</button>
+                    <button type="button" class="pool-close" id="aug-pool-close">✕</button>
                 </div>
                 <div class="pool-tabs">
-                    <button class="pool-tab-btn active" data-pool-tab="templates">My Templates</button>
+                    <button type="button" class="pool-tab-btn active" data-pool-tab="templates">My Templates</button>
                 </div>
                 <div class="pool-search">
                     <input type="text" id="aug-pool-search" placeholder="Search…" autocomplete="off">

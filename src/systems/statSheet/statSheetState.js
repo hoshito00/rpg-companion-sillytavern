@@ -1531,3 +1531,62 @@ export function setSavingThrowCategory(stId, categoryId) {
     const st = getSavingThrowById(stId);
     if (st) { st.categoryId = categoryId; saveStatSheetData(); }
 }
+
+// ============================================================================
+// SAVING THROW SORT HELPER  (Session 24)
+// ============================================================================
+
+/**
+ * Sort a saving throws array into canonical display order:
+ *   1. Saves with parentAttrId → ordered by that attribute's position in
+ *      ss.attributes[], then alphabetically within the same attribute.
+ *   2. Saves with categoryId (no parentAttrId) → category name alpha,
+ *      then alphabetically within each category.
+ *   3. Unassigned saves → alphabetically.
+ *
+ * Does NOT mutate the input array.
+ *
+ * @param {object[]} savingThrows  - array of ST objects (pre-filtered as needed)
+ * @param {object[]} attributes    - ss.attributes[]
+ * @param {object[]} stCategories  - ss.stCategories[]
+ * @returns {object[]} new sorted array
+ */
+export function sortSavingThrows(savingThrows, attributes = [], stCategories = []) {
+    const attrIndexMap = {};
+    attributes.forEach((a, i) => { attrIndexMap[a.id] = i; });
+
+    const catNameMap = {};
+    stCategories.forEach(c => { catNameMap[c.id] = c.name; });
+
+    const withAttr   = [];
+    const withCat    = [];
+    const unassigned = [];
+
+    for (const st of savingThrows) {
+        if (st.parentAttrId && attrIndexMap[st.parentAttrId] !== undefined) {
+            withAttr.push(st);
+        } else if (st.categoryId) {
+            withCat.push(st);
+        } else {
+            unassigned.push(st);
+        }
+    }
+
+    withAttr.sort((a, b) => {
+        const ai = attrIndexMap[a.parentAttrId] ?? 9999;
+        const bi = attrIndexMap[b.parentAttrId] ?? 9999;
+        if (ai !== bi) return ai - bi;
+        return a.name.localeCompare(b.name);
+    });
+
+    withCat.sort((a, b) => {
+        const an = catNameMap[a.categoryId] || '';
+        const bn = catNameMap[b.categoryId] || '';
+        if (an !== bn) return an.localeCompare(bn);
+        return a.name.localeCompare(b.name);
+    });
+
+    unassigned.sort((a, b) => a.name.localeCompare(b.name));
+
+    return [...withAttr, ...withCat, ...unassigned];
+}

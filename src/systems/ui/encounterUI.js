@@ -89,6 +89,7 @@ import {
 } from '../features/encounterState.js';
 
 import { logDiceRoll } from '../interaction/diceLog.js';
+import { buildClashBlockHTML, buildRoundSummaryHTML } from '../generation/rollResultBuilder.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1239,6 +1240,15 @@ export class EncounterModal {
                 killedEnemies.push({ name: group.ownerName, morale: enemyState.morale });
             }
 
+            // ── Render visual clash block (S25) ──────────────────────────────
+            // rollResultBuilder was previously never called — report.pairs had
+            // all the data but only plain-text logLines were ever displayed.
+            this.addHTMLToLog(buildClashBlockHTML(report, {
+                skillName: group.skillName,
+                enemyName: group.ownerName,
+                speedRoll: group.speedRoll,
+            }), 'clash-visual');
+
             // Log each clash line
             for (const line of report.logLines) {
                 logLines.push(`  ${line}`);
@@ -1293,6 +1303,15 @@ export class EncounterModal {
         if (totalHpDeltaPlayer !== 0 || totalStaggerDeltaPlayer !== 0) {
             writePlayerDeltas(totalHpDeltaPlayer, totalStaggerDeltaPlayer);
         }
+
+        // ── Round summary visual block (S25) ─────────────────────────────────
+        const _roundSummaryHTML = buildRoundSummaryHTML({
+            totalHpDelta:      totalHpDeltaPlayer,
+            totalStaggerDelta: totalStaggerDeltaPlayer,
+            playerStaggered:   getCombatantState('_player')?.isStaggered ?? false,
+            playerKilled:      (getCombatantState('_player')?.hp ?? 1) <= 0,
+        });
+        if (_roundSummaryHTML) this.addHTMLToLog(_roundSummaryHTML, 'clash-round-summary');
 
         return { logLines, moraleDelta: totalMoraleDeltaPlayer, killedEnemies };
     }
@@ -1477,6 +1496,22 @@ export class EncounterModal {
         entry.className   = `rpg-encounter-log-entry ${type}`;
         entry.style.whiteSpace = 'pre-wrap';
         entry.textContent = message;
+        logContainer.appendChild(entry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    /**
+     * Append an HTML block to the encounter log.
+     * Used for rich clash visualisations from rollResultBuilder.
+     * @param {string} html
+     * @param {string} [type]
+     */
+    addHTMLToLog(html, type = '') {
+        const logContainer = this.modal.querySelector('#rpg-encounter-log');
+        if (!logContainer) return;
+        const entry = document.createElement('div');
+        entry.className = `rpg-encounter-log-entry ${type}`;
+        entry.innerHTML  = html;
         logContainer.appendChild(entry);
         logContainer.scrollTop = logContainer.scrollHeight;
     }

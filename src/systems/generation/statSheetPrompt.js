@@ -40,12 +40,20 @@ function _resolveMod(mod, ss) {
 
     if (mod.type === 'skill') {
         for (const attr of (ss.attributes || [])) {
+            if (!attr.enabled) continue;
             const sk = (attr.skills || []).find(s => s.id === mod.targetId && s.enabled);
             if (!sk) continue;
-            const raw = sk.mode === 'alphabetic'
+            // ── Bug fix S25 ───────────────────────────────────────────────────
+            // Same divergence as statSheetBridge._resolveModValue: was missing
+            // attrMod, so prompt showed skill-linked dice values without their
+            // parent attribute contribution.
+            const attrMod  = ss.mode === 'numeric'
+                ? (attr.value ?? 0)
+                : (gvm[attr.rank] ?? 0) + Math.floor((attr.rankValue ?? 0) / divisor);
+            const skillRaw = sk.mode === 'alphabetic'
                 ? (gvm[sk.rank ?? 'C'] ?? 0) + Math.floor((sk.rankValue ?? 0) / divisor)
                 : (sk.level ?? 0);
-            const applied = (mod.multiplier ?? 1) * raw;
+            const applied  = attrMod + (mod.multiplier ?? 1) * skillRaw;
             return mod.roundDown ? Math.floor(applied) : applied;
         }
         return null;

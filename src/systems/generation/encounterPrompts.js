@@ -17,6 +17,7 @@ import { repairJSON } from '../../utils/jsonRepair.js';
 import { buildInventorySummary, generateTrackerInstructions, generateTrackerExample } from './promptBuilder.js';
 import { applyLocks } from './lockManager.js';
 import { buildEncounterStatSheetBlock } from './statSheetPrompt.js';
+import { resolveSpeedDiceModifier } from '../statSheet/statSheetBridge.js';
 
 // ── Private helpers ───────────────────────────────────────────────────────────
 
@@ -770,6 +771,20 @@ export function buildCombatTagBlock(combatStats, userName) {
         .map(e => `"${e.name}"`)
         .join(', ');
 
+    // ── Resolve player speed for AI calibration (Bug fix S25) ────────────────
+    // speedDice.attrId was never wired into the prompt, so the AI had no
+    // reference when choosing enemy speed values. Now we resolve the actual
+    // modifier (attribute-derived in alphabetic mode, flat otherwise) and
+    // include it so the AI can calibrate enemy speeds relative to the player.
+    const ss = extensionSettings.statSheet;
+    let playerSpeedNote = '';
+    if (ss?.speedDice?.enabled) {
+        const resolvedMod = resolveSpeedDiceModifier();
+        const sd = ss.speedDice;
+        const diceStr = `${sd.count ?? 1}d${sd.sides ?? 6}`;
+        playerSpeedNote = `\n  • ${userName}'s speed die: ${diceStr}+${resolvedMod} — calibrate enemy speeds relative to this.\n`;
+    }
+
     return `
 ─── COMBAT ENGINE TAGS (emit at end of every response, after narrative and JSON) ───────────────
 
@@ -802,7 +817,7 @@ Rules:
   • Living enemies this round: ${enemyNames || '(see enemies list)'}
   • Choose skills that fit the enemy's situation and remaining HP.
   • Defensive skills use Block or Evade type; offensive skills use Slash, Pierce, or Blunt.
-  • Do NOT emit enemy_action for defeated enemies (hp ≤ 0).
+  • Do NOT emit enemy_action for defeated enemies (hp ≤ 0).${playerSpeedNote}
 
 ━━━ enemy_init  (emit ONCE per enemy, on their first appearance) ━━━━━━━━━━━━━━━━━━━━━━━━━━
 

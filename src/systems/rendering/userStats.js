@@ -104,33 +104,22 @@ function updateUserStatsData() {
                     const config = extensionSettings.trackerConfig?.userStats || {};
                     const enabledStats = config.customStats?.filter(stat => stat && stat.enabled && stat.name && stat.id) || [];
 
-                    // Build stats array - include all stats from extensionSettings, not just enabled ones
-                    // This preserves custom stats that AI might have added or that user has disabled
+                    // Build stats array from enabled config stats only (maintains order).
+                    // ── Bug fix S25 ──────────────────────────────────────────────────────
+                    // Previously a second loop added ALL numeric keys from
+                    // extensionSettings.userStats regardless of their `enabled` flag,
+                    // causing disabled condition bars to appear in the AI prompt.
+                    // Disabled stats must not enter the JSON blob at all.
                     const statsArray = [];
                     const processedIds = new Set();
 
-                    // First, add all enabled stats from config (maintains order)
                     enabledStats.forEach(stat => {
                         statsArray.push({
-                            id: stat.id,
-                            name: stat.name,
+                            id:    stat.id,
+                            name:  stat.name,
                             value: stats[stat.id] !== undefined ? stats[stat.id] : 100
                         });
                         processedIds.add(stat.id);
-                    });
-
-                    // Then, add any other numeric stats from extensionSettings that aren't in config
-                    // (these could be custom stats the AI added or disabled stats)
-                    const customFields = config.statusSection?.customFields || [];
-                    const excludeFields = new Set(['mood', ...customFields.map(f => toFieldKey(f)), 'inventory', 'skills', 'level']);
-                    Object.entries(stats).forEach(([key, value]) => {
-                        if (!processedIds.has(key) && !excludeFields.has(key) && typeof value === 'number') {
-                            statsArray.push({
-                                id: key,
-                                name: key.charAt(0).toUpperCase() + key.slice(1),
-                                value: value
-                            });
-                        }
                     });
 
                     jsonData.stats = statsArray;

@@ -36,9 +36,10 @@ import {
     addSTCategory,
     removeSTCategory,
     renameSTCategory,
-    setSavingThrowCategory
+    setSavingThrowCategory,
+    sortSavingThrows
 } from './statSheetState.js';
-import { saveStatSheetData } from '../../core/persistence.js';
+import { saveStatSheetData, saveSettings } from '../../core/persistence.js';
 import { refreshCurrentTab, showNotification, buildPromptIncludeToggle } from './statSheetUI.js';
 import { executeRollCommand, updateDiceDisplay } from '../features/dice.js';
 import { logDiceRoll } from '../interaction/diceLog.js';
@@ -563,8 +564,10 @@ function renderPlayerSavingThrows(savingThrows) {
     const enabled = (savingThrows || []).filter(st => st.enabled);
     if (enabled.length === 0) return '';
 
+    const ss     = extensionSettings.statSheet;
+    const sorted = sortSavingThrows(enabled, ss.attributes || [], ss.stCategories || []);
     const isList = stLayout === 'list';
-    const items  = enabled.map(st => {
+    const items  = sorted.map(st => {
         const total = calculateSavingThrowValue(st);
         const rollBtn = `<button class="btn-roll-skill btn-roll-save"
                                  data-skill-id="${st.id}"
@@ -632,8 +635,12 @@ function attachPlayerModeEventListeners() {
         .on('click', '#btn-st-layout', function(e) {
             e.stopPropagation();
             stLayout = stLayout === 'list' ? 'grid' : 'list';
+            const { attributes, savingThrows } = extensionSettings.statSheet;
+            const orphans = savingThrows.filter(
+                st => !st.parentAttrId || !attributes.find(a => a.id === st.parentAttrId && a.enabled)
+            );
             $('.saving-throws-section').replaceWith(
-                $(renderPlayerSavingThrows(extensionSettings.statSheet.savingThrows))
+                $(renderPlayerSavingThrows(orphans))
             );
         });
 
@@ -920,7 +927,10 @@ function openRollPopover(btnEl) {
         const modSign     = mod >= 0 ? '+' : '';
         const rollFormula = `1d${sides}${modSign}${mod}`;
         logDiceRoll(rollFormula, total, [diceRoll], rollLabel);
+        extensionSettings.lastDiceRoll = { formula: rollFormula, total, rolls: [diceRoll], label: rollLabel };
+        saveSettings();
         updateDiceDisplay();
+        window.RPGCompanion?.refreshDiceLog?.();
 
         $(this).prop('disabled', false).text('🎲 Roll');
         $pop.find('.roll-config-phase').hide();
