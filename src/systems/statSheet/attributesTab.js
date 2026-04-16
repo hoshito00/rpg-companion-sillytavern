@@ -1097,7 +1097,7 @@ function renderAffinitySection() {
     const allAttrs      = (ss.attributes || []).filter(a => a.enabled);
     const slotAttrId    = aff.slotAttrId || '';
     const slotAttr      = allAttrs.find(a => a.id === slotAttrId) || null;
-    const slotAttrValue = slotAttr ? (ss.mode === 'numeric' ? (slotAttr.value || 0) : 0) : 0;
+    const slotAttrValue = slotAttr ? getAttrModifier(slotAttr, ss.mode) : 0;
     const totalSlots    = Math.max(0, slotAttrValue - 1);
 
     // assignments is now an object { Slash:{damage,stagger}, Blunt:{...}, Pierce:{...} }

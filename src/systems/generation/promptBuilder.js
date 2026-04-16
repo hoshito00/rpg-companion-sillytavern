@@ -577,22 +577,16 @@ function formatTrackerDataForContext(jsonData, trackerType, userName) {
         if (trackerType === 'userStats') {
             formatted += `${userName}'s Stats:\n`;
 
-            // Get display mode and custom stats config for maxValue lookup
+            // Get custom stats config for per-stat display mode and maxValue lookup
             const userStatsConfig = extensionSettings.trackerConfig?.userStats;
-            const displayMode = userStatsConfig?.statsDisplayMode || 'percentage';
             const customStats = userStatsConfig?.customStats || [];
 
-            // Helper to get maxValue for a stat by id
-            const getMaxValue = (statId) => {
-                const statConfig = customStats.find(s => s.id === statId);
-                return statConfig?.maxValue || 100;
-            };
-
-            // Helper to format stat value based on display mode
+            // Helper to format stat value based on per-stat display mode
             const formatStatValue = (value, statId) => {
-                if (displayMode === 'number') {
-                    const maxValue = getMaxValue(statId);
-                    return `${value}/${maxValue}`;
+                const statConfig = customStats.find(s => s.id === statId);
+                const statDisplayMode = statConfig?.displayMode || 'percentage';
+                if (statDisplayMode === 'number') {
+                    return `${value}/${statConfig.maxValue || 100}`;
                 }
                 return value;
             };

@@ -118,6 +118,25 @@ function _countAssignedSpares(ss) {
 }
 
 /**
+ * Sum modulePoolBonus from all augments that are assigned to a valid slot.
+ * Only installed augments (aug.slotId matches an existing augmentSlot) contribute.
+ * @param {object} ss
+ * @returns {{ r1: number, r2: number, r3: number }}
+ */
+function _sumAugmentPoolBonuses(ss) {
+    const validSlotIds = new Set((ss.augmentSlots || []).map(s => s.id));
+    const result = { r1: 0, r2: 0, r3: 0 };
+    for (const aug of (ss.augments || [])) {
+        if (!aug.slotId || !validSlotIds.has(aug.slotId)) continue;
+        const mpb = aug.modulePoolBonus || {};
+        result.r1 += mpb.r1 || 0;
+        result.r2 += mpb.r2 || 0;
+        result.r3 += mpb.r3 || 0;
+    }
+    return result;
+}
+
+/**
  * Resolve the numeric value of an attribute from the stat sheet.
  * Works for both numeric and alphabetic modes.
  */
@@ -144,7 +163,8 @@ function _buildModulePoolHTML() {
 
     const intValue   = _resolveAttrValue(intId, ss);
     const fromInt    = _spareFromInt(intValue);
-    const total      = { r1: fromInt.r1 + (manual.r1||0), r2: fromInt.r2 + (manual.r2||0), r3: fromInt.r3 + (manual.r3||0) };
+    const augBonus   = _sumAugmentPoolBonuses(ss);
+    const total      = { r1: fromInt.r1 + (manual.r1||0) + augBonus.r1, r2: fromInt.r2 + (manual.r2||0) + augBonus.r2, r3: fromInt.r3 + (manual.r3||0) + augBonus.r3 };
     const used       = _countAssignedSpares(ss);
     const free       = { r1: total.r1 - used.r1, r2: total.r2 - used.r2, r3: total.r3 - used.r3 };
 
@@ -179,7 +199,7 @@ function _buildModulePoolHTML() {
         </div>
     </div>` : '';
 
-    function rankRow(label, color, rank, frInt, frManual, tot, us, fr) {
+    function rankRow(label, color, rank, frInt, frManual, frAug, tot, us, fr) {
         const overCls = fr < 0 ? 'mp-over' : fr === 0 ? 'mp-depleted' : '';
         return `
         <tr class="${overCls}">
@@ -190,6 +210,7 @@ function _buildModulePoolHTML() {
                     data-rank="${rank}" value="${frManual}"
                     style="width:44px;text-align:center;padding:2px 4px;">
             </td>
+            <td class="mp-num">${frAug > 0 ? `<span style="color:#a0d4a0;">+${frAug}</span>` : frAug}</td>
             <td class="mp-num">${tot}</td>
             <td class="mp-num">${us}</td>
             <td class="mp-num mp-free" style="color:${fr < 0 ? '#ff4f4f' : fr === 0 ? '#6a6a8a' : '#e0e0f0'};">${fr}</td>
@@ -217,16 +238,17 @@ function _buildModulePoolHTML() {
                 <tr>
                     <th>Rank</th>
                     <th>From INT</th>
-                    <th>Bonus</th>
+                    <th>Manual</th>
+                    <th>Aug</th>
                     <th>Total</th>
                     <th>Used</th>
                     <th>Free</th>
                 </tr>
             </thead>
             <tbody>
-                ${rankRow('R1', '#7eb8d4', 1, fromInt.r1, manual.r1||0, total.r1, used.r1, free.r1)}
-                ${rankRow('R2', '#c49ae8', 2, fromInt.r2, manual.r2||0, total.r2, used.r2, free.r2)}
-                ${rankRow('R3', '#f0ad4e', 3, fromInt.r3, manual.r3||0, total.r3, used.r3, free.r3)}
+                ${rankRow('R1', '#7eb8d4', 1, fromInt.r1, manual.r1||0, augBonus.r1, total.r1, used.r1, free.r1)}
+                ${rankRow('R2', '#c49ae8', 2, fromInt.r2, manual.r2||0, augBonus.r2, total.r2, used.r2, free.r2)}
+                ${rankRow('R3', '#f0ad4e', 3, fromInt.r3, manual.r3||0, augBonus.r3, total.r3, used.r3, free.r3)}
             </tbody>
         </table>
         ${int10Section}
@@ -653,14 +675,14 @@ function buildEditPopupContent(aug) {
                         style="margin-top:8px;">+ Link Combat Skill</button>
             </div>
 
-            <label class="aug-edit-label" style="opacity:0.5;">Module Pool <span style="font-size:10px;">(Session 6)</span></label>
-            <div style="display:flex;gap:10px;opacity:0.45;">
+            <label class="aug-edit-label">Module Pool Bonus</label>
+            <div style="display:flex;gap:10px;">
                 <label>R1 <input type="number" class="rpg-input aug-mp-r1" data-aug-id="${aug.id}"
-                    value="${mpb.r1}" min="0" style="width:44px;text-align:center;" disabled></label>
+                    value="${mpb.r1}" min="0" style="width:60px;text-align:center;"></label>
                 <label>R2 <input type="number" class="rpg-input aug-mp-r2" data-aug-id="${aug.id}"
-                    value="${mpb.r2}" min="0" style="width:44px;text-align:center;" disabled></label>
+                    value="${mpb.r2}" min="0" style="width:60px;text-align:center;"></label>
                 <label>R3 <input type="number" class="rpg-input aug-mp-r3" data-aug-id="${aug.id}"
-                    value="${mpb.r3}" min="0" style="width:44px;text-align:center;" disabled></label>
+                    value="${mpb.r3}" min="0" style="width:60px;text-align:center;"></label>
             </div>
 
             <label class="aug-edit-label"></label>
@@ -1198,6 +1220,18 @@ function attachListeners() {
             ss.modulesPool.manualBonus[key] = Math.max(0, parseInt($(this).val()) || 0);
             saveStatSheetData();
             refreshCurrentTab();
+        });
+
+    // Per-augment module pool bonus inputs (in edit popup)
+    $(document).off('change', '.aug-mp-r1, .aug-mp-r2, .aug-mp-r3')
+        .on('change', '.aug-mp-r1, .aug-mp-r2, .aug-mp-r3', function() {
+            const aug = _getAug($(this).data('aug-id'));
+            if (!aug) return;
+            if (!aug.modulePoolBonus) aug.modulePoolBonus = { r1: 0, r2: 0, r3: 0 };
+            const cls = $(this).attr('class').match(/aug-mp-(r[123])/)?.[1];
+            if (cls) aug.modulePoolBonus[cls] = Math.max(0, parseInt($(this).val()) || 0);
+            saveStatSheetData();
+            _refreshPopup(aug.id); // stay in popup — refreshCurrentTab would close it
         });
 
     // INT 10 — Unique Skill → Base designation

@@ -16038,7 +16038,7 @@ body:has(.rpg-panel[data-theme="light"]) .rpg-strip-widget {
 /* ── Deck grid ───────────────────────────────────────────────────────────── */
 .cs-deck-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
     gap: 10px;
     padding: 12px;
 }
@@ -16118,6 +16118,7 @@ body:has(.rpg-panel[data-theme="light"]) .rpg-strip-widget {
 }
 .cs-card-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
     margin-top: auto;
 }
@@ -16495,7 +16496,7 @@ body:has(.rpg-panel[data-theme="light"]) .rpg-strip-widget {
     white-space: nowrap;
 }
 .cs-btn:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.2); }
-.cs-btn-sm { padding: 3px 10px; font-size: 0.78rem; }
+.cs-btn-sm { padding: 3px 7px; font-size: 0.78rem; }
 .cs-btn-icon { padding: 3px 7px; font-size: 0.8rem; }
 .cs-btn-primary {
     background: rgba(100,140,255,0.15);

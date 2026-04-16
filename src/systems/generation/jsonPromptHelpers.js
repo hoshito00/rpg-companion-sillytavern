@@ -43,7 +43,6 @@ export function buildUserStatsJSONInstruction() {
     const trackerConfig = extensionSettings.trackerConfig;
     const userStatsConfig = trackerConfig?.userStats;
     const enabledStats = userStatsConfig?.customStats?.filter(s => s && s.enabled && s.name) || [];
-    const displayMode = userStatsConfig?.statsDisplayMode || 'percentage';
 
     let instruction = '{\n';
     instruction += '  "stats": [\n';
@@ -52,7 +51,8 @@ export function buildUserStatsJSONInstruction() {
     for (let i = 0; i < enabledStats.length; i++) {
         const stat = enabledStats[i];
         const comma = i < enabledStats.length - 1 ? ',' : '';
-        if (displayMode === 'number') {
+        const statDisplayMode = stat.displayMode || 'percentage';
+        if (statDisplayMode === 'number') {
             const maxValue = stat.maxValue || 100;
             instruction += `    {"id": "${stat.id}", "name": "${stat.name}", "value": X}${comma}  // 0 to ${maxValue}\n`;
         } else {
